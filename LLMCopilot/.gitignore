@@ -1,0 +1,84 @@
+# Visual Studio 文件夹
+.vs/
+
+# 编译输出文件夹
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+
+# Visual Studio 2015/2017 缓存/选项目录
+.vs/
+# Uncomment if you have tasks that create the project's static files in wwwroot
+#wwwroot/
+
+# Visual Studio 2017 自动生成的文件
+Generated\ Files/
+
+# MSTest 测试结果
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# NUnit
+*.VisualState.xml
+TestResult.xml
+
+# 构建结果
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+
+# Visual Studio 分析器
+.vs/
+
+# Visual Studio code coverage 结果
+*.coverage
+*.coveragexml
+
+# NuGet 包
+*.nupkg
+# NuGet Symbol 包
+*.snupkg
+# The packages folder can be ignored because of Package Restore
+**/[Pp]ackages/*
+# except build/, which is used as an MSBuild target.
+!**/[Pp]ackages/build/
+# Uncomment if necessary however generally it will be regenerated when needed
+#!**/[Pp]ackages/repositories.config
+# NuGet v3's project.json files produces more ignorable files
+*.nuget.props
+*.nuget.targets
+
+# Visual Studio 缓存文件
+# files ending in .cache can be ignored
+*.[Cc]ache
+# but keep track of directories ending in .cache
+!?*.[Cc]ache/
+
+# 其他
+*.dll
+*.pdb
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.tmp
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
