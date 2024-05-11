@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using MdXaml;
 
 namespace LLMCopilot
 {
@@ -20,6 +21,7 @@ namespace LLMCopilot
         /// </summary>
         public LLMChatWindowControl()
         {
+            var _ = new MdXaml.MarkdownScrollViewer();
             this.InitializeComponent();
             this.MessageListBox.ItemsSource = _messages;
 

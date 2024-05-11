@@ -119,21 +119,21 @@
     </VSCTCompile>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="lib\ICSharpCode.AvalonEdit.dll">
+    <Content Include="ICSharpCode.AvalonEdit.dll">
       <IncludeInVSIX>true</IncludeInVSIX>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="lib\MdXaml.dll">
-      <IncludeInVSIX>true</IncludeInVSIX>
+    <Content Include="MdXaml.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="lib\MdXaml.Plugins.dll">
-      <IncludeInVSIX>true</IncludeInVSIX>
+    <Content Include="MdXaml.Plugins.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="lib\Newtonsoft.Json.dll">
-      <IncludeInVSIX>true</IncludeInVSIX>
+    <Content Include="Newtonsoft.Json.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
     <Content Include="Resources\LLMChatWindowCommand.png" />
     <Content Include="Resources\LLMMenuCommand.png" />
