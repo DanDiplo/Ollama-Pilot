@@ -31,7 +31,7 @@ namespace LLMCopilot
             sb.AppendLine($"Message: {ex.Message}");
             sb.AppendLine($"Source: {ex.Source}");
             sb.AppendLine($"TargetSite: {ex.TargetSite}");
-            sb.Append("Data:\n ");
+            sb.AppendLine("Data:");
             foreach (var key in ex.Data.Keys)
             {
                 sb.AppendLine($"{key}: {ex.Data[key]}");
