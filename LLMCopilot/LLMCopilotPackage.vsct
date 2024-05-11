@@ -35,12 +35,20 @@
          other menus or buttons (commands); from a visual point of view you can see the
          group as the part of a menu contained between two lines. The parent of a group
          must be a menu. -->
+    <Menus>
+	    <Menu guid="guidLLMCopilotPackageCmdSet" id="TopLevelMenu" priority="0x700" type="Menu">
+		    <Parent guid="guidSHLMainMenu"
+		            id="IDG_VS_MM_TOOLSADDINS" />
+		    <Strings>
+			    <ButtonText>LLM Copilot</ButtonText>
+		    </Strings>
+	    </Menu>
+    </Menus>
     <Groups>
-      <Group guid="guidLLMCopilotPackageCmdSet" id="MyMenuGroup" priority="0x0600">
-        <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_TOOLS"/>
-      </Group>
+	    <Group guid="guidLLMCopilotPackageCmdSet" id="MyMenuGroup" priority="0x0600">
+		    <Parent guid="guidLLMCopilotPackageCmdSet" id="TopLevelMenu"/>
+	    </Group>
     </Groups>
-
     <!--Buttons section. -->
     <!--This section defines the elements the user can interact with, like a menu command or a button
         or combo box in a toolbar. -->
@@ -80,7 +88,9 @@
     <GuidSymbol name="guidLLMCopilotPackageCmdSet" value="{97b2029e-4a4a-44a2-89bd-a85b80527fb0}">
       <IDSymbol name="MyMenuGroup" value="0x1020" />
       <IDSymbol name="LLMMenuCommandId" value="0x0100" />
+      <IDSymbol name="TopLevelMenu" value="0x1021"/>
     </GuidSymbol>
+
 
     <GuidSymbol name="guidImages" value="{9c25e316-77bf-4455-81fb-3ef077e7f952}" >
       <IDSymbol name="bmpPic1" value="1" />
