@@ -26,6 +26,7 @@ namespace LLMCopilot
     [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
     [Guid(LLMCopilotPackage.PackageGuidString)]
     [ProvideMenuResource("Menus.ctmenu", 1)]
+    [ProvideToolWindow(typeof(LLMChatWindow))]
     public sealed class LLMCopilotPackage : AsyncPackage
     {
         /// <summary>
@@ -48,6 +49,7 @@ namespace LLMCopilot
             // Do any initialization that requires the UI thread after switching to the UI thread.
             await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
             await LLMMenuCommand.InitializeAsync(this);
+            await LLMChatWindowCommand.InitializeAsync(this);
         }
 
         #endregion

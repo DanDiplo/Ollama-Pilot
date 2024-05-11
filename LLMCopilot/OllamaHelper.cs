@@ -7,6 +7,8 @@ using OllamaSharp;
 using OllamaSharp.Models.Chat;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
+using System.Windows.Controls;
+using System.Windows;
 
 namespace LLMCopilot
 {
@@ -38,6 +40,22 @@ namespace LLMCopilot
         public OllamaApiClient OllamaClient
         {
             get { return ollamaClient; }
+        }
+    }
+
+    public class MessageTemplateSelector : DataTemplateSelector
+    {
+        public DataTemplate UserTemplate { get; set; }
+        public DataTemplate AssistantTemplate { get; set; }
+
+        public override DataTemplate SelectTemplate(object item, DependencyObject container)
+        {
+            var message = item as Message;
+            if (message != null)
+            {
+                return message.Role == ChatRole.User ? UserTemplate : AssistantTemplate;
+            }
+            return base.SelectTemplate(item, container);
         }
     }
 }

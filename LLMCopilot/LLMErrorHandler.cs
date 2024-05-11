@@ -16,11 +16,11 @@ namespace LLMCopilot
     {
         public static void Log([CallerMemberName] string memberName = "")
         {
-            ErrorHandler.WriteLog(memberName);
+            LLMErrorHandler.WriteLog(memberName);
         }
     }
 
-    public static class ErrorHandler
+    public static class LLMErrorHandler
     {
         private static IServiceProvider serviceProvider;
 
@@ -66,7 +66,7 @@ namespace LLMCopilot
                 OLEMSGBUTTON.OLEMSGBUTTON_OK,
                 OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
 
-            ErrorHandler.WriteLog(message);
+            LLMErrorHandler.WriteLog(message);
         }
 
         public static void WriteLog(string log)

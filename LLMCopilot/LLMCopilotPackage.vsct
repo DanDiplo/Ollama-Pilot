@@ -15,10 +15,10 @@
         defining some of the constants that we will use inside the file. -->
 
   <!--This is the file that defines the IDs for all the commands exposed by VisualStudio. -->
-  <Extern href="stdidcmd.h"/>
+  <Extern href="stdidcmd.h" />
 
   <!--This header contains the command ids for the menus provided by the shell. -->
-  <Extern href="vsshlids.h"/>
+  <Extern href="vsshlids.h" />
 
   <!--The Commands section is where commands, menus, and menu groups are defined.
       This section uses a Guid to identify the package that provides the command defined inside it. -->
@@ -37,8 +37,7 @@
          must be a menu. -->
     <Menus>
 	    <Menu guid="guidLLMCopilotPackageCmdSet" id="TopLevelMenu" priority="0x700" type="Menu">
-		    <Parent guid="guidSHLMainMenu"
-		            id="IDG_VS_MM_TOOLSADDINS" />
+		    <Parent guid="guidSHLMainMenu" id="IDG_VS_MM_TOOLSADDINS" />
 		    <Strings>
 			    <ButtonText>LLM Copilot</ButtonText>
 		    </Strings>
@@ -46,7 +45,7 @@
     </Menus>
     <Groups>
 	    <Group guid="guidLLMCopilotPackageCmdSet" id="MyMenuGroup" priority="0x0600">
-		    <Parent guid="guidLLMCopilotPackageCmdSet" id="TopLevelMenu"/>
+		    <Parent guid="guidLLMCopilotPackageCmdSet" id="TopLevelMenu" />
 	    </Group>
     </Groups>
     <!--Buttons section. -->
@@ -67,6 +66,13 @@
           <ButtonText>Invoke LLMMenuCommand</ButtonText>
         </Strings>
       </Button>
+      <Button guid="guidLLMCopilotPackageCmdSet" id="cmdidLLMChatWindowCommand" priority="0x0100" type="Button">
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
+        <Icon guid="guidImages1" id="bmpPic1" />
+        <Strings>
+          <ButtonText>LLMChatWindow</ButtonText>
+        </Strings>
+      </Button>
     </Buttons>
 
     <!--The bitmaps section is used to define the bitmaps that are used for the commands.-->
@@ -76,7 +82,8 @@
             bitmap strip containing the bitmaps and then there are the numeric ids of the elements used
             inside a button definition. An important aspect of this declaration is that the element id
             must be the actual index (1-based) of the bitmap inside the bitmap strip. -->
-      <Bitmap guid="guidImages" href="Resources\LLMMenuCommand.png" usedList="bmpPic1, bmpPic2, bmpPicSearch, bmpPicX, bmpPicArrows, bmpPicStrikethrough"/>
+      <Bitmap guid="guidImages" href="Resources\LLMMenuCommand.png" usedList="bmpPic1, bmpPic2, bmpPicSearch, bmpPicX, bmpPicArrows, bmpPicStrikethrough" />
+      <Bitmap guid="guidImages1" href="Resources\LLMChatWindowCommand.png" usedList="bmpPic1, bmpPic2, bmpPicSearch, bmpPicX, bmpPicArrows, bmpPicStrikethrough" />
     </Bitmaps>
   </Commands>
 
@@ -88,11 +95,21 @@
     <GuidSymbol name="guidLLMCopilotPackageCmdSet" value="{97b2029e-4a4a-44a2-89bd-a85b80527fb0}">
       <IDSymbol name="MyMenuGroup" value="0x1020" />
       <IDSymbol name="LLMMenuCommandId" value="0x0100" />
-      <IDSymbol name="TopLevelMenu" value="0x1021"/>
+      <IDSymbol name="TopLevelMenu" value="0x1021" />
+      <IDSymbol value="4130" name="cmdidLLMChatWindowCommand" />
     </GuidSymbol>
 
 
-    <GuidSymbol name="guidImages" value="{9c25e316-77bf-4455-81fb-3ef077e7f952}" >
+    <GuidSymbol name="guidImages" value="{9c25e316-77bf-4455-81fb-3ef077e7f952}">
+      <IDSymbol name="bmpPic1" value="1" />
+      <IDSymbol name="bmpPic2" value="2" />
+      <IDSymbol name="bmpPicSearch" value="3" />
+      <IDSymbol name="bmpPicX" value="4" />
+      <IDSymbol name="bmpPicArrows" value="5" />
+      <IDSymbol name="bmpPicStrikethrough" value="6" />
+    </GuidSymbol>
+  
+    <GuidSymbol value="{663f5559-d3be-4a65-a373-9710a2a6f831}" name="guidImages1">
       <IDSymbol name="bmpPic1" value="1" />
       <IDSymbol name="bmpPic2" value="2" />
       <IDSymbol name="bmpPicSearch" value="3" />
