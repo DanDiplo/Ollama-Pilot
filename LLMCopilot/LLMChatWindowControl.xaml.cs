@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using MdXaml;
+using System.Windows.Media;
 
 namespace LLMCopilot
 {
@@ -21,9 +22,11 @@ namespace LLMCopilot
         /// </summary>
         public LLMChatWindowControl()
         {
-            var _ = new MdXaml.MarkdownScrollViewer();
+            LLMErrorHandler.WriteLog("LLMChatWindowControl");
+            var _ = new MdXaml.MarkdownScrollViewer();//DO NOT Delete This!! fix can't find mdxaml dll
             this.InitializeComponent();
             this.MessageListBox.ItemsSource = _messages;
+                        
 
             // 在窗口启动时自动发送ListLocalModels请求
             Task.Run(async () =>
@@ -37,7 +40,7 @@ namespace LLMCopilot
                 });
             });
         }
-
+       
 
         private async void SendButton_Click(object sender, RoutedEventArgs e)
         {
@@ -57,6 +60,7 @@ namespace LLMCopilot
             string text = MessageTextBox.Text;
             if (!string.IsNullOrWhiteSpace(text))
             {
+                MessageTextBox.Clear();
                 var messages = await OllamaHelper.Instance.Chat.Send(text);
                 foreach (var message in messages)
                 {
@@ -65,10 +69,14 @@ namespace LLMCopilot
                         _messages.Add(message);
                     }
                 }
-                MessageTextBox.Clear();
+                
                 MessageListBox.ScrollIntoView(MessageListBox.Items[MessageListBox.Items.Count - 1]);
             }
             
         }
+
+      
+   
+
     }
 }
