@@ -12,10 +12,11 @@
              d:DesignHeight="450" d:DesignWidth="800" 
              Name="MyToolWindow">
     <UserControl.Resources>
+        <local:CapitalizeFirstLetterConverter x:Key="CapitalizeFirstLetterConverter"/>
         <DataTemplate x:Key="MessageTemplate">
             <Border Padding="10" Margin="5">
                 <StackPanel>
-                    <TextBlock Text="{Binding Role}" FontWeight="Bold" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" Margin="0,0,0,5"/>
+                    <TextBlock Text="{Binding Role, Converter={StaticResource CapitalizeFirstLetterConverter}}" FontWeight="Bold" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" Margin="0,0,0,5"/>
                     <md:MarkdownScrollViewer Markdown="{Binding Content}"
                                              Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
                                              VerticalScrollBarVisibility="Disabled"

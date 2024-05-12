@@ -8,6 +8,9 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using MdXaml;
 using System.Windows.Media;
+using System.Windows.Data;
+using System.Globalization;
+using System;
 
 namespace LLMCopilot
 {
@@ -16,6 +19,7 @@ namespace LLMCopilot
     /// </summary>
     public partial class LLMChatWindowControl : UserControl
     {
+        private bool _isSending;
         private ObservableCollection<Message> _messages = new ObservableCollection<Message>();
         /// <summary>
         /// Initializes a new instance of the <see cref="LLMChatWindowControl"/> class.
@@ -71,9 +75,13 @@ namespace LLMCopilot
         private async Task SendMessageAsync()
         {
             string text = MessageTextBox.Text;
-            if (!string.IsNullOrWhiteSpace(text))
+            if (!string.IsNullOrWhiteSpace(text) && !_isSending)
             {
+                _isSending = true;
+                SendButton.Content = "Sending...";
+                SendButton.IsEnabled = false;
                 MessageTextBox.Clear();
+
                 var messages = await OllamaHelper.Instance.Chat.Send(text);
                 foreach (var message in messages)
                 {
@@ -84,6 +92,9 @@ namespace LLMCopilot
                 }
 
                 ScrollToBottom();
+                _isSending = false;
+                SendButton.Content = "Send";
+                SendButton.IsEnabled = true;
             }
         }
 
@@ -95,7 +106,25 @@ namespace LLMCopilot
             e.Handled = true;
         }
 
+        
 
+    }
 
+    public class CapitalizeFirstLetterConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is ChatRole role)
+            {
+                string roleString = role.ToString();
+                return char.ToUpper(roleString[0]) + roleString.Substring(1);
+            }
+            return value;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
