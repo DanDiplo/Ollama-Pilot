@@ -60,7 +60,7 @@ namespace OllamaSharp.Models.Chat
                 Stream = true
             };
 
-            var answer = await Client.SendChat(request, Streamer, cancellationToken).ConfigureAwait(false);
+            var answer = await Client.SendChat(request, Streamer, cancellationToken);
             _messages = answer.ToList();
             return _messages;
         }

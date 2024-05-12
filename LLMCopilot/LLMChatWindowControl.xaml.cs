@@ -11,27 +11,72 @@ using System.Windows.Media;
 using System.Windows.Data;
 using System.Globalization;
 using System;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace LLMCopilot
 {
+    public class MyMessage : INotifyPropertyChanged
+    {
+        Message _message;
+        public string Content
+        {
+            get => _message.Content;
+            set
+            {
+                if (_message.Content != value)
+                {
+                    _message.Content = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public ChatRole? Role
+        {
+            get => _message.Role;
+            private set { }
+        }
+
+        public MyMessage(Message message)
+        {
+            _message = message;
+        }
+
+        public MyMessage(ChatRole? role, string content)
+        {
+            _message = new Message(role, content);
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+    }
+
     /// <summary>
     /// Interaction logic for LLMChatWindowControl.
     /// </summary>
     public partial class LLMChatWindowControl : UserControl
     {
         private bool _isSending;
-        private ObservableCollection<Message> _messages = new ObservableCollection<Message>();
+        private ObservableCollection<MyMessage> _messages = new ObservableCollection<MyMessage>();
+        public ObservableCollection<MyMessage> Messages => _messages;
         /// <summary>
         /// Initializes a new instance of the <see cref="LLMChatWindowControl"/> class.
         /// </summary>
         public LLMChatWindowControl()
         {
-            LLMErrorHandler.WriteLog("LLMChatWindowControl");
             var _ = new MdXaml.MarkdownScrollViewer();//DO NOT Delete This!! fix can't find mdxaml dll
             this.InitializeComponent();
+            this.DataContext = this;
             MessagesScrollViewer.PreviewMouseWheel += MessagesScrollViewer_PreviewMouseWheel;
-            this.MessageItemsControl.ItemsSource = _messages;
-
+            //this.MessageItemsControl.ItemsSource = _messages;
+            OllamaHelper.Instance.OnMessageReceived += AppendOrUpdateLastMessage;
+            this.Unloaded += LLMChatWindowControl_Unloaded;
 
             // 在窗口启动时自动发送ListLocalModels请求
             Task.Run(async () =>
@@ -41,8 +86,34 @@ namespace LLMCopilot
 
                 await this.Dispatcher.InvokeAsync(() =>
                 {
-                    _messages.Add(new Message(ChatRole.Assistant, $"Available local models:\n{modelNames}"));
+                    _messages.Add(new MyMessage(ChatRole.Assistant, $"Available local models:\n{modelNames}"));
                 });
+            });
+        }
+
+        private void LLMChatWindowControl_Unloaded(object sender, RoutedEventArgs e)
+        {
+            // 当 UserControl 卸载时执行的代码
+            OllamaHelper.Instance.OnMessageReceived -= AppendOrUpdateLastMessage;
+        }
+
+
+        private void AppendOrUpdateLastMessage(string content)
+        {
+            // UI 线程上执行
+            Dispatcher.Invoke(() =>
+            {
+                if (_messages.Any() && _messages.Last().Role == ChatRole.Assistant)
+                {
+                    var lastMessage = _messages.Last();
+                    lastMessage.Content += content;
+                }
+                else
+                {
+                    _messages.Add(new MyMessage(ChatRole.Assistant, content));
+                }
+
+                ScrollToBottom();  // 确保每次更新后滚动到底部
             });
         }
 
@@ -78,18 +149,30 @@ namespace LLMCopilot
             if (!string.IsNullOrWhiteSpace(text) && !_isSending)
             {
                 _isSending = true;
-                SendButton.Content = "Sending...";
+                SendButton.Content = "Answering...";
                 SendButton.IsEnabled = false;
                 MessageTextBox.Clear();
 
-                var messages = await OllamaHelper.Instance.Chat.Send(text);
-                foreach (var message in messages)
-                {
-                    if (!_messages.Contains(message))
-                    {
-                        _messages.Add(message);
-                    }
-                }
+                MyMessage userMessage = new MyMessage(ChatRole.User, text);
+                _messages.Add(userMessage);
+
+                var count = _messages.Count;
+
+                //MyMessage assistantMessage = new MyMessage(ChatRole.Assistant, string.Empty);
+                //_messages.Add(assistantMessage);
+
+                
+
+                // Remove the incomplete assistant message from _messages
+                //_messages.Remove(assistantMessage);
+
+                // Add the complete assistant messages to _messages
+                var newMessages = await Task.Run(async () => await OllamaHelper.Instance.Chat.Send(text));
+                //newMessages = newMessages.Skip(count);
+                //foreach (var message in newMessages)
+                //{
+                //    _messages.Add(new MyMessage(message));
+                //}
 
                 ScrollToBottom();
                 _isSending = false;

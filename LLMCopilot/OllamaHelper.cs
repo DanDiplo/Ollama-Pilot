@@ -14,6 +14,10 @@ namespace LLMCopilot
 {
     public sealed class OllamaHelper
     {
+        // 在 OllamaHelper 类中
+        public delegate void MessageReceivedHandler(string content);
+        public event MessageReceivedHandler OnMessageReceived;
+
         private static readonly Lazy<OllamaHelper> lazy = new Lazy<OllamaHelper>(() => new OllamaHelper());
 
         public static OllamaHelper Instance { get { return lazy.Value; } }
@@ -33,9 +37,10 @@ namespace LLMCopilot
         {
             if (response.Message != null && response.Message.Content != null)
             {
-               
+                OnMessageReceived?.Invoke(response.Message.Content);
             }
         }
+
 
         public OllamaApiClient OllamaClient
         {
@@ -50,7 +55,7 @@ namespace LLMCopilot
 
         public override DataTemplate SelectTemplate(object item, DependencyObject container)
         {
-            var message = item as Message;
+            var message = item as MyMessage;
             if (message != null)
             {
                 return message.Role == ChatRole.User ? UserTemplate : AssistantTemplate;
