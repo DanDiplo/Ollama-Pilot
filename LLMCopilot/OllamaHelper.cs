@@ -22,15 +22,26 @@ namespace LLMCopilot
 
         public static OllamaHelper Instance { get { return lazy.Value; } }
 
-        private OllamaApiClient ollamaClient;
+        private OllamaApiClient ollamaChatClient;
+
+        private OllamaApiClient ollamaCompleteClient;
        
         public Chat Chat { get; private set; }
 
         private OllamaHelper()
         {
-            ollamaClient = new OllamaApiClient("http://localhost:11434");
-            ollamaClient.SelectedModel ="deepseek-coder:6.7b";
-            Chat = new Chat(ollamaClient, OnChatResponseReceived);
+            var package = ServiceProvider.Package;
+            var options = (OptionPageGrid)package.GetDialogPage(typeof(OptionPageGrid));
+            string baseUrl = options.BaseUrl;
+            string completeModel = options.CompleteModel;
+            string chatModel = options.ChatModel;
+
+            ollamaChatClient = new OllamaApiClient(baseUrl);
+            ollamaChatClient.SelectedModel = chatModel;
+            Chat = new Chat(ollamaChatClient, OnChatResponseReceived);
+
+            ollamaCompleteClient = new OllamaApiClient(baseUrl);
+            ollamaCompleteClient.SelectedModel = completeModel;
         }
 
         private void OnChatResponseReceived(ChatResponseStream response)
@@ -42,9 +53,14 @@ namespace LLMCopilot
         }
 
 
-        public OllamaApiClient OllamaClient
+        public OllamaApiClient OllamaChatClient
         {
-            get { return ollamaClient; }
+            get { return ollamaChatClient; }
+        }
+
+        public OllamaApiClient OllamaCompleteClient
+        {
+            get { return ollamaCompleteClient; }
         }
     }
 

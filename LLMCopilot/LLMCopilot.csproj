@@ -75,6 +75,9 @@
     <Compile Include="OllamaSharp\PushModel.cs" />
     <Compile Include="OllamaSharp\RequestOptions.cs" />
     <Compile Include="OllamaSharp\ShowModel.cs" />
+    <Compile Include="OptionPageGrid.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="LLMCopilotPackage.cs" />
   </ItemGroup>

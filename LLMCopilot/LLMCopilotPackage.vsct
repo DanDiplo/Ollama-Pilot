@@ -63,7 +63,7 @@
         <Parent guid="guidLLMCopilotPackageCmdSet" id="MyMenuGroup" />
         <Icon guid="guidImages" id="bmpPic1" />
         <Strings>
-          <ButtonText>Invoke LLMMenuCommand</ButtonText>
+          <ButtonText>打开聊天窗口</ButtonText>
         </Strings>
       </Button>
       <Button guid="guidLLMCopilotPackageCmdSet" id="cmdidLLMChatWindowCommand" priority="0x0100" type="Button">

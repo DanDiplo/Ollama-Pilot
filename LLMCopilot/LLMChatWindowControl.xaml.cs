@@ -81,12 +81,12 @@ namespace LLMCopilot
             // 在窗口启动时自动发送ListLocalModels请求
             Task.Run(async () =>
             {
-                var models = await OllamaHelper.Instance.OllamaClient.ListLocalModels();
-                var modelNames = string.Join("\n", models.Select(m => m.Name));
+                var models = await OllamaHelper.Instance.OllamaChatClient.ListLocalModels();
+                var modelNames = string.Join("\r\n", models.Select(m => m.Name));
 
                 await this.Dispatcher.InvokeAsync(() =>
                 {
-                    _messages.Add(new MyMessage(ChatRole.Assistant, $"Available local models:\n{modelNames}"));
+                    _messages.Add(new MyMessage(ChatRole.Assistant, $"Available local models:\r\n{modelNames}"));
                 });
             });
         }

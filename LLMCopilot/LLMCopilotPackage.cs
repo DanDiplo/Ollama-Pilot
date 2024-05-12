@@ -6,6 +6,11 @@ using Task = System.Threading.Tasks.Task;
 
 namespace LLMCopilot
 {
+    public static class ServiceProvider
+    {
+        public static AsyncPackage Package { get; set; }
+    }
+
     /// <summary>
     /// This is the class that implements the package exposed by this assembly.
     /// </summary>
@@ -27,6 +32,8 @@ namespace LLMCopilot
     [Guid(LLMCopilotPackage.PackageGuidString)]
     [ProvideMenuResource("Menus.ctmenu", 1)]
     [ProvideToolWindow(typeof(LLMChatWindow))]
+    [ProvideOptionPage(typeof(OptionPageGrid),
+    "LLMCopilot", "常规", 0, 0, true)]
     public sealed class LLMCopilotPackage : AsyncPackage
     {
         /// <summary>
@@ -48,6 +55,7 @@ namespace LLMCopilot
             // When initialized asynchronously, the current thread may be a background thread at this point.
             // Do any initialization that requires the UI thread after switching to the UI thread.
             await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+            ServiceProvider.Package = this;
             await LLMMenuCommand.InitializeAsync(this);
             await LLMChatWindowCommand.InitializeAsync(this);
         }

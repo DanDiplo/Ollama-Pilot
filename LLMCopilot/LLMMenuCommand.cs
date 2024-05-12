@@ -88,18 +88,28 @@ namespace LLMCopilot
         /// <param name="e">Event args.</param>
         private void Execute(object sender, EventArgs e)
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            string message = string.Format(CultureInfo.CurrentCulture, "Inside {0}.MenuItemCallback()", this.GetType().FullName);
-            string title = "LLMMenuCommand";
+            ThreadHelper.ThrowIfNotOnUIThread("Needs to be called on the UI thread.");
 
-            // Show a message box to prove we were here
-            VsShellUtilities.ShowMessageBox(
-                this.package,
-                message,
-                title,
-                OLEMSGICON.OLEMSGICON_INFO,
-                OLEMSGBUTTON.OLEMSGBUTTON_OK,
-                OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
+            // Assuming your ToolWindow class is called MyToolWindow and it's registered with a GUID.
+            try
+            {
+                // Find or create the tool window with its ID (assuming 0 as instance ID).
+                // Replace "MyToolWindow" with the actual class name of your tool window.
+                // This ID should be unique and constant for each different type of tool window.
+                ToolWindowPane window = this.package.FindToolWindow(typeof(LLMChatWindow), 0, true);
+                if ((null == window) || (null == window.Frame))
+                {
+                    throw new NotSupportedException("Cannot create tool window");
+                }
+
+                IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
+                Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
+            }
+            catch (Exception ex)
+            {
+                LLMErrorHandler.HandleException(ex);
+            }
         }
+
     }
 }
