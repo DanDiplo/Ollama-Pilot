@@ -25,8 +25,9 @@ namespace LLMCopilot
             LLMErrorHandler.WriteLog("LLMChatWindowControl");
             var _ = new MdXaml.MarkdownScrollViewer();//DO NOT Delete This!! fix can't find mdxaml dll
             this.InitializeComponent();
-            this.MessageListBox.ItemsSource = _messages;
-                        
+            MessagesScrollViewer.PreviewMouseWheel += MessagesScrollViewer_PreviewMouseWheel;
+            this.MessageItemsControl.ItemsSource = _messages;
+
 
             // 在窗口启动时自动发送ListLocalModels请求
             Task.Run(async () =>
@@ -40,7 +41,19 @@ namespace LLMCopilot
                 });
             });
         }
-       
+
+        private void ScrollToBottom()
+        {
+            this.Dispatcher.InvokeAsync(() =>
+            {
+                if (VisualTreeHelper.GetChildrenCount(MessagesScrollViewer) > 0)
+                {
+                    MessagesScrollViewer.ScrollToEnd();
+                }
+            }, System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+
 
         private async void SendButton_Click(object sender, RoutedEventArgs e)
         {
@@ -69,14 +82,20 @@ namespace LLMCopilot
                         _messages.Add(message);
                     }
                 }
-                
-                MessageListBox.ScrollIntoView(MessageListBox.Items[MessageListBox.Items.Count - 1]);
+
+                ScrollToBottom();
             }
-            
         }
 
-      
-   
+
+        private void MessagesScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            var scrollViewer = sender as ScrollViewer;
+            scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset - e.Delta);
+            e.Handled = true;
+        }
+
+
 
     }
 }

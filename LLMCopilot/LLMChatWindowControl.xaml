@@ -13,18 +13,17 @@
              Name="MyToolWindow">
     <UserControl.Resources>
         <DataTemplate x:Key="MessageTemplate">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" Text="{Binding Role}" FontWeight="Bold" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" Margin="5"/>
-                <md:MarkdownScrollViewer Grid.Row="1" Markdown="{Binding Content}" 
-                                         Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
-                                         VerticalScrollBarVisibility="Hidden"
-                                         HorizontalScrollBarVisibility="Hidden"
-                                         VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="5"/>
-            </Grid>
+            <Border Padding="10" Margin="5">
+                <StackPanel>
+                    <TextBlock Text="{Binding Role}" FontWeight="Bold" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" Margin="0,0,0,5"/>
+                    <md:MarkdownScrollViewer Markdown="{Binding Content}"
+                                             Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
+                                             VerticalScrollBarVisibility="Disabled"
+                                             HorizontalScrollBarVisibility="Disabled"
+                                             VerticalAlignment="Stretch"
+                                             HorizontalAlignment="Stretch"/>
+                </StackPanel>
+            </Border>
         </DataTemplate>
     </UserControl.Resources>
 
@@ -34,18 +33,15 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <ListBox x:Name="MessageListBox" Grid.Row="0" Background="Transparent" ItemTemplate="{StaticResource MessageTemplate}"
-                 ScrollViewer.VerticalScrollBarVisibility="Auto" VerticalAlignment="Stretch">
-            <ListBox.ItemContainerStyle>
-                <Style TargetType="ListBoxItem">
-                    <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="BorderThickness" Value="0"/>
-                    <Setter Property="Padding" Value="0"/>
-                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                    <Setter Property="VerticalContentAlignment" Value="Stretch"/>
-                </Style>
-            </ListBox.ItemContainerStyle>
-        </ListBox>
+        <ScrollViewer x:Name="MessagesScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl x:Name="MessageItemsControl" Background="Transparent" ItemsSource="{Binding Messages}" ItemTemplate="{StaticResource MessageTemplate}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Vertical"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+        </ScrollViewer>
 
         <Grid Grid.Row="1" Margin="5">
             <Grid.ColumnDefinitions>
