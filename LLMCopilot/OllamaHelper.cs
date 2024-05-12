@@ -14,6 +14,7 @@ namespace LLMCopilot
 {
     public sealed class OllamaHelper
     {
+        public string CodeCompleteTemplate = $"'''{0}''', Complete this code, response ONLY code in plain text:";
         // 在 OllamaHelper 类中
         public delegate void MessageReceivedHandler(string content);
         public event MessageReceivedHandler OnMessageReceived;

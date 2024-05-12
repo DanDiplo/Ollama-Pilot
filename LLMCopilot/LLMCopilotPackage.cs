@@ -58,6 +58,7 @@ namespace LLMCopilot
             ServiceProvider.Package = this;
             await LLMMenuCommand.InitializeAsync(this);
             await LLMChatWindowCommand.InitializeAsync(this);
+            await CodeCompleteCommand.InitializeAsync(this);
         }
 
         #endregion

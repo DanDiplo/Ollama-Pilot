@@ -45,6 +45,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="CodeCompleteCommand.cs" />
     <Compile Include="LLMErrorHandler.cs" />
     <Compile Include="LLMChatWindow.cs" />
     <Compile Include="LLMChatWindowCommand.cs" />
@@ -122,6 +123,7 @@
     </VSCTCompile>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Resources\CodeCompleteCommand.png" />
     <Content Include="Resources\LLMChatWindowCommand.png" />
     <Content Include="Resources\LLMMenuCommand.png" />
   </ItemGroup>

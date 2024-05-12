@@ -6,20 +6,15 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
-using OllamaSharp.Models;
-using System.Windows.Threading;
 
 namespace LLMCopilot
 {
-    /// <summary>
-    /// Command handler
-    /// </summary>
-    internal sealed class LLMMenuCommand
+    class CodeCompleteCommand
     {
         /// <summary>
         /// Command ID.
         /// </summary>
-        public const int CommandId = 0x0100;
+        public const int CommandId = 0x1023;
 
         /// <summary>
         /// Command menu group (command set GUID).
@@ -32,12 +27,12 @@ namespace LLMCopilot
         private readonly AsyncPackage package;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="LLMMenuCommand"/> class.
+        /// Initializes a new instance of the <see cref="LLMChatWindowCommand"/> class.
         /// Adds our command handlers for menu (commands must exist in the command table file)
         /// </summary>
         /// <param name="package">Owner package, not null.</param>
         /// <param name="commandService">Command service to add command to, not null.</param>
-        private LLMMenuCommand(AsyncPackage package, OleMenuCommandService commandService)
+        private CodeCompleteCommand(AsyncPackage package, OleMenuCommandService commandService)
         {
             this.package = package ?? throw new ArgumentNullException(nameof(package));
             commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
@@ -50,7 +45,7 @@ namespace LLMCopilot
         /// <summary>
         /// Gets the instance of the command.
         /// </summary>
-        public static LLMMenuCommand Instance
+        public static CodeCompleteCommand Instance
         {
             get;
             private set;
@@ -73,58 +68,34 @@ namespace LLMCopilot
         /// <param name="package">Owner package, not null.</param>
         public static async Task InitializeAsync(AsyncPackage package)
         {
-            // Switch to the main thread - the call to AddCommand in LLMMenuCommand's constructor requires
+            // Switch to the main thread - the call to AddCommand in LLMChatWindowCommand's constructor requires
             // the UI thread.
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
 
             OleMenuCommandService commandService = await package.GetServiceAsync(typeof(IMenuCommandService)) as OleMenuCommandService;
-            Instance = new LLMMenuCommand(package, commandService);
+            Instance = new CodeCompleteCommand(package, commandService);
         }
 
         /// <summary>
-        /// This function is the callback used to execute the command when the menu item is clicked.
-        /// See the constructor to see how the menu item is associated with this function using
-        /// OleMenuCommandService service and MenuCommand class.
+        /// Shows the tool window when the menu item is clicked.
         /// </summary>
-        /// <param name="sender">Event sender.</param>
-        /// <param name="e">Event args.</param>
+        /// <param name="sender">The event sender.</param>
+        /// <param name="e">The event args.</param>
         private void Execute(object sender, EventArgs e)
         {
-            ThreadHelper.ThrowIfNotOnUIThread("Needs to be called on the UI thread.");
+            ThreadHelper.ThrowIfNotOnUIThread();
 
-            var request = new GenerateCompletionRequest
+            // Get the instance number 0 of this tool window. This window is single instance so this instance
+            // is actually the only one.
+            // The last flag is set to true so that if the tool window does not exists it will be created.
+            ToolWindowPane window = this.package.FindToolWindow(typeof(LLMChatWindow), 0, true);
+            if ((null == window) || (null == window.Frame))
             {
-                Model = OllamaHelper.Instance.OllamaCompleteClient.SelectedModel,
-                Prompt = "#ErrorHander.cs<｜fim▁begin｜>public static void HandleException(Exception exception){ #print exception<｜fim▁end｜>",
-                System = "none",
-                Template = "Complete the code\n### Instruction:\n{{ .Prompt }}\n### Response:\n",
-                Stream = false
-            };
+                throw new NotSupportedException("Cannot create tool window");
+            }
 
-
-            Task.Run(async () =>
-            {
-                try
-                {
-                    var result = await OllamaHelper.Instance.OllamaCompleteClient.GetCompletion(request);
-                    VsShellUtilities.ShowMessageBox(
-                        this.package,
-                        result.Response,
-                        "错误",
-                        OLEMSGICON.OLEMSGICON_CRITICAL,
-                        OLEMSGBUTTON.OLEMSGBUTTON_OK,
-                        OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
-                }
-                catch (Exception ex)
-                {
-                    LLMErrorHandler.HandleException(ex);
-                }
-            });
-
-
+            IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
+            Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
         }
-
     }
-
 }
-
