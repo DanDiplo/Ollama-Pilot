@@ -5,11 +5,19 @@ using Microsoft.VisualStudio.Shell.Interop;
 
 namespace LLMCopilot
 {
+    public enum ResponseLanguage
+    { 
+        EN,
+        CN,
+    }
     public class OptionPageGrid : DialogPage
     {
         private string baseUrl = "http://localhost:11434";
         private string completeModel = "deepseek-coder:6.7b";
-        private string chatModel = "llama3";
+        private string chatModel = "deepseek-coder:6.7b";
+        private ResponseLanguage language = ResponseLanguage.EN;
+
+        public event EventHandler SettingsChanged;
 
         [Category("LLMCopilot")]
         [DisplayName("Base URL")]
@@ -18,6 +26,20 @@ namespace LLMCopilot
         {
             get { return baseUrl; }
             set { baseUrl = value; }
+        }
+
+        [Category("LLMCopilot")]
+        [DisplayName("LLM response Language")]
+        [Description("大模型回复的语言（如果可用）")]
+        public ResponseLanguage Language
+        {
+            get { return language; }
+            set { language = value; }
+        }
+
+        protected void OnSettingsChanged()
+        {
+            SettingsChanged?.Invoke(this, EventArgs.Empty);
         }
 
         protected override void OnApply(PageApplyEventArgs e)
@@ -37,6 +59,7 @@ namespace LLMCopilot
             }
             else
             {
+                OnSettingsChanged();
                 base.OnApply(e);
             }
         }
@@ -53,7 +76,9 @@ namespace LLMCopilot
         public string CompleteModel
         {
             get { return completeModel; }
-            set { completeModel = value; }
+            set { 
+                completeModel = value;
+            }
         }
 
         [Category("LLMCopilot")]
@@ -62,7 +87,9 @@ namespace LLMCopilot
         public string ChatModel
         {
             get { return chatModel; }
-            set { chatModel = value; }
+            set { 
+                chatModel = value;
+            }
         }
     }
 }

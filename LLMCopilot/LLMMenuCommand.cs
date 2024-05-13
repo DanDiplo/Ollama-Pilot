@@ -92,13 +92,40 @@ namespace LLMCopilot
         {
             ThreadHelper.ThrowIfNotOnUIThread("Needs to be called on the UI thread.");
 
+            string[] stop = {
+                 "<|fim▁begin|>",
+                 "<|fim▁hole|>",
+                 "<|fim▁end|>",
+                 "//",
+                 @"\n\n",
+                 @"\r\n\r\n"
+            };
+
+            var options = new RequestOptions
+            {
+                NumCtx = 4096,
+                NumPredict = 128,
+                Stop = stop,
+                Temperature = 0.01f
+            };
+
             var request = new GenerateCompletionRequest
             {
                 Model = OllamaHelper.Instance.OllamaCompleteClient.SelectedModel,
-                Prompt = "#ErrorHander.cs<｜fim▁begin｜>public static void HandleException(Exception exception){ #print exception<｜fim▁end｜>",
-                System = "none",
-                Template = "Complete the code\n### Instruction:\n{{ .Prompt }}\n### Response:\n",
-                Stream = false
+                Prompt = @"<｜fim▁begin｜>def quick_sort(arr):
+                        if len(arr) <= 1:
+                            return arr
+                        pivot = arr[0]
+                        left = []
+                        right = []
+                        <｜fim▁hole｜>
+                            if arr[i] < pivot:
+                                left.append(arr[i])
+                            else:
+                                right.append(arr[i])
+                        return quick_sort(left) + [pivot] + quick_sort(right)<｜fim▁end｜>",
+                Options = options,
+                Raw = true,
             };
 
 

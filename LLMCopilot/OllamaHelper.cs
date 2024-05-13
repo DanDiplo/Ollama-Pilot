@@ -9,12 +9,15 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using System.Windows.Controls;
 using System.Windows;
+using OllamaSharp.Models;
+using Task = System.Threading.Tasks.Task;
+using System.Text.RegularExpressions;
 
 namespace LLMCopilot
 {
     public sealed class OllamaHelper
     {
-        public string CodeCompleteTemplate = $"'''{0}''', Complete this code, response ONLY code in plain text:";
+        public string CodeCompleteTemplate = $"<|fim▁begin|>{0}<|fim▁hole|>{1}<|fim▁end|>";
         // 在 OllamaHelper 类中
         public delegate void MessageReceivedHandler(string content);
         public event MessageReceivedHandler OnMessageReceived;
@@ -26,13 +29,39 @@ namespace LLMCopilot
         private OllamaApiClient ollamaChatClient;
 
         private OllamaApiClient ollamaCompleteClient;
-       
+
+        private bool initNumCtx = false;
+        private readonly int defaultContext = 4096;
+        private readonly int defaultDeepSeekContext = 16384;
+
+        private RequestOptions requestOptions;
+
+        private readonly string[] stop = {
+                 "<|fim▁begin|>",
+                 "<|fim▁hole|>",
+                 "<|fim▁end|>",
+                 "//",
+                 @"\n\n",
+                 @"\r\n\r\n"
+            };
+
+
         public Chat Chat { get; private set; }
+
+        private OptionPageGrid options;
 
         private OllamaHelper()
         {
             var package = ServiceProvider.Package;
-            var options = (OptionPageGrid)package.GetDialogPage(typeof(OptionPageGrid));
+            options = (OptionPageGrid)package.GetDialogPage(typeof(OptionPageGrid));
+
+            requestOptions = new RequestOptions {
+                NumCtx = 4096,
+                NumPredict = 1024,
+                Stop = stop,
+                Temperature = 0.01f
+            };
+
             string baseUrl = options.BaseUrl;
             string completeModel = options.CompleteModel;
             string chatModel = options.ChatModel;
@@ -43,6 +72,76 @@ namespace LLMCopilot
 
             ollamaCompleteClient = new OllamaApiClient(baseUrl);
             ollamaCompleteClient.SelectedModel = completeModel;
+
+            options.SettingsChanged += Options_SettingsChanged;
+
+            Task.Run(async () => await this.InitModelCtx());
+        }
+
+        ~OllamaHelper()
+        {
+            options.SettingsChanged -= Options_SettingsChanged;
+        }
+
+        private void Options_SettingsChanged(object sender, EventArgs e)
+        {
+            this.SetOllamaOptions();
+        }
+
+        private void SetOllamaOptions()
+        {
+            string baseUrl = options.BaseUrl;
+            string completeModel = options.CompleteModel;
+            string chatModel = options.ChatModel;
+
+            ollamaChatClient = new OllamaApiClient(baseUrl);
+            ollamaChatClient.SelectedModel = chatModel;
+            Chat = new Chat(ollamaChatClient, OnChatResponseReceived);
+
+            ollamaCompleteClient = new OllamaApiClient(baseUrl);
+            ollamaCompleteClient.SelectedModel = completeModel;
+            initNumCtx = false;
+            Task.Run(async () => await this.InitModelCtx());
+        }
+
+        private async Task InitModelCtx()
+        {
+            try
+            {
+                if (initNumCtx)
+                {
+                    return;
+                }
+                var chatModelInfo = await OllamaChatClient.ShowModelInformation(ollamaChatClient.SelectedModel);
+                var compModelInfo = await ollamaCompleteClient.ShowModelInformation(ollamaCompleteClient.SelectedModel);
+
+                Func<string, string, int> GetCtx = (string parameters, string model) =>
+                {
+                    int num_ctx = model.ToLower().Contains("deepseek")? defaultDeepSeekContext: defaultContext; 
+                    if (!string.IsNullOrEmpty(parameters))
+                    {
+                        var match = Regex.Match(parameters, @"PARAMETER\s+num_ctx\s+(\d+)");
+                        if (match.Success && match.Groups.Count > 1)
+                        {
+                            int.TryParse(match.Groups[1].Value, out num_ctx);
+                        }
+                    }
+                    return num_ctx;
+                };
+
+                int chatCtx = GetCtx(chatModelInfo.Parameters, ollamaChatClient.SelectedModel);
+                Chat.Options.NumCtx = chatCtx;
+
+                int CompCtx = GetCtx(compModelInfo.Parameters, ollamaCompleteClient.SelectedModel);
+                requestOptions.NumCtx = CompCtx;
+
+                initNumCtx = true;
+            }
+            catch (Exception ex)
+            {
+                LLMErrorHandler.HandleException(ex);
+            }
+
         }
 
         private void OnChatResponseReceived(ChatResponseStream response)

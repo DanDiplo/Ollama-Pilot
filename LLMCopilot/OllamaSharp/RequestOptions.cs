@@ -83,7 +83,7 @@ namespace OllamaSharp.Models
         /// Multiple stop patterns may be set by specifying multiple separate stop parameters in a modelfile.
         /// </summary>
         [JsonProperty("stop", NullValueHandling = NullValueHandling.Ignore)]
-        public string Stop { get; set; }
+        public string[] Stop { get; set; }
 
         /// <summary>
         /// Tail free sampling is used to reduce the impact of less probable tokens from the output.

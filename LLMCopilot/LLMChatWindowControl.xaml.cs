@@ -81,13 +81,20 @@ namespace LLMCopilot
             // 在窗口启动时自动发送ListLocalModels请求
             Task.Run(async () =>
             {
-                var models = await OllamaHelper.Instance.OllamaChatClient.ListLocalModels();
-                var modelNames = string.Join("\r\n", models.Select(m => m.Name));
-
-                await this.Dispatcher.InvokeAsync(() =>
+                try
                 {
-                    _messages.Add(new MyMessage(ChatRole.Assistant, $"Available local models:\r\n{modelNames}"));
-                });
+                    var models = await OllamaHelper.Instance.OllamaChatClient.ListLocalModels();
+                    var modelNames = string.Join("  \n", models.Select(m => m.Name));
+
+                    await this.Dispatcher.InvokeAsync(() =>
+                    {
+                        _messages.Add(new MyMessage(ChatRole.Assistant, $"Available local models:  \n{modelNames}"));
+                    });
+                }
+                catch(Exception ex)
+                {
+                    LLMErrorHandler.HandleException(ex);
+                }
             });
         }
 
@@ -167,7 +174,15 @@ namespace LLMCopilot
                 //_messages.Remove(assistantMessage);
 
                 // Add the complete assistant messages to _messages
-                var newMessages = await Task.Run(async () => await OllamaHelper.Instance.Chat.Send(text));
+                try
+                {
+                    await Task.Run(async () => await OllamaHelper.Instance.Chat.Send(text));
+                }
+                catch(Exception ex)
+                {
+                    LLMErrorHandler.HandleException(ex);
+                }
+                
                 //newMessages = newMessages.Skip(count);
                 //foreach (var message in newMessages)
                 //{

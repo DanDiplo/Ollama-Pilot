@@ -73,14 +73,14 @@
 				<Parent guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" />
 				<Icon guid="guidImages" id="bmpPic1" />
 				<Strings>
-					<ButtonText>解释代码</ButtonText>
+					<ButtonText>补全代码</ButtonText>
 				</Strings>
 			</Button>
 			<Button guid="guidLLMCopilotPackageCmdSet" id="cmdidCodeComplete" priority="0x0100" type="Button">
 				<Parent guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" />
 				<Icon guid="guidImages1" id="bmpPic1" />
 				<Strings>
-					<ButtonText>补全代码</ButtonText>
+					<ButtonText>解释代码</ButtonText>
 				</Strings>
 			</Button>
 		</Buttons>

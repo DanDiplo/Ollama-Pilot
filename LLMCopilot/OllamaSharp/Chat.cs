@@ -18,6 +18,8 @@ namespace OllamaSharp.Models.Chat
 
         public string Model { get; set; }
 
+        public RequestOptions Options { get; set; }
+
         public IResponseStreamer<ChatResponseStream> Streamer { get; private set; }
 
         public Chat(IOllamaApiClient client, Action<ChatResponseStream> streamer)
@@ -57,7 +59,8 @@ namespace OllamaSharp.Models.Chat
             {
                 Messages = _messages.ToList(),
                 Model = Client.SelectedModel,
-                Stream = true
+                Stream = true,
+                Options = Options
             };
 
             var answer = await Client.SendChat(request, Streamer, cancellationToken);
