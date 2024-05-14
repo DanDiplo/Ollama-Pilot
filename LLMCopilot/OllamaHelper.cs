@@ -31,8 +31,11 @@ namespace LLMCopilot
         private OllamaApiClient ollamaCompleteClient;
 
         private bool initNumCtx = false;
-        private readonly int defaultContext = 4096;
-        private readonly int defaultDeepSeekContext = 16384;
+        private static readonly int defaultContext = 4096;
+        private static readonly int defaultDeepSeekContext = 16384;
+        private static readonly int defaultCodeLineLength = 80;
+        private static readonly double PrefixCodeLinePercent = 0.8;
+        private static readonly double SuffixCodeLinePercent = 1 - PrefixCodeLinePercent;
 
         private RequestOptions requestOptions;
 
@@ -42,7 +45,10 @@ namespace LLMCopilot
                  "<|fim▁end|>",
                  "//",
                  @"\n\n",
-                 @"\r\n\r\n"
+                 @"\r\n\r\n",
+                "<|EOT|>",
+                "<｜begin▁of▁sentence｜>",
+                "<｜end▁of▁sentence｜>"
             };
 
 
@@ -57,7 +63,7 @@ namespace LLMCopilot
 
             requestOptions = new RequestOptions {
                 NumCtx = 4096,
-                NumPredict = 1024,
+                NumPredict = 128,
                 Stop = stop,
                 Temperature = 0.01f
             };
@@ -81,6 +87,21 @@ namespace LLMCopilot
         ~OllamaHelper()
         {
             options.SettingsChanged -= Options_SettingsChanged;
+        }
+
+        public static int EstimateTokensByChars(string str)
+        {
+            return str.Length / 4;
+        }
+
+        public static int EstimatePrefixLinesByCtx(int nCtx)
+        {
+            return Convert.ToInt32(nCtx * PrefixCodeLinePercent) / defaultCodeLineLength;
+        }
+
+        public static int EstimateSuffixLinesByCtx(int nCtx)
+        {
+            return Convert.ToInt32(nCtx * SuffixCodeLinePercent) / defaultCodeLineLength;
         }
 
         private void Options_SettingsChanged(object sender, EventArgs e)

@@ -34,6 +34,8 @@ namespace OllamaSharp.Models.Chat
 
             Client = client;
             Streamer = streamer;
+
+            Options = new RequestOptions();
         }
 
         public Task<IEnumerable<Message>> Send(string message, CancellationToken cancellationToken = default(CancellationToken))

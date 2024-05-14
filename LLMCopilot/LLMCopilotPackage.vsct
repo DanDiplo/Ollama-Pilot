@@ -66,21 +66,21 @@
 				<Parent guid="guidLLMCopilotPackageCmdSet" id="ChatMenuGroup" />
 				<Icon guid="guidImages1" id="bmpPic1" />
 				<Strings>
-					<ButtonText>打开聊天窗口</ButtonText>
+					<ButtonText>Open Chat Window</ButtonText>
 				</Strings>
 			</Button>
 			<Button guid="guidLLMCopilotPackageCmdSet" id="LLMMenuCommandId" priority="0x0100" type="Button">
 				<Parent guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" />
 				<Icon guid="guidImages" id="bmpPic1" />
 				<Strings>
-					<ButtonText>补全代码</ButtonText>
+					<ButtonText>Expain Code</ButtonText>
 				</Strings>
 			</Button>
 			<Button guid="guidLLMCopilotPackageCmdSet" id="cmdidCodeComplete" priority="0x0100" type="Button">
 				<Parent guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" />
 				<Icon guid="guidImages1" id="bmpPic1" />
 				<Strings>
-					<ButtonText>解释代码</ButtonText>
+					<ButtonText>Complete Code</ButtonText>
 				</Strings>
 			</Button>
 		</Buttons>

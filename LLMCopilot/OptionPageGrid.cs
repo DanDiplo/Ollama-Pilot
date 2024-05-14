@@ -7,21 +7,21 @@ namespace LLMCopilot
 {
     public enum ResponseLanguage
     { 
-        EN,
-        CN,
+        English,
+        Chinese,
     }
     public class OptionPageGrid : DialogPage
     {
         private string baseUrl = "http://localhost:11434";
         private string completeModel = "deepseek-coder:6.7b";
         private string chatModel = "deepseek-coder:6.7b";
-        private ResponseLanguage language = ResponseLanguage.EN;
+        private ResponseLanguage language = ResponseLanguage.English;
 
         public event EventHandler SettingsChanged;
 
         [Category("LLMCopilot")]
         [DisplayName("Base URL")]
-        [Description("Ollama API的Base URL.")]
+        [Description("Ollama Base URL.")]
         public string BaseUrl
         {
             get { return baseUrl; }
@@ -30,7 +30,7 @@ namespace LLMCopilot
 
         [Category("LLMCopilot")]
         [DisplayName("LLM response Language")]
-        [Description("大模型回复的语言（如果可用）")]
+        [Description("Language used in LLM's response(if available)")]
         public ResponseLanguage Language
         {
             get { return language; }
@@ -49,8 +49,8 @@ namespace LLMCopilot
                 // 如果 URL 无效，显示错误消息并阻止页面关闭
                 VsShellUtilities.ShowMessageBox(
                     this.Site,
-                    "您输入的URL不合法，请重新输入",
-                    "非法URL",
+                    "The URL provided is invalid, please try again.",
+                    "IVALID URL",
                     OLEMSGICON.OLEMSGICON_WARNING,
                     OLEMSGBUTTON.OLEMSGBUTTON_OK,
                     OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
@@ -72,7 +72,7 @@ namespace LLMCopilot
 
         [Category("LLMCopilot")]
         [DisplayName("Complete Model")]
-        [Description("用于代码补全的模型名称。")]
+        [Description("LLM model name used for code complete")]
         public string CompleteModel
         {
             get { return completeModel; }
@@ -83,7 +83,7 @@ namespace LLMCopilot
 
         [Category("LLMCopilot")]
         [DisplayName("Chat Model")]
-        [Description("用于聊天窗口的模型名称。")]
+        [Description("LLM model name used for chat")]
         public string ChatModel
         {
             get { return chatModel; }
