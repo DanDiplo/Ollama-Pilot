@@ -12,6 +12,8 @@ using System.Windows;
 using OllamaSharp.Models;
 using Task = System.Threading.Tasks.Task;
 using System.Text.RegularExpressions;
+using IAsyncServiceProvider = Microsoft.VisualStudio.Shell.IAsyncServiceProvider;
+using Microsoft.VisualStudio;
 
 namespace LLMCopilot
 {
@@ -87,6 +89,36 @@ namespace LLMCopilot
         ~OllamaHelper()
         {
             options.SettingsChanged -= Options_SettingsChanged;
+        }
+
+        public string GetExplainCodeTemplate(string code, string file)
+        {
+            string template = $@"```cpp
+{code}
+```
+explain this code from `{file}`, response in {options.Language}";
+
+            return template;
+        }
+
+        public string GetFindBugTemplate(string code, string file)
+        {
+            string template = $@"```cpp
+{code}
+```
+find bug in this code from `{file}`, response in {options.Language}";
+
+            return template;
+        }
+
+        public string GetOptimizeCodeTemplate(string code, string file)
+        {
+            string template = $@"```cpp
+{code}
+```
+Optimize this code from `{file}`, response in {options.Language}";
+
+            return template;
         }
 
         public static int EstimateTokensByChars(string str)
@@ -185,6 +217,26 @@ namespace LLMCopilot
         }
     }
 
+    public static class EventManager
+    {
+        public static event EventHandler<CommandExecutedEventArgs> CodeCommandExecuted;
+
+        public static void OnCodeCommandExecuted(string selectedText)
+        {
+            CodeCommandExecuted?.Invoke(null, new CommandExecutedEventArgs(selectedText));
+        }
+    }
+
+    public class CommandExecutedEventArgs : EventArgs
+    {
+        public string SelectedText { get; }
+
+        public CommandExecutedEventArgs(string selectedText)
+        {
+            SelectedText = selectedText;
+        }
+    }
+
     public class MessageTemplateSelector : DataTemplateSelector
     {
         public DataTemplate UserTemplate { get; set; }
@@ -200,6 +252,4 @@ namespace LLMCopilot
             return base.SelectTemplate(item, container);
         }
     }
-
-
 }

@@ -56,7 +56,7 @@ namespace LLMCopilot
             // Do any initialization that requires the UI thread after switching to the UI thread.
             await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
             ServiceProvider.Package = this;
-            await LLMMenuCommand.InitializeAsync(this);
+            await LLMExplainCommand.InitializeAsync(this);
             await LLMChatWindowCommand.InitializeAsync(this);
             await CodeCompleteCommand.InitializeAsync(this);
         }

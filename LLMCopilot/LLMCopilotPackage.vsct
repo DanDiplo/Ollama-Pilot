@@ -73,7 +73,7 @@
 				<Parent guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" />
 				<Icon guid="guidImages" id="bmpPic1" />
 				<Strings>
-					<ButtonText>Expain Code</ButtonText>
+					<ButtonText>Explain Code</ButtonText>
 				</Strings>
 			</Button>
 			<Button guid="guidLLMCopilotPackageCmdSet" id="cmdidCodeComplete" priority="0x0100" type="Button">

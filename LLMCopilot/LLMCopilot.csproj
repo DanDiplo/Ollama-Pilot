@@ -52,7 +52,7 @@
     <Compile Include="LLMChatWindowControl.xaml.cs">
       <DependentUpon>LLMChatWindowControl.xaml</DependentUpon>
     </Compile>
-    <Compile Include="LLMMenuCommand.cs" />
+    <Compile Include="LLMExplainCommand.cs" />
     <Compile Include="OllamaHelper.cs" />
     <Compile Include="OllamaSharp\ActionResponseStreamer.cs" />
     <Compile Include="OllamaSharp\Chat.cs" />
@@ -81,6 +81,7 @@
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="LLMCopilotPackage.cs" />
+    <Compile Include="VsHelper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="source.extension.vsixmanifest">

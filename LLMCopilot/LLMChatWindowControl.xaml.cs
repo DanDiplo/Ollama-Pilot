@@ -13,6 +13,7 @@ using System.Globalization;
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace LLMCopilot
 {
@@ -76,6 +77,7 @@ namespace LLMCopilot
             MessagesScrollViewer.PreviewMouseWheel += MessagesScrollViewer_PreviewMouseWheel;
             //this.MessageItemsControl.ItemsSource = _messages;
             OllamaHelper.Instance.OnMessageReceived += AppendOrUpdateLastMessage;
+            EventManager.CodeCommandExecuted += OnExplainCodeCommandExecuted;
             this.Unloaded += LLMChatWindowControl_Unloaded;
 
             // 在窗口启动时自动发送ListLocalModels请求
@@ -88,7 +90,7 @@ namespace LLMCopilot
 
                     await this.Dispatcher.InvokeAsync(() =>
                     {
-                        _messages.Add(new MyMessage(ChatRole.Assistant, $"Available local models:  \n{modelNames}"));
+                        _messages.Add(new MyMessage(ChatRole.System, $"Available local models:  \n{modelNames}"));
                     });
                 }
                 catch(Exception ex)
@@ -98,10 +100,21 @@ namespace LLMCopilot
             });
         }
 
+        private void OnExplainCodeCommandExecuted(object sender, CommandExecutedEventArgs e)
+        {
+            // 处理事件，执行某些操作
+            Dispatcher.Invoke(async () => {
+                // 在 UI 线程上更新 UI 或执行操作
+                await SendChatMessageAsync(e.SelectedText);
+                // 或者执行其他操作
+            });
+        }
+
         private void LLMChatWindowControl_Unloaded(object sender, RoutedEventArgs e)
         {
             // 当 UserControl 卸载时执行的代码
             OllamaHelper.Instance.OnMessageReceived -= AppendOrUpdateLastMessage;
+            EventManager.CodeCommandExecuted -= OnExplainCodeCommandExecuted;
         }
 
 
@@ -150,50 +163,50 @@ namespace LLMCopilot
             }
         }
 
-        private async Task SendMessageAsync()
+        public async Task SendChatMessageAsync(string text)
         {
-            string text = MessageTextBox.Text;
             if (!string.IsNullOrWhiteSpace(text) && !_isSending)
             {
                 _isSending = true;
                 SendButton.Content = "Answering...";
                 SendButton.IsEnabled = false;
-                MessageTextBox.Clear();
 
                 MyMessage userMessage = new MyMessage(ChatRole.User, text);
                 _messages.Add(userMessage);
 
-                var count = _messages.Count;
-
-                //MyMessage assistantMessage = new MyMessage(ChatRole.Assistant, string.Empty);
-                //_messages.Add(assistantMessage);
-
-                
-
-                // Remove the incomplete assistant message from _messages
-                //_messages.Remove(assistantMessage);
-
-                // Add the complete assistant messages to _messages
+                var cts = new CancellationTokenSource();
+                cts.CancelAfter(TimeSpan.FromSeconds(30)); // 设置超时时间为30秒
                 try
                 {
-                    await Task.Run(async () => await OllamaHelper.Instance.Chat.Send(text));
+                    await OllamaHelper.Instance.Chat.Send(text, cts.Token);
                 }
-                catch(Exception ex)
+                catch (OperationCanceledException)
                 {
+                    // 任务被取消
+                    LLMErrorHandler.HandleException(new TimeoutException("发送消息超时"));
+                }
+                catch (Exception ex)
+                {
+                    // 其他异常处理
                     LLMErrorHandler.HandleException(ex);
                 }
-                
-                //newMessages = newMessages.Skip(count);
-                //foreach (var message in newMessages)
-                //{
-                //    _messages.Add(new MyMessage(message));
-                //}
+                finally
+                {
+                    // 确保在任何情况下都重置状态
+                    _isSending = false;
+                    SendButton.Content = "Send";
+                    SendButton.IsEnabled = true;
+                }
 
                 ScrollToBottom();
-                _isSending = false;
-                SendButton.Content = "Send";
-                SendButton.IsEnabled = true;
             }
+        }
+
+        private async Task SendMessageAsync()
+        {
+            string text = MessageTextBox.Text;
+            MessageTextBox.Clear();
+            await SendChatMessageAsync(text);
         }
 
 
@@ -203,8 +216,6 @@ namespace LLMCopilot
             scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset - e.Delta);
             e.Handled = true;
         }
-
-        
 
     }
 
