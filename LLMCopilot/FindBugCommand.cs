@@ -17,12 +17,12 @@ namespace LLMCopilot
     /// <summary>
     /// Command handler
     /// </summary>
-    internal sealed class LLMExplainCommand
+    internal sealed class FindBugCommand
     {
         /// <summary>
         /// Command ID.
         /// </summary>
-        public const int CommandId = 0x0100;
+        public const int CommandId = 0x1025;
 
         /// <summary>
         /// Command menu group (command set GUID).
@@ -40,7 +40,7 @@ namespace LLMCopilot
         /// </summary>
         /// <param name="package">Owner package, not null.</param>
         /// <param name="commandService">Command service to add command to, not null.</param>
-        private LLMExplainCommand(AsyncPackage package, OleMenuCommandService commandService)
+        private FindBugCommand(AsyncPackage package, OleMenuCommandService commandService)
         {
             this.package = package ?? throw new ArgumentNullException(nameof(package));
             commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
@@ -53,7 +53,7 @@ namespace LLMCopilot
         /// <summary>
         /// Gets the instance of the command.
         /// </summary>
-        public static LLMExplainCommand Instance
+        public static FindBugCommand Instance
         {
             get;
             private set;
@@ -81,7 +81,7 @@ namespace LLMCopilot
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
 
             OleMenuCommandService commandService = await package.GetServiceAsync(typeof(IMenuCommandService)) as OleMenuCommandService;
-            Instance = new LLMExplainCommand(package, commandService);
+            Instance = new FindBugCommand(package, commandService);
         }
 
         /// <summary>
@@ -93,71 +93,14 @@ namespace LLMCopilot
         /// <param name="e">Event args.</param>
         private void Execute(object sender, EventArgs e)
         {
-            //ThreadHelper.ThrowIfNotOnUIThread("Needs to be called on the UI thread.");
-
-            //string[] stop = {
-            //     "<|fim▁begin|>",
-            //     "<|fim▁hole|>",
-            //     "<|fim▁end|>",
-            //     "//",
-            //     @"\n\n",
-            //     @"\r\n\r\n"
-            //};
-
-            //var options = new RequestOptions
-            //{
-            //    NumCtx = 4096,
-            //    NumPredict = 128,
-            //    Stop = stop,
-            //    Temperature = 0.01f
-            //};
-
-            //var request = new GenerateCompletionRequest
-            //{
-            //    Model = OllamaHelper.Instance.OllamaCompleteClient.SelectedModel,
-            //    Prompt = @"<｜fim▁begin｜>def quick_sort(arr):
-            //            if len(arr) <= 1:
-            //                return arr
-            //            pivot = arr[0]
-            //            left = []
-            //            right = []
-            //            <｜fim▁hole｜>
-            //                if arr[i] < pivot:
-            //                    left.append(arr[i])
-            //                else:
-            //                    right.append(arr[i])
-            //            return quick_sort(left) + [pivot] + quick_sort(right)<｜fim▁end｜>",
-            //    Options = options,
-            //    Raw = true,
-            //};
-
-
-            //Task.Run(async () =>
-            //{
-            //    try
-            //    {
-            //        var result = await OllamaHelper.Instance.OllamaCompleteClient.GetCompletion(request);
-            //        VsShellUtilities.ShowMessageBox(
-            //            this.package,
-            //            result.Response,
-            //            "错误",
-            //            OLEMSGICON.OLEMSGICON_CRITICAL,
-            //            OLEMSGBUTTON.OLEMSGBUTTON_OK,
-            //            OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        LLMErrorHandler.HandleException(ex);
-            //    }
-            //});
             Task.Run(async () =>
-            {              
+            {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
                 var textView = await VsHelpers.GetActiveTextViewAsync(ServiceProvider);
                 if (textView != null)
                 {
-                    
+
                     var selectedText = textView.Selection.SelectedSpans[0].GetText();
 
                     if (string.IsNullOrEmpty(selectedText))
@@ -174,12 +117,12 @@ namespace LLMCopilot
                     {
                         VsHelpers.OpenChatWindow();
                         var fileName = await VsHelpers.GetActiveDocumentFileNameAsync(ServiceProvider);
-                        var prompt = OllamaHelper.Instance.GetExplainCodeTemplate(selectedText, fileName);
+                        var prompt = OllamaHelper.Instance.GetFindBugTemplate(selectedText, fileName);
                         EventManager.OnCodeCommandExecuted(prompt);
                     }
                 }
             });
-            
+
         }
 
     }

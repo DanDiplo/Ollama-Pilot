@@ -20,26 +20,19 @@ namespace LLMCopilot
     public sealed class OllamaHelper
     {
         public string CodeCompleteTemplate = $"<|fim▁begin|>{0}<|fim▁hole|>{1}<|fim▁end|>";
-        // 在 OllamaHelper 类中
-        public delegate void MessageReceivedHandler(string content);
-        public event MessageReceivedHandler OnMessageReceived;
 
         private static readonly Lazy<OllamaHelper> lazy = new Lazy<OllamaHelper>(() => new OllamaHelper());
 
         public static OllamaHelper Instance { get { return lazy.Value; } }
 
-        private OllamaApiClient ollamaChatClient;
-
-        private OllamaApiClient ollamaCompleteClient;
-
-        private bool initNumCtx = false;
         private static readonly int defaultContext = 4096;
         private static readonly int defaultDeepSeekContext = 16384;
         private static readonly int defaultCodeLineLength = 80;
         private static readonly double PrefixCodeLinePercent = 0.8;
         private static readonly double SuffixCodeLinePercent = 1 - PrefixCodeLinePercent;
 
-        private RequestOptions requestOptions;
+        public RequestOptions CompRequestOptions { get; private set; }
+        public RequestOptions ChatRequestOptions { get; private set; }
 
         private readonly string[] stop = {
                  "<|fim▁begin|>",
@@ -53,70 +46,76 @@ namespace LLMCopilot
                 "<｜end▁of▁sentence｜>"
             };
 
+        public OptionPageGrid Options { get; private set; }
 
-        public Chat Chat { get; private set; }
-
-        private OptionPageGrid options;
 
         private OllamaHelper()
         {
             var package = ServiceProvider.Package;
-            options = (OptionPageGrid)package.GetDialogPage(typeof(OptionPageGrid));
+            Options = (OptionPageGrid)package.GetDialogPage(typeof(OptionPageGrid));
 
-            requestOptions = new RequestOptions {
+            CompRequestOptions = new RequestOptions {
                 NumCtx = 4096,
                 NumPredict = 128,
                 Stop = stop,
                 Temperature = 0.01f
             };
 
-            string baseUrl = options.BaseUrl;
-            string completeModel = options.CompleteModel;
-            string chatModel = options.ChatModel;
+            ChatRequestOptions = new RequestOptions
+            {
+                NumCtx = 4096,
+                NumPredict = 1024,
+                Temperature = 0.7f
+            };
 
-            ollamaChatClient = new OllamaApiClient(baseUrl);
-            ollamaChatClient.SelectedModel = chatModel;
-            Chat = new Chat(ollamaChatClient, OnChatResponseReceived);
-
-            ollamaCompleteClient = new OllamaApiClient(baseUrl);
-            ollamaCompleteClient.SelectedModel = completeModel;
-
-            options.SettingsChanged += Options_SettingsChanged;
-
-            Task.Run(async () => await this.InitModelCtx());
+            Options.SettingsChanged += Options_SettingsChanged;
         }
 
         ~OllamaHelper()
         {
-            options.SettingsChanged -= Options_SettingsChanged;
+            Options.SettingsChanged -= Options_SettingsChanged;
         }
 
         public string GetExplainCodeTemplate(string code, string file)
         {
-            string template = $@"```cpp
+            string code_type = VsHelpers.GetSourceCodeType(file);
+            string template = $@"```{code_type}
 {code}
 ```
-explain this code from `{file}`, response in {options.Language}";
+explain this code from `{file}`, response in {Options.Language}";
 
             return template;
         }
 
         public string GetFindBugTemplate(string code, string file)
         {
-            string template = $@"```cpp
+            string code_type = VsHelpers.GetSourceCodeType(file);
+            string template = $@"```{code_type}
 {code}
 ```
-find bug in this code from `{file}`, response in {options.Language}";
+find bug in this code from `{file}`, response in {Options.Language}";
 
             return template;
         }
 
         public string GetOptimizeCodeTemplate(string code, string file)
         {
-            string template = $@"```cpp
+            string code_type = VsHelpers.GetSourceCodeType(file);
+            string template = $@"```{code_type}
 {code}
 ```
-Optimize this code from `{file}`, response in {options.Language}";
+Optimize this code from `{file}`, response in {Options.Language}";
+
+            return template;
+        }
+
+        public string GetAddCommentTemplate(string code, string file)
+        {
+            string code_type = VsHelpers.GetSourceCodeType(file);
+            string template = $@"```{code_type}
+{code}
+```
+Add comments in Google style for this code from `{file}`,  response Only the code in a markdown box";
 
             return template;
         }
@@ -143,30 +142,19 @@ Optimize this code from `{file}`, response in {options.Language}";
 
         private void SetOllamaOptions()
         {
-            string baseUrl = options.BaseUrl;
-            string completeModel = options.CompleteModel;
-            string chatModel = options.ChatModel;
-
-            ollamaChatClient = new OllamaApiClient(baseUrl);
-            ollamaChatClient.SelectedModel = chatModel;
-            Chat = new Chat(ollamaChatClient, OnChatResponseReceived);
-
-            ollamaCompleteClient = new OllamaApiClient(baseUrl);
-            ollamaCompleteClient.SelectedModel = completeModel;
-            initNumCtx = false;
+            string baseUrl = Options.BaseUrl;
+            string completeModel = Options.CompleteModel;
+            string chatModel = Options.ChatModel;
             Task.Run(async () => await this.InitModelCtx());
         }
 
-        private async Task InitModelCtx()
+        public async Task InitModelCtx()
         {
             try
             {
-                if (initNumCtx)
-                {
-                    return;
-                }
-                var chatModelInfo = await OllamaChatClient.ShowModelInformation(ollamaChatClient.SelectedModel);
-                var compModelInfo = await ollamaCompleteClient.ShowModelInformation(ollamaCompleteClient.SelectedModel);
+                var client = OllamaClientFactory.CreateClient();
+                var chatModelInfo = await client.ShowModelInformation(Options.ChatModel);
+                var compModelInfo = await client.ShowModelInformation(Options.CompleteModel);
 
                 Func<string, string, int> GetCtx = (string parameters, string model) =>
                 {
@@ -182,39 +170,19 @@ Optimize this code from `{file}`, response in {options.Language}";
                     return num_ctx;
                 };
 
-                int chatCtx = GetCtx(chatModelInfo.Parameters, ollamaChatClient.SelectedModel);
-                Chat.Options.NumCtx = chatCtx;
+                int chatCtx = GetCtx(chatModelInfo.Parameters, Options.ChatModel);
+                ChatRequestOptions.NumCtx = chatCtx;
 
-                int CompCtx = GetCtx(compModelInfo.Parameters, ollamaCompleteClient.SelectedModel);
-                requestOptions.NumCtx = CompCtx;
-
-                initNumCtx = true;
+                int CompCtx = GetCtx(compModelInfo.Parameters, Options.CompleteModel);
+                CompRequestOptions.NumCtx = CompCtx;
             }
             catch (Exception ex)
             {
                 LLMErrorHandler.HandleException(ex);
             }
 
-        }
+        }    
 
-        private void OnChatResponseReceived(ChatResponseStream response)
-        {
-            if (response.Message != null && response.Message.Content != null)
-            {
-                OnMessageReceived?.Invoke(response.Message.Content);
-            }
-        }
-
-
-        public OllamaApiClient OllamaChatClient
-        {
-            get { return ollamaChatClient; }
-        }
-
-        public OllamaApiClient OllamaCompleteClient
-        {
-            get { return ollamaCompleteClient; }
-        }
     }
 
     public static class EventManager
@@ -250,6 +218,25 @@ Optimize this code from `{file}`, response in {options.Language}";
                 return message.Role == ChatRole.User ? UserTemplate : AssistantTemplate;
             }
             return base.SelectTemplate(item, container);
+        }
+    }
+
+    public class OllamaClientFactory
+    {
+        public static OllamaApiClient CreateClient()
+        {
+            var options = OllamaHelper.Instance.Options;
+            var ollamaApiClient = new OllamaApiClient(options.BaseUrl);
+            ollamaApiClient.SelectedModel = options.ChatModel;
+            return ollamaApiClient;
+        }
+
+        public static Chat CreateChat(Action<ChatResponseStream> streamer)
+        {
+            var ollamaApiClient = CreateClient();
+            var chat = new Chat(ollamaApiClient, streamer, OllamaHelper.Instance.ChatRequestOptions);
+
+            return chat;
         }
     }
 }

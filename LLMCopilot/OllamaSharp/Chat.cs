@@ -22,12 +22,12 @@ namespace OllamaSharp.Models.Chat
 
         public IResponseStreamer<ChatResponseStream> Streamer { get; private set; }
 
-        public Chat(IOllamaApiClient client, Action<ChatResponseStream> streamer)
-            : this(client, new ActionResponseStreamer<ChatResponseStream>(streamer))
+        public Chat(IOllamaApiClient client, Action<ChatResponseStream> streamer, RequestOptions options)
+            : this(client, new ActionResponseStreamer<ChatResponseStream>(streamer), options)
         {
         }
 
-        public Chat(IOllamaApiClient client, IResponseStreamer<ChatResponseStream> streamer)
+        public Chat(IOllamaApiClient client, IResponseStreamer<ChatResponseStream> streamer, RequestOptions options)
         {
             if (client == null) throw new ArgumentNullException(nameof(client));
             if (streamer == null) throw new ArgumentNullException(nameof(streamer));
@@ -35,7 +35,7 @@ namespace OllamaSharp.Models.Chat
             Client = client;
             Streamer = streamer;
 
-            Options = new RequestOptions();
+            Options = options;
         }
 
         public Task<IEnumerable<Message>> Send(string message, CancellationToken cancellationToken = default(CancellationToken))

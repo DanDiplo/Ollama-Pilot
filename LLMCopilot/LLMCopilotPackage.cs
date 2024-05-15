@@ -56,9 +56,13 @@ namespace LLMCopilot
             // Do any initialization that requires the UI thread after switching to the UI thread.
             await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
             ServiceProvider.Package = this;
-            await LLMExplainCommand.InitializeAsync(this);
+            await OllamaHelper.Instance.InitModelCtx();
+            await ExplainCommand.InitializeAsync(this);
             await LLMChatWindowCommand.InitializeAsync(this);
             await CodeCompleteCommand.InitializeAsync(this);
+            await FindBugCommand.InitializeAsync(this);
+            await OptimizeCodeCommand.InitializeAsync(this);
+            await AddCommentCommand.InitializeAsync(this);
         }
 
         #endregion

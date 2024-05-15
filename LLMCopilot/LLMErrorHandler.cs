@@ -57,14 +57,14 @@ namespace LLMCopilot
         {
             var message = $"发生异常: {FormatException(exception)}\n";
 
-            // 弹出对话框
-            VsShellUtilities.ShowMessageBox(
-                serviceProvider,
-                message,
-                "错误",
-                OLEMSGICON.OLEMSGICON_CRITICAL,
-                OLEMSGBUTTON.OLEMSGBUTTON_OK,
-                OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
+            //// 弹出对话框
+            //VsShellUtilities.ShowMessageBox(
+            //    serviceProvider,
+            //    message,
+            //    "错误",
+            //    OLEMSGICON.OLEMSGICON_CRITICAL,
+            //    OLEMSGBUTTON.OLEMSGBUTTON_OK,
+            //    OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
 
             LLMErrorHandler.WriteLog(message);
         }

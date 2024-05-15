@@ -14,6 +14,7 @@ using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Text;
 
 namespace LLMCopilot
 {
@@ -66,6 +67,8 @@ namespace LLMCopilot
         private bool _isSending;
         private ObservableCollection<MyMessage> _messages = new ObservableCollection<MyMessage>();
         public ObservableCollection<MyMessage> Messages => _messages;
+        private Chat Chat { get; set; }
+        private StringBuilder _messageCache = new StringBuilder(); // 用于缓存数据
         /// <summary>
         /// Initializes a new instance of the <see cref="LLMChatWindowControl"/> class.
         /// </summary>
@@ -76,28 +79,46 @@ namespace LLMCopilot
             this.DataContext = this;
             MessagesScrollViewer.PreviewMouseWheel += MessagesScrollViewer_PreviewMouseWheel;
             //this.MessageItemsControl.ItemsSource = _messages;
-            OllamaHelper.Instance.OnMessageReceived += AppendOrUpdateLastMessage;
-            EventManager.CodeCommandExecuted += OnExplainCodeCommandExecuted;
+            Chat = OllamaClientFactory.CreateChat(OnChatResponseReceived);
             this.Unloaded += LLMChatWindowControl_Unloaded;
+            this.Loaded += LLMChatWindowControl_loaded;
 
             // 在窗口启动时自动发送ListLocalModels请求
             Task.Run(async () =>
             {
                 try
                 {
-                    var models = await OllamaHelper.Instance.OllamaChatClient.ListLocalModels();
+                    var client = OllamaClientFactory.CreateClient();
+                    var models = await client.ListLocalModels();
                     var modelNames = string.Join("  \n", models.Select(m => m.Name));
 
-                    await this.Dispatcher.InvokeAsync(() =>
-                    {
-                        _messages.Add(new MyMessage(ChatRole.System, $"Available local models:  \n{modelNames}"));
-                    });
+                    AddMessage(ChatRole.System, $"Available local models:  \n{modelNames}");
+                    
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     LLMErrorHandler.HandleException(ex);
                 }
             });
+        }
+
+        private void OnChatResponseReceived(ChatResponseStream response)
+        {
+            if (response.Message != null && response.Message.Content != null)
+            {
+                // 将新内容添加到缓存
+                _messageCache.Append(response.Message.Content);
+
+                string[] delimeters = {"\n", ",", "，", ".", "。", ":", "："};
+
+                bool containsKeyword = delimeters.Any(keyword => response.Message.Content.Contains(keyword));
+                // 检查是否需要更新消息列表
+                if (_messageCache.Length > 64 || containsKeyword || response.Done)
+                {
+                    AppendOrUpdateLastMessage(_messageCache.ToString());
+                    _messageCache.Clear(); // 清空缓存
+                }
+            }
         }
 
         private void OnExplainCodeCommandExecuted(object sender, CommandExecutedEventArgs e)
@@ -105,18 +126,26 @@ namespace LLMCopilot
             // 处理事件，执行某些操作
             Dispatcher.Invoke(async () => {
                 // 在 UI 线程上更新 UI 或执行操作
-                await SendChatMessageAsync(e.SelectedText);
+                await SendChatMessageAsync(e.SelectedText, ChatRole.System);
                 // 或者执行其他操作
             });
         }
 
-        private void LLMChatWindowControl_Unloaded(object sender, RoutedEventArgs e)
+        private void LLMChatWindowControl_loaded(object sender, RoutedEventArgs e)
         {
-            // 当 UserControl 卸载时执行的代码
-            OllamaHelper.Instance.OnMessageReceived -= AppendOrUpdateLastMessage;
-            EventManager.CodeCommandExecuted -= OnExplainCodeCommandExecuted;
+            EventManager.CodeCommandExecuted += OnExplainCodeCommandExecuted;
+            if (Chat.Client.SelectedModel != OllamaHelper.Instance.Options.ChatModel)
+            {
+                Chat.Client.SelectedModel = OllamaHelper.Instance.Options.ChatModel;
+                Chat.Options = OllamaHelper.Instance.ChatRequestOptions;
+            }
         }
 
+        private void LLMChatWindowControl_Unloaded(object sender, RoutedEventArgs e)
+        {
+            EventManager.CodeCommandExecuted -= OnExplainCodeCommandExecuted;
+            _messages.Clear();
+        }
 
         private void AppendOrUpdateLastMessage(string content)
         {
@@ -148,7 +177,14 @@ namespace LLMCopilot
             }, System.Windows.Threading.DispatcherPriority.Background);
         }
 
-
+        private void AddMessage(ChatRole role, string Content)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                MyMessage userMessage = new MyMessage(role, Content);
+                _messages.Add(userMessage);
+            }, System.Windows.Threading.DispatcherPriority.Background);
+        }
 
         private async void SendButton_Click(object sender, RoutedEventArgs e)
         {
@@ -163,7 +199,7 @@ namespace LLMCopilot
             }
         }
 
-        public async Task SendChatMessageAsync(string text)
+        public async Task SendChatMessageAsync(string text, ChatRole role)
         {
             if (!string.IsNullOrWhiteSpace(text) && !_isSending)
             {
@@ -171,34 +207,34 @@ namespace LLMCopilot
                 SendButton.Content = "Answering...";
                 SendButton.IsEnabled = false;
 
-                MyMessage userMessage = new MyMessage(ChatRole.User, text);
-                _messages.Add(userMessage);
+                AddMessage(role, text);
+
+                ScrollToBottom();
 
                 var cts = new CancellationTokenSource();
                 cts.CancelAfter(TimeSpan.FromSeconds(30)); // 设置超时时间为30秒
                 try
                 {
-                    await OllamaHelper.Instance.Chat.Send(text, cts.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                    // 任务被取消
-                    LLMErrorHandler.HandleException(new TimeoutException("发送消息超时"));
+                    await Task.Run(async () =>
+                    {
+                        await Chat.Send(text, cts.Token);
+                    });
                 }
                 catch (Exception ex)
                 {
                     // 其他异常处理
                     LLMErrorHandler.HandleException(ex);
                 }
-                finally
-                {
-                    // 确保在任何情况下都重置状态
-                    _isSending = false;
-                    SendButton.Content = "Send";
-                    SendButton.IsEnabled = true;
-                }
+
+
+                // 确保在任何情况下都重置状态
+                _isSending = false;
+                SendButton.Content = "Send";
+                SendButton.IsEnabled = true;
 
                 ScrollToBottom();
+
+                
             }
         }
 
@@ -206,7 +242,7 @@ namespace LLMCopilot
         {
             string text = MessageTextBox.Text;
             MessageTextBox.Clear();
-            await SendChatMessageAsync(text);
+            await SendChatMessageAsync(text, ChatRole.User);
         }
 
 

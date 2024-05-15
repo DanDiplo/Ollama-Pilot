@@ -22,9 +22,9 @@ namespace OllamaSharp
 		/// A chat instance that can be used to receive and send messages from and to
 		/// the Ollama endpoint while maintaining the message history.
 		/// </returns>
-		public static Chat Chat(this IOllamaApiClient client, Action<ChatResponseStream> streamer)
+		public static Chat Chat(this IOllamaApiClient client, Action<ChatResponseStream> streamer, RequestOptions options)
 		{
-			return client.Chat(new ActionResponseStreamer<ChatResponseStream>(streamer));
+			return client.Chat(new ActionResponseStreamer<ChatResponseStream>(streamer), options);
 		}
 
 		/// <summary>
@@ -39,9 +39,9 @@ namespace OllamaSharp
 		/// A chat instance that can be used to receive and send messages from and to
 		/// the Ollama endpoint while maintaining the message history.
 		/// </returns>
-		public static Chat Chat(this IOllamaApiClient client, IResponseStreamer<ChatResponseStream> streamer)
+		public static Chat Chat(this IOllamaApiClient client, IResponseStreamer<ChatResponseStream> streamer, RequestOptions options)
 		{
-			return new Chat(client, streamer);
+			return new Chat(client, streamer, options);
 		}
 
 		/// <summary>

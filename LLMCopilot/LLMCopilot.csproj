@@ -45,14 +45,16 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="AddCommentCommand.cs" />
     <Compile Include="CodeCompleteCommand.cs" />
+    <Compile Include="FindBugCommand.cs" />
     <Compile Include="LLMErrorHandler.cs" />
     <Compile Include="LLMChatWindow.cs" />
     <Compile Include="LLMChatWindowCommand.cs" />
     <Compile Include="LLMChatWindowControl.xaml.cs">
       <DependentUpon>LLMChatWindowControl.xaml</DependentUpon>
     </Compile>
-    <Compile Include="LLMExplainCommand.cs" />
+    <Compile Include="ExplainCommand.cs" />
     <Compile Include="OllamaHelper.cs" />
     <Compile Include="OllamaSharp\ActionResponseStreamer.cs" />
     <Compile Include="OllamaSharp\Chat.cs" />
@@ -76,6 +78,7 @@
     <Compile Include="OllamaSharp\PushModel.cs" />
     <Compile Include="OllamaSharp\RequestOptions.cs" />
     <Compile Include="OllamaSharp\ShowModel.cs" />
+    <Compile Include="OptimizeCodeCommand.cs" />
     <Compile Include="OptionPageGrid.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -124,9 +127,9 @@
     </VSCTCompile>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Resources\CodeCompleteCommand.png" />
-    <Content Include="Resources\LLMChatWindowCommand.png" />
-    <Content Include="Resources\LLMMenuCommand.png" />
+    <Content Include="Resources\CodeCompleteCommand.png">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
