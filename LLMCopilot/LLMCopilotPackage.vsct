@@ -38,7 +38,6 @@
 		<Menus>
 			<Menu guid="guidLLMCopilotPackageCmdSet" id="TopLevelMenu" priority="0x700" type="Menu">
 				<Parent guid="guidSHLMainMenu" id="IDG_VS_MM_TOOLSADDINS" />
-				<Icon guid="guidImages" id="bmpPic1" />
 				<Strings>
 					<ButtonText>LLM Copilot</ButtonText>
 				</Strings>
@@ -65,42 +64,42 @@
           If you do not want an image next to your command, remove the Icon node /> -->
 			<Button guid="guidLLMCopilotPackageCmdSet" id="cmdidLLMChatWindowCommand" priority="0x0100" type="Button">
 				<Parent guid="guidLLMCopilotPackageCmdSet" id="ChatMenuGroup" />
-				<Icon guid="guidImages" id="bmpPic1" />
+				<Icon guid="liaotian" id="liaotian" />
 				<Strings>
 					<ButtonText>Open Chat Window</ButtonText>
 				</Strings>
 			</Button>
 			<Button guid="guidLLMCopilotPackageCmdSet" id="LLMMenuCommandId" priority="0x0100" type="Button">
 				<Parent guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" />
-				<Icon guid="guidImages" id="bmpPic1" />
+				<Icon guid="jieshi" id="jieshi" />
 				<Strings>
 					<ButtonText>Explain Code</ButtonText>
 				</Strings>
 			</Button>
 			<Button guid="guidLLMCopilotPackageCmdSet" id="cmdidCodeComplete" priority="0x0100" type="Button">
 				<Parent guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" />
-				<Icon guid="guidImages" id="bmpPic1" />
+				<Icon guid="wancheng" id="wancheng" />
 				<Strings>
 					<ButtonText>Complete Code</ButtonText>
 				</Strings>
 			</Button>
 			<Button guid="guidLLMCopilotPackageCmdSet" id="findBugCmdid" priority="0x0100" type="Button">
 				<Parent guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" />
-				<Icon guid="guidImages" id="bmpPic1" />
+				<Icon guid="bug" id="bug" />
 				<Strings>
 					<ButtonText>Find Bug</ButtonText>
 				</Strings>
 			</Button>
 			<Button guid="guidLLMCopilotPackageCmdSet" id="OptimizeCodeCmdid" priority="0x0100" type="Button">
 				<Parent guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" />
-				<Icon guid="guidImages" id="bmpPic1" />
+				<Icon guid="opt" id="opt" />
 				<Strings>
 					<ButtonText>Optimize Code</ButtonText>
 				</Strings>
 			</Button>
 			<Button guid="guidLLMCopilotPackageCmdSet" id="AddCommentCmdid" priority="0x0100" type="Button">
 				<Parent guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" />
-				<Icon guid="guidImages" id="bmpPic1" />
+				<Icon guid="zhushi" id="zhushi" />
 				<Strings>
 					<ButtonText>Add Comment</ButtonText>
 				</Strings>
@@ -114,7 +113,13 @@
             bitmap strip containing the bitmaps and then there are the numeric ids of the elements used
             inside a button definition. An important aspect of this declaration is that the element id
             must be the actual index (1-based) of the bitmap inside the bitmap strip. -->
-			<Bitmap guid="guidImages" href="Resources\CodeCompleteCommand.png" usedList="bmpPic1" />
+			<Bitmap guid="liaotian" href="Resources\liaotian.png" usedList="liaotian" />
+			<Bitmap guid="bug" href="Resources\bug.png" usedList="bug" />
+			<Bitmap guid="jieshi" href="Resources\jieshi.png" usedList="jieshi" />
+			<Bitmap guid="wancheng" href="Resources\wancheng.png" usedList="wancheng" />
+			<Bitmap guid="zhushi" href="Resources\zhushi.png" usedList="zhushi" />
+			<Bitmap guid="opt" href="Resources\opt.png" usedList="opt" />
+			<Bitmap guid="jiqiren" href="Resources\jiqiren.png" usedList="jiqiren" />
 		</Bitmaps>
 	</Commands>
 
@@ -136,8 +141,27 @@
 		</GuidSymbol>
 
 
-		<GuidSymbol name="guidImages" value="{9c25e316-77bf-4455-81fb-3ef077e7f952}">
-			<IDSymbol name="bmpPic1" value="1" />
+		<GuidSymbol name="jiqiren" value="{9c25e316-77bf-4455-81fb-3ef077e7f952}">
+			<IDSymbol name="jiqiren" value="1" />
+		</GuidSymbol>
+
+		<GuidSymbol name="liaotian" value="{7657790B-C554-4974-9A1B-05D5D2BF2408}">
+			<IDSymbol name="liaotian" value="1" />
+		</GuidSymbol>
+		<GuidSymbol name="jieshi" value="{2B13AF37-E863-402C-AD7B-925A07C001EE}">
+			<IDSymbol name="jieshi" value="1" />
+		</GuidSymbol>
+		<GuidSymbol name="bug" value="{DDF908CE-814B-4D99-BDE5-10F62DC2E18D}">
+			<IDSymbol name="bug" value="1" />
+		</GuidSymbol>
+		<GuidSymbol name="opt" value="{4B2B621A-86B3-48B3-B293-63A5870D3B6B}">
+			<IDSymbol name="opt" value="1" />
+		</GuidSymbol>
+		<GuidSymbol name="wancheng" value="{D5914ACF-E4C8-460D-BFEC-940DA20B439E}">
+			<IDSymbol name="wancheng" value="1" />
+		</GuidSymbol>
+		<GuidSymbol name="zhushi" value="{25AD7FD5-5B89-457E-B7DE-56AE8F2EBB5A}">
+			<IDSymbol name="zhushi" value="1" />
 		</GuidSymbol>
 	</Symbols>
 </CommandTable>
