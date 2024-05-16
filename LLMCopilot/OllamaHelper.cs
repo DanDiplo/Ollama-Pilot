@@ -58,7 +58,7 @@ namespace LLMCopilot
                 NumCtx = 4096,
                 NumPredict = 256,
                 Stop = stop,
-                Temperature = 0.5f
+                Temperature = 0.01f
             };
 
             ChatRequestOptions = new RequestOptions

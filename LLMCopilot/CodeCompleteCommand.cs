@@ -96,7 +96,7 @@ namespace LLMCopilot
                 string SuffixCode = await VsHelpers.GetSuffixLinesAsync(ServiceProvider, nSuffixLines);
 
                 string template = $"<|fim▁begin|>{PrefixCode}<|fim▁hole|>{SuffixCode}<|fim▁end|>";
-
+                LLMErrorHandler.WriteLog(template);
                 GenerateCompletionRequest req = new GenerateCompletionRequest
                 {
                     Model = client.SelectedModel,
@@ -110,26 +110,18 @@ namespace LLMCopilot
                 cts.CancelAfter(TimeSpan.FromSeconds(30)); // 设置超时时间为30秒
                 var resp = await client.GetCompletion(req);
 
-                if (!string.IsNullOrEmpty(PrefixCode))
+                // 在 UI 线程上创建和更新 Adornment
+                var textView = await VsHelpers.GetActiveTextViewAsync(ServiceProvider);
+                textView.VisualElement.Dispatcher.Invoke(() =>
                 {
-                    VsShellUtilities.ShowMessageBox(
-                        this.package,
-                        $"complete:{resp.Response}\n\n",
-                        "Surrounding Code",
-                        OLEMSGICON.OLEMSGICON_INFO,
-                        OLEMSGBUTTON.OLEMSGBUTTON_OK,
-                        OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
-                }
-                else
-                {
-                    VsShellUtilities.ShowMessageBox(
-                        this.package,
-                        "No active document found or unable to retrieve text.",
-                        "Error",
-                        OLEMSGICON.OLEMSGICON_CRITICAL,
-                        OLEMSGBUTTON.OLEMSGBUTTON_OK,
-                        OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
-                }
+                    LLMAdornmentFactory.CreateAdornment(textView);
+                    var adornment = LLMAdornmentFactory.GetCurrentAdornment();
+                    if (adornment != null)
+                    {
+                        adornment.UpdatePrediction(resp.Response.TrimStart());
+
+                    }
+                });
             });
             
         }

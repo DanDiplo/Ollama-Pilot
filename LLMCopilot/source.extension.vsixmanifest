@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <PackageManifest xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:ns1="http://schemas.microsoft.com/developer/vsx-schema-design/2011" Version="2.0.0">
     <Metadata>
-        <Identity Id="LLMCopilot.dd3fc432-86fc-4399-b056-17e6fb265891" Version="0.1.181" Language="en-US" Publisher="Company" />
+        <Identity Id="LLMCopilot.dd3fc432-86fc-4399-b056-17e6fb265891" Version="0.1.203" Language="en-US" Publisher="Company" />
         <DisplayName>LLMCopilot</DisplayName>
         <Description xml:space="preserve">Code with LLM copilot</Description>
         <Preview>true</Preview>
@@ -17,5 +17,6 @@
     </Prerequisites>
     <Assets>
         <Asset Type="Microsoft.VisualStudio.VsPackage" ns1:Source="Project" ns1:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
+        <Asset Type="Microsoft.VisualStudio.MefComponent" ns1:Source="Project" ns1:ProjectName="%CurrentProject%" Path="|%CurrentProject%|" />
     </Assets>
 </PackageManifest>
