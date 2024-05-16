@@ -26,7 +26,6 @@ namespace LLMCopilot
         public static OllamaHelper Instance { get { return lazy.Value; } }
 
         private static readonly int defaultContext = 4096;
-        private static readonly int defaultDeepSeekContext = 16384;
         private static readonly int defaultCodeLineLength = 80;
         private static readonly double PrefixCodeLinePercent = 0.8;
         private static readonly double SuffixCodeLinePercent = 1 - PrefixCodeLinePercent;
@@ -35,15 +34,18 @@ namespace LLMCopilot
         public RequestOptions ChatRequestOptions { get; private set; }
 
         private readonly string[] stop = {
-                 "<|fim▁begin|>",
-                 "<|fim▁hole|>",
-                 "<|fim▁end|>",
-                 "//",
-                 @"\n\n",
-                 @"\r\n\r\n",
-                "<|EOT|>",
-                "<｜begin▁of▁sentence｜>",
-                "<｜end▁of▁sentence｜>"
+                 "<｜fim▁begin｜>",
+            "<｜fim▁hole｜>",
+            "<｜fim▁end｜>",
+            "//",
+            "<｜end▁of▁sentence｜>",
+            "\n\n",
+            "\r\n\r\n",
+            "/src/","#- coding: utf-8",
+            "```",
+            "\nclass",
+            "\nnamespace",
+            "\nvoid"
             };
 
         public OptionPageGrid Options { get; private set; }
@@ -56,7 +58,7 @@ namespace LLMCopilot
 
             CompRequestOptions = new RequestOptions {
                 NumCtx = 4096,
-                NumPredict = 256,
+                NumPredict = 1024,
                 Stop = stop,
                 Temperature = 0.01f
             };
@@ -248,6 +250,12 @@ The programming language is {code_type}.
             return str.Length / 4;
         }
 
+        public static int EstimateCharsByTokens(int nTokens)
+        {
+            return nTokens/2 * 4;
+        }
+
+
         public static int EstimatePrefixLinesByCtx(int? nCtx)
         {
             if (!nCtx.HasValue)
@@ -256,7 +264,7 @@ The programming language is {code_type}.
                 return 0;
             }
 
-            return Convert.ToInt32(nCtx * PrefixCodeLinePercent) / defaultCodeLineLength;
+            return Convert.ToInt32(EstimateCharsByTokens(nCtx.Value) * PrefixCodeLinePercent) / defaultCodeLineLength;
         }
 
         public static int EstimateSuffixLinesByCtx(int? nCtx)
@@ -267,7 +275,7 @@ The programming language is {code_type}.
                 return 0;
             }
 
-            return Convert.ToInt32(nCtx * SuffixCodeLinePercent) / defaultCodeLineLength;
+            return Convert.ToInt32(EstimateCharsByTokens(nCtx.Value) * SuffixCodeLinePercent) / defaultCodeLineLength;
         }
 
         private void Options_SettingsChanged(object sender, EventArgs e)
@@ -293,7 +301,7 @@ The programming language is {code_type}.
 
                 Func<string, string, int> GetCtx = (string parameters, string model) =>
                 {
-                    int num_ctx = model.ToLower().Contains("deepseek")? defaultDeepSeekContext: defaultContext; 
+                    int num_ctx = defaultContext; 
                     if (!string.IsNullOrEmpty(parameters))
                     {
                         var match = Regex.Match(parameters, @"PARAMETER\s+num_ctx\s+(\d+)");
@@ -316,7 +324,7 @@ The programming language is {code_type}.
                 LLMErrorHandler.HandleException(ex);
             }
 
-        }    
+        }
 
     }
 

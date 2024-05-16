@@ -197,6 +197,76 @@ namespace LLMCopilot
             }
         }
 
+        public static string StopAtSimilarLine(string stream, string line)
+        {
+                        // 拆分第一个字符串，考虑不同操作系统的换行符
+            string[] lines = stream.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+
+            // 第二个字符串只取拆分后，不为全是空白或换行符的行
+            string[] filteredLines = line.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Where(l => !string.IsNullOrWhiteSpace(l))
+                .ToArray();
+            if (filteredLines.Length == 0)
+            {
+                return stream;
+            }
+
+            line = filteredLines[0];
+            line = line.Trim();
+            bool lineIsBracketEnding = IsBracketEnding(line);
+
+            StringBuilder result = new StringBuilder();
+
+            foreach (string nextLine in lines)
+            {
+                if (lineIsBracketEnding && line.Trim() == nextLine.Trim())
+                {
+                    result.AppendLine(nextLine);
+                    continue;
+                }
+
+                bool lineQualifies = nextLine.Length > 4 && line.Length > 4;
+                if (lineQualifies && ComputeDistance(nextLine.Trim(), line) / (double)line.Length < 0.1)
+                {
+                    break;
+                }
+                result.AppendLine(nextLine);
+            }
+
+            return result.ToString();
+        }
+
+        private static bool IsBracketEnding(string line)
+        {
+            char[] bracketEnding = { ')', ']', '}', ';' };
+            return line.Trim().Any(c => bracketEnding.Contains(c));
+        }
+
+        private static int ComputeDistance(string str1, string str2)
+        {
+            int[,] dp = new int[str1.Length + 1, str2.Length + 1];
+
+            for (int i = 0; i <= str1.Length; i++)
+            {
+                dp[i, 0] = i;
+            }
+
+            for (int j = 0; j <= str2.Length; j++)
+            {
+                dp[0, j] = j;
+            }
+
+            for (int i = 1; i <= str1.Length; i++)
+            {
+                for (int j = 1; j <= str2.Length; j++)
+                {
+                    int cost = (str1[i - 1] == str2[j - 1]) ? 0 : 1;
+                    dp[i, j] = Math.Min(Math.Min(dp[i - 1, j] + 1, dp[i, j - 1] + 1), dp[i - 1, j - 1] + cost);
+                }
+            }
+
+            return dp[str1.Length, str2.Length];
+        }
 
         public static void OpenChatWindow()
         {
@@ -214,26 +284,5 @@ namespace LLMCopilot
             IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
             Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
         }
-    }
-
-    public class CommandExecutor
-    {
-       
-        public static async Task PostCommandAsync(IAsyncServiceProvider serviceProvider,  Guid commandGroup, uint commandId)
-        {
-            try
-            {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                IVsUIShell uiShell = await serviceProvider.GetServiceAsync(typeof(SVsUIShell)) as IVsUIShell;
-                if (uiShell == null) return;
-
-                int hr = uiShell.PostExecCommand(ref commandGroup, commandId, 0, null);
-                ErrorHandler.ThrowOnFailure(hr);
-            }
-            catch (Exception ex)
-            {
-                LLMErrorHandler.HandleException(ex);
-            }
-        }        
     }
 }

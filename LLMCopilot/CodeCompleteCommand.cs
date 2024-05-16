@@ -95,21 +95,22 @@ namespace LLMCopilot
                 string PrefixCode = await VsHelpers.GetPrefixLinesAsync(ServiceProvider, nPrefixLines);
                 string SuffixCode = await VsHelpers.GetSuffixLinesAsync(ServiceProvider, nSuffixLines);
 
-                string template = $"<|fim▁begin|>{PrefixCode}<|fim▁hole|>{SuffixCode}<|fim▁end|>";
+                string template = $"<｜fim▁begin｜>{PrefixCode}<｜fim▁hole｜>{SuffixCode}<｜fim▁end｜>";
                 LLMErrorHandler.WriteLog(template);
                 GenerateCompletionRequest req = new GenerateCompletionRequest
                 {
                     Model = client.SelectedModel,
                     Prompt = template,
                     Options = reqOps,
-                    Stream = true,
                     Raw = true
                 };
 
                 var cts = new CancellationTokenSource();
                 cts.CancelAfter(TimeSpan.FromSeconds(30)); // 设置超时时间为30秒
                 var resp = await client.GetCompletion(req);
+                LLMErrorHandler.WriteLog(resp.Response);
 
+                var comp_text = VsHelpers.StopAtSimilarLine(resp.Response, SuffixCode);
                 // 在 UI 线程上创建和更新 Adornment
                 var textView = await VsHelpers.GetActiveTextViewAsync(ServiceProvider);
                 textView.VisualElement.Dispatcher.Invoke(() =>
@@ -118,7 +119,7 @@ namespace LLMCopilot
                     var adornment = LLMAdornmentFactory.GetCurrentAdornment();
                     if (adornment != null)
                     {
-                        adornment.UpdatePrediction(resp.Response.TrimStart());
+                        adornment.UpdatePrediction(comp_text.TrimStart());
 
                     }
                 });
