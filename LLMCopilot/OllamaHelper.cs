@@ -56,9 +56,9 @@ namespace LLMCopilot
 
             CompRequestOptions = new RequestOptions {
                 NumCtx = 4096,
-                NumPredict = 128,
+                NumPredict = 256,
                 Stop = stop,
-                Temperature = 0.01f
+                Temperature = 0.5f
             };
 
             ChatRequestOptions = new RequestOptions
@@ -79,45 +79,168 @@ namespace LLMCopilot
         public string GetExplainCodeTemplate(string code, string file)
         {
             string code_type = VsHelpers.GetSourceCodeType(file);
-            string template = $@"```{code_type}
+            string templateEN = $@"## Instructions
+Summarize the code below (emphasizing its key functionality).
+
+## Selected Code
+```{code_type}
 {code}
 ```
-explain this code from `{file}`, response in {Options.Language}";
 
-            return template;
+## Task
+Summarize the code at a high level (including goal and purpose) with an emphasis on its key functionality.
+
+## Response
+
+";
+            string templateCN = $@"## 说明
+总结下面的代码（强调其关键功能）。
+
+## 选定代码
+```{code_type}
+{code}
+```
+
+## 任务
+高层次地总结代码（包括目标和目的），并着重介绍其关键功能。
+
+## 回答
+
+";
+
+            return Options.Language == ResponseLanguage.English ? templateEN : templateCN;
         }
 
         public string GetFindBugTemplate(string code, string file)
         {
             string code_type = VsHelpers.GetSourceCodeType(file);
-            string template = $@"```{code_type}
+            string templateEN = $@"## Instructions
+What could be wrong with the code below?
+Only consider defects that would lead to incorrect behavior.
+The programming language is {code_type}.
+
+## Selected Code
+```{code_type}
 {code}
 ```
-find bug in this code from `{file}`, response in {Options.Language}";
 
-            return template;
+## Task
+Describe what could be wrong with the code?
+Only consider defects that would lead to incorrect behavior.
+Provide potential fix suggestions where possible.
+Consider that there might not be any problems with the code.
+Include code snippets(using Markdown) and examples where appropriate.
+
+## Analysis
+
+";
+            string templateCN = $@"
+## 说明
+下面的代码可能有什么问题？
+只考虑会导致不正确行为的缺陷。
+编程语言是{code_type}。
+
+## 选定代码
+```{code_type}
+{code}
+```
+
+## 任务
+描述代码可能有什么问题？
+只考虑会导致不正确行为的缺陷。
+在可能的情况下提供潜在的修复建议。
+考虑代码可能没有任何问题的情况。
+在适当的情况下包含代码片段（使用Markdown）和示例。
+
+## 分析
+
+";
+
+            return Options.Language == ResponseLanguage.English ? templateEN : templateCN;
         }
 
         public string GetOptimizeCodeTemplate(string code, string file)
         {
             string code_type = VsHelpers.GetSourceCodeType(file);
-            string template = $@"```{code_type}
+            string templateEN = $@"## Instructions
+How could the readability and performance of the code below be improved?
+The programming language is {code_type}.
+Consider overall readability, performance and idiomatic constructs.
+
+## Selected Code
+```{code_type}
 {code}
 ```
-Optimize this code from `{file}`, response in {Options.Language}";
 
-            return template;
+## Task
+How could the readability and performance of the code be improved?
+The programming language is {code_type}.
+Consider overall readability, performance and idiomatic constructs.
+Provide potential improvements suggestions where possible.
+Consider that the code might be perfect and no improvements are possible.
+Include code snippets (using Markdown) and examples where appropriate.
+The code snippets must contain valid {code_type} code.
+
+## Readability and Performance Improvements
+
+";
+            string templateCN = $@"## 说明
+如何提高下面代码的可读性和性能？
+编程语言是{code_type}。
+考虑整体可读性、性能和惯用构造。
+
+## 选定代码
+```{code_type}
+{code}
+```
+
+## 任务
+如何提高代码的可读性和性能？
+编程语言是{code_type}。
+考虑整体可读性、性能和惯用构造。
+在可能的情况下提供潜在的改进建议。
+考虑代码可能已经完美，没有改进的空间。
+在适当的情况下包含代码片段（使用Markdown）和示例。
+代码片段必须包含有效的{code_type}代码。
+
+## 可读性和性能改进
+
+";
+
+            return Options.Language == ResponseLanguage.English ? templateEN : templateCN;
         }
 
         public string GetAddCommentTemplate(string code, string file)
         {
             string code_type = VsHelpers.GetSourceCodeType(file);
-            string template = $@"```{code_type}
+            string templateEN = $@"## Instructions
+Document the code on function/method/class level.
+Avoid line comments.
+The programming language is {code_type}.
+
+## Code
+```{code_type}
 {code}
 ```
-Add comments in Google style for this code from `{file}`,  response Only the code in a markdown box";
 
-            return template;
+## Documented Code
+
+";
+            string templateCN = $@"## 说明
+在函数/方法/类级别上对代码进行文档化。
+避免行内注释。
+编程语言是{code_type}。
+
+## 代码
+```{code_type}
+{code}
+```
+
+## 文档化的代码
+
+";
+
+            return Options.Language == ResponseLanguage.English ? templateEN : templateCN;
         }
 
         public static int EstimateTokensByChars(string str)
@@ -125,13 +248,25 @@ Add comments in Google style for this code from `{file}`,  response Only the cod
             return str.Length / 4;
         }
 
-        public static int EstimatePrefixLinesByCtx(int nCtx)
+        public static int EstimatePrefixLinesByCtx(int? nCtx)
         {
+            if (!nCtx.HasValue)
+            {
+                // 如果 nCtx 没有值，则返回一个默认值，例如0
+                return 0;
+            }
+
             return Convert.ToInt32(nCtx * PrefixCodeLinePercent) / defaultCodeLineLength;
         }
 
-        public static int EstimateSuffixLinesByCtx(int nCtx)
+        public static int EstimateSuffixLinesByCtx(int? nCtx)
         {
+            if (!nCtx.HasValue)
+            {
+                // 如果 nCtx 没有值，则返回一个默认值，例如0
+                return 0;
+            }
+
             return Convert.ToInt32(nCtx * SuffixCodeLinePercent) / defaultCodeLineLength;
         }
 

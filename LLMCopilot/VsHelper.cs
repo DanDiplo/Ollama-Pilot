@@ -82,20 +82,25 @@ namespace LLMCopilot
             var caretPosition = textView.Caret.Position.BufferPosition;
             var snapshot = caretPosition.Snapshot;
 
-            var startLine = snapshot.GetLineNumberFromPosition(caretPosition.Position);
-            var startLineIndex = Math.Max(0, startLine - n);
-            var endLineIndex = startLine;
+            var currentLine = snapshot.GetLineFromPosition(caretPosition);
+            var currentLineText = currentLine.GetText().Substring(0, caretPosition.Position - currentLine.Start.Position);
+
+            var startLineIndex = Math.Max(0, currentLine.LineNumber - (n - 1));
 
             var sb = new System.Text.StringBuilder();
 
-            for (int i = startLineIndex; i <= endLineIndex; i++)
+            for (int i = startLineIndex; i < currentLine.LineNumber; i++)
             {
                 var line = snapshot.GetLineFromLineNumber(i);
                 sb.AppendLine(line.GetText());
             }
 
+            // Append the current line up to the caret position
+            sb.Append(currentLineText);
+
             return sb.ToString();
         }
+
 
         public static async Task<string> GetSuffixLinesAsync(IAsyncServiceProvider serviceProvider, int n)
         {
@@ -111,13 +116,17 @@ namespace LLMCopilot
             var caretPosition = textView.Caret.Position.BufferPosition;
             var snapshot = caretPosition.Snapshot;
 
-            var startLine = snapshot.GetLineNumberFromPosition(caretPosition.Position);
-            var startLineIndex = startLine;
-            var endLineIndex = Math.Min(snapshot.LineCount - 1, startLine + n);
+            var currentLine = snapshot.GetLineFromPosition(caretPosition);
+            var currentLineText = currentLine.GetText().Substring(caretPosition.Position - currentLine.Start.Position);
+
+            var endLineIndex = Math.Min(snapshot.LineCount - 1, currentLine.LineNumber + (n - 1));
 
             var sb = new System.Text.StringBuilder();
 
-            for (int i = startLineIndex; i <= endLineIndex; i++)
+            // Append the current line from caret position to the end
+            sb.AppendLine(currentLineText);
+
+            for (int i = currentLine.LineNumber + 1; i <= endLineIndex; i++)
             {
                 var line = snapshot.GetLineFromLineNumber(i);
                 sb.AppendLine(line.GetText());
@@ -125,6 +134,7 @@ namespace LLMCopilot
 
             return sb.ToString();
         }
+
 
         public static string GetSourceCodeType(string fileName)
         {
