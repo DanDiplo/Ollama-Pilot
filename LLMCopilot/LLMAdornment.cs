@@ -331,6 +331,11 @@ namespace LLMCopilot
 
         public override void PreviewKeyDown(KeyEventArgs e)
         {
+            if (LLMAdornmentFactory.GetCurrentAdornment() == null)
+            {
+                return;
+            }
+
             if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl)
             {
                 LLMAdornmentFactory.AcceptPrediction(_view);

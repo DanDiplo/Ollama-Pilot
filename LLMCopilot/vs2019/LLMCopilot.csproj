@@ -45,47 +45,47 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="AddCommentCommand.cs" />
-    <Compile Include="CodeCompleteCommand.cs" />
-    <Compile Include="FindBugCommand.cs" />
-    <Compile Include="LLMAdornment.cs" />
-    <Compile Include="LLMErrorHandler.cs" />
-    <Compile Include="LLMChatWindow.cs" />
-    <Compile Include="LLMChatWindowCommand.cs" />
-    <Compile Include="LLMChatWindowControl.xaml.cs">
+    <Compile Include="..\AddCommentCommand.cs" />
+    <Compile Include="..\CodeCompleteCommand.cs" />
+    <Compile Include="..\FindBugCommand.cs" />
+    <Compile Include="..\LLMAdornment.cs" />
+    <Compile Include="..\LLMErrorHandler.cs" />
+    <Compile Include="..\LLMChatWindow.cs" />
+    <Compile Include="..\LLMChatWindowCommand.cs" />
+    <Compile Include="..\LLMChatWindowControl.xaml.cs">
       <DependentUpon>LLMChatWindowControl.xaml</DependentUpon>
     </Compile>
-    <Compile Include="ExplainCommand.cs" />
-    <Compile Include="OllamaHelper.cs" />
-    <Compile Include="OllamaSharp\ActionResponseStreamer.cs" />
-    <Compile Include="OllamaSharp\Chat.cs" />
-    <Compile Include="OllamaSharp\ChatDoneResponseStream.cs" />
-    <Compile Include="OllamaSharp\ChatRequest.cs" />
-    <Compile Include="OllamaSharp\ChatResponseStream.cs" />
-    <Compile Include="OllamaSharp\ChatRole.cs" />
-    <Compile Include="OllamaSharp\ChatRoleConverter.cs" />
-    <Compile Include="OllamaSharp\CopyModel.cs" />
-    <Compile Include="OllamaSharp\CreateModel.cs" />
-    <Compile Include="OllamaSharp\DeleteModel.cs" />
-    <Compile Include="OllamaSharp\GenerateCompletion.cs" />
-    <Compile Include="OllamaSharp\GenerateEmbedding.cs" />
-    <Compile Include="OllamaSharp\IOllamaApiClient.cs" />
-    <Compile Include="OllamaSharp\IResponseStreamer.cs" />
-    <Compile Include="OllamaSharp\ListModels.cs" />
-    <Compile Include="OllamaSharp\Message.cs" />
-    <Compile Include="OllamaSharp\OllamaApiClient.cs" />
-    <Compile Include="OllamaSharp\OllamaApiClientExtensions.cs" />
-    <Compile Include="OllamaSharp\PullModel.cs" />
-    <Compile Include="OllamaSharp\PushModel.cs" />
-    <Compile Include="OllamaSharp\RequestOptions.cs" />
-    <Compile Include="OllamaSharp\ShowModel.cs" />
-    <Compile Include="OptimizeCodeCommand.cs" />
-    <Compile Include="OptionPageGrid.cs">
+    <Compile Include="..\ExplainCommand.cs" />
+    <Compile Include="..\OllamaHelper.cs" />
+    <Compile Include="..\OllamaSharp\ActionResponseStreamer.cs" />
+    <Compile Include="..\OllamaSharp\Chat.cs" />
+    <Compile Include="..\OllamaSharp\ChatDoneResponseStream.cs" />
+    <Compile Include="..\OllamaSharp\ChatRequest.cs" />
+    <Compile Include="..\OllamaSharp\ChatResponseStream.cs" />
+    <Compile Include="..\OllamaSharp\ChatRole.cs" />
+    <Compile Include="..\OllamaSharp\ChatRoleConverter.cs" />
+    <Compile Include="..\OllamaSharp\CopyModel.cs" />
+    <Compile Include="..\OllamaSharp\CreateModel.cs" />
+    <Compile Include="..\OllamaSharp\DeleteModel.cs" />
+    <Compile Include="..\OllamaSharp\GenerateCompletion.cs" />
+    <Compile Include="..\OllamaSharp\GenerateEmbedding.cs" />
+    <Compile Include="..\OllamaSharp\IOllamaApiClient.cs" />
+    <Compile Include="..\OllamaSharp\IResponseStreamer.cs" />
+    <Compile Include="..\OllamaSharp\ListModels.cs" />
+    <Compile Include="..\OllamaSharp\Message.cs" />
+    <Compile Include="..\OllamaSharp\OllamaApiClient.cs" />
+    <Compile Include="..\OllamaSharp\OllamaApiClientExtensions.cs" />
+    <Compile Include="..\OllamaSharp\PullModel.cs" />
+    <Compile Include="..\OllamaSharp\PushModel.cs" />
+    <Compile Include="..\OllamaSharp\RequestOptions.cs" />
+    <Compile Include="..\OllamaSharp\ShowModel.cs" />
+    <Compile Include="..\OptimizeCodeCommand.cs" />
+    <Compile Include="..\OptionPageGrid.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="LLMCopilotPackage.cs" />
-    <Compile Include="VsHelper.cs" />
+    <Compile Include="..\Properties\AssemblyInfo.cs" />
+    <Compile Include="..\LLMCopilotPackage.cs" />
+    <Compile Include="..\VsHelper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="source.extension.vsixmanifest">
@@ -118,36 +118,40 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <Page Include="LLMChatWindowControl.xaml">
+    <Page Include="..\LLMChatWindowControl.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <VSCTCompile Include="LLMCopilotPackage.vsct">
+    <VSCTCompile Include="..\LLMCopilotPackage.vsct">
       <ResourceName>Menus.ctmenu</ResourceName>
     </VSCTCompile>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Resources\bug.png">
+    <Content Include="..\logo.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="Resources\jieshi.png">
+    <Content Include="..\Resources\bug.png">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="Resources\jiqiren.png">
+    <Content Include="..\Resources\jieshi.png">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="Resources\liaotian.png">
+    <Content Include="..\Resources\jiqiren.png">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="Resources\opt.png">
+    <Content Include="..\Resources\liaotian.png">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="Resources\wancheng.png">
+    <Content Include="..\Resources\opt.png">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="Resources\zhushi.png">
+    <Content Include="..\Resources\wancheng.png">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="..\Resources\zhushi.png">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
   </ItemGroup>
@@ -168,7 +172,7 @@
     </ItemGroup>
   </Target>
   <PropertyGroup>
-    <PreBuildEvent>python "$(ProjectDir)inc_ver.py" $(ProjectDir)
+    <PreBuildEvent>python "$(ProjectDir)..\inc_ver.py" $(ProjectDir)
 </PreBuildEvent>
   </PropertyGroup>
 </Project>
