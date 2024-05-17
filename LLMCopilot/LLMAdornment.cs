@@ -86,7 +86,7 @@ namespace LLMCopilot
                 // 在 UI 线程上更新 _textBlock.Text
                 _view.VisualElement.Dispatcher.Invoke(() =>
                 {
-                    _textBlock.Text = AddLineNumbers(prediction);
+                    _textBlock.Text = AddLineNumbers(prediction.TrimStart());
 
                     // 获取当前光标位置
                     var caretPosition = _view.Caret.Position.BufferPosition;
@@ -156,8 +156,15 @@ namespace LLMCopilot
 
         public override void PreviewKeyDown(KeyEventArgs e)
         {
+
             if (LLMAdornmentFactory.GetCurrentAdornment() == null)
             {
+                var options = OllamaHelper.Instance.Options;
+                if (options.EnableAutoComplete)
+                {
+                    VsHelpers.CodeCompleteCommand();
+                }
+
                 return;
             }
 
@@ -174,7 +181,6 @@ namespace LLMCopilot
             else
             {
                 CancelPrediction();
-                e.Handled = true;
             }
         }
 
@@ -243,7 +249,7 @@ namespace LLMCopilot
     [Export(typeof(IKeyProcessorProvider))]
     [Name("LLMAdornmentKeyProcessorProvider")]
     [ContentType("code")]
-    [TextViewRole(PredefinedTextViewRoles.Editable)]
+    [TextViewRole(PredefinedTextViewRoles.Interactive)]
     public class LLMAdornmentKeyProcessorProvider : IKeyProcessorProvider
     {
         public KeyProcessor GetAssociatedProcessor(IWpfTextView textView)
@@ -251,4 +257,5 @@ namespace LLMCopilot
             return new LLMAdornmentKeyProcessor(textView);
         }
     }
+
 }

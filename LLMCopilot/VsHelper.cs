@@ -13,11 +13,14 @@ using System.Text;
 using System.Threading.Tasks;
 using IAsyncServiceProvider = Microsoft.VisualStudio.Shell.IAsyncServiceProvider;
 using Task = System.Threading.Tasks.Task;
+using OllamaSharp.Models;
+using System.Threading;
 
 namespace LLMCopilot
 {
     public static class VsHelpers
     {
+        public static bool IsSending { get; set; } = false;
         public static async Task<IWpfTextView> GetActiveTextViewAsync(IAsyncServiceProvider serviceProvider)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -282,6 +285,65 @@ namespace LLMCopilot
 
             IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
             Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
+        }
+
+        public static void CodeCompleteCommand()
+        {
+            if (IsSending)
+            {
+                return;
+            }
+
+            IsSending = true;
+            try
+            {
+                Task.Run(async () =>
+                {
+                    var client = OllamaClientFactory.CreateClient();
+
+                    RequestOptions reqOps = OllamaHelper.Instance.CompRequestOptions;
+                    int nPrefixLines = OllamaHelper.EstimatePrefixLinesByCtx(reqOps.NumCtx);
+                    int nSuffixLines = OllamaHelper.EstimateSuffixLinesByCtx(reqOps.NumCtx);
+
+                    string PrefixCode = await VsHelpers.GetPrefixLinesAsync(ServiceProvider.Package, nPrefixLines);
+                    string SuffixCode = await VsHelpers.GetSuffixLinesAsync(ServiceProvider.Package, nSuffixLines);
+
+                    var options = OllamaHelper.Instance.Options;
+
+                    string template = $"{options.FimBegin}{PrefixCode}{options.FimHole}{SuffixCode}{options.FimEnd}";
+                    LLMErrorHandler.WriteLog(template);
+                    GenerateCompletionRequest req = new GenerateCompletionRequest
+                    {
+                        Model = client.SelectedModel,
+                        Prompt = template,
+                        Options = reqOps,
+                        Raw = true
+                    };
+
+                    var cts = new CancellationTokenSource();
+                    cts.CancelAfter(TimeSpan.FromSeconds(30)); // 设置超时时间为30秒
+                    var resp = await client.GetCompletion(req);
+                    LLMErrorHandler.WriteLog(resp.Response);
+
+                    var comp_text = VsHelpers.StopAtSimilarLine(resp.Response, SuffixCode);
+                    // 在 UI 线程上创建和更新 Adornment
+                    var textView = await VsHelpers.GetActiveTextViewAsync(ServiceProvider.Package);
+                    textView.VisualElement.Dispatcher.Invoke(() =>
+                    {
+                        LLMAdornmentFactory.CreateAdornment(textView);
+                        var adornment = LLMAdornmentFactory.GetCurrentAdornment();
+                        if (adornment != null)
+                        {
+                            adornment.UpdatePrediction(comp_text);
+
+                        }
+                    });
+                });
+            }
+            finally
+            {
+                IsSending = false;
+            }
         }
     }
 }

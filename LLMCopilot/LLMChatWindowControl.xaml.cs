@@ -64,7 +64,6 @@ namespace LLMCopilot
     /// </summary>
     public partial class LLMChatWindowControl : UserControl
     {
-        private bool _isSending;
         private ObservableCollection<MyMessage> _messages = new ObservableCollection<MyMessage>();
         public ObservableCollection<MyMessage> Messages => _messages;
         private Chat Chat { get; set; }
@@ -201,9 +200,9 @@ namespace LLMCopilot
 
         public async Task SendChatMessageAsync(string text, ChatRole role)
         {
-            if (!string.IsNullOrWhiteSpace(text) && !_isSending)
+            if (!string.IsNullOrWhiteSpace(text) && !VsHelpers.IsSending)
             {
-                _isSending = true;
+                VsHelpers.IsSending = true;
                 SendButton.Content = "Answering...";
                 SendButton.IsEnabled = false;
 
@@ -228,7 +227,7 @@ namespace LLMCopilot
 
 
                 // 确保在任何情况下都重置状态
-                _isSending = false;
+                VsHelpers.IsSending = false;
                 SendButton.Content = "Send";
                 SendButton.IsEnabled = true;
 

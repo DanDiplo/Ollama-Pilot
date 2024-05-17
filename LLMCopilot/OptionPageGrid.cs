@@ -15,6 +15,10 @@ namespace LLMCopilot
         private string baseUrl = "http://localhost:11434";
         private string completeModel = "deepseek-coder:6.7b";
         private string chatModel = "deepseek-coder:6.7b";
+        private bool enableAutoComplete = false;
+        private string fim_begin = "<｜fim▁begin｜>";
+        private string fim_end = "<｜fim▁end｜>";
+        private string fim_hole = "<｜fim▁hole｜>";
         private ResponseLanguage language = ResponseLanguage.English;
 
         public event EventHandler SettingsChanged;
@@ -89,6 +93,54 @@ namespace LLMCopilot
             get { return chatModel; }
             set { 
                 chatModel = value;
+            }
+        }
+
+        [Category("LLMCopilot")]
+        [DisplayName("Enable Auto Complete")]
+        [Description("Auto complete code when starting a new blank line")]
+        public bool EnableAutoComplete
+        {
+            get { return enableAutoComplete; }
+            set
+            {
+                enableAutoComplete = value;
+            }
+        }
+
+        [Category("LLMCopilot")]
+        [DisplayName("Fim begin token")]
+        [Description("Fill in the middle begin Token for code complete LLM model You have selected")]
+        public string FimBegin
+        {
+            get { return fim_begin; }
+            set
+            {
+                fim_begin = value;
+            }
+        }
+
+        [Category("LLMCopilot")]
+        [DisplayName("Fim end token")]
+        [Description("Fill in the middle end Token for code complete LLM model You have selected")]
+        public string FimEnd
+        {
+            get { return fim_end; }
+            set
+            {
+                fim_end = value;
+            }
+        }
+
+        [Category("LLMCopilot")]
+        [DisplayName("Fim hole token")]
+        [Description("Fill in the middle hole Token for code complete LLM model You have selected")]
+        public string FimHole
+        {
+            get { return fim_hole; }
+            set
+            {
+                fim_hole = value;
             }
         }
     }

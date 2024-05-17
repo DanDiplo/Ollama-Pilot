@@ -6,11 +6,7 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
-using OllamaSharp.Models;
-using System.Windows.Threading;
-using Microsoft.VisualStudio.Text.Editor;
-using Microsoft.VisualStudio.TextManager.Interop;
-using Microsoft.VisualStudio.Editor;
+
 
 namespace LLMCopilot
 {

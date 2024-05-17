@@ -33,20 +33,7 @@ namespace LLMCopilot
         public RequestOptions CompRequestOptions { get; private set; }
         public RequestOptions ChatRequestOptions { get; private set; }
 
-        private readonly string[] stop = {
-                 "<｜fim▁begin｜>",
-            "<｜fim▁hole｜>",
-            "<｜fim▁end｜>",
-            "//",
-            "<｜end▁of▁sentence｜>",
-            "\n\n",
-            "\r\n\r\n",
-            "/src/","#- coding: utf-8",
-            "```",
-            "\nclass",
-            "\nnamespace",
-            "\nvoid"
-            };
+        private string[] stop;
 
         public OptionPageGrid Options { get; private set; }
 
@@ -55,6 +42,21 @@ namespace LLMCopilot
         {
             var package = ServiceProvider.Package;
             Options = (OptionPageGrid)package.GetDialogPage(typeof(OptionPageGrid));
+
+            stop = new string[]{
+                Options.FimBegin,
+                Options.FimHole,
+                Options.FimEnd,
+                "//",
+                "<｜end▁of▁sentence｜>",
+                "\n\n",
+                "\r\n\r\n",
+                "/src/","#- coding: utf-8",
+                "```",
+                "\nclass",
+                "\nnamespace",
+                "\nvoid"
+                };
 
             CompRequestOptions = new RequestOptions {
                 NumCtx = 4096,
@@ -288,6 +290,9 @@ The programming language is {code_type}.
             string baseUrl = Options.BaseUrl;
             string completeModel = Options.CompleteModel;
             string chatModel = Options.ChatModel;
+            stop[0] = Options.FimBegin;
+            stop[1] = Options.FimEnd;
+            stop[2] = Options.FimHole;
             Task.Run(async () => await this.InitModelCtx());
         }
 
