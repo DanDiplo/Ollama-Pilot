@@ -123,6 +123,15 @@
 		</Bitmaps>
 	</Commands>
 
+	<CommandPlacements>
+		<CommandPlacement guid="guidLLMCopilotPackageCmdSet" id="ChatMenuGroup" priority="0x0600">
+			<Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_CODEWIN" />
+		</CommandPlacement>
+		<CommandPlacement guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" priority="0x0600">
+			<Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_CODEWIN" />
+		</CommandPlacement>
+	</CommandPlacements>
+
 	<Symbols>
 		<!-- This is the package guid. -->
 		<GuidSymbol name="guidLLMCopilotPackage" value="{f416f114-4489-4a9e-bc3a-fd1afc259ce9}" />
