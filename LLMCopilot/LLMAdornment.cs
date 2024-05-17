@@ -37,6 +37,11 @@ namespace LLMCopilot
 
             _view.LayoutChanged += OnLayoutChanged;
 
+            var defaultTextProperties = _view.FormattedLineSource.DefaultTextProperties;
+            var typeface = defaultTextProperties.Typeface;
+            var fontRenderingSize = defaultTextProperties.FontRenderingEmSize;
+            var foregroundBrush = defaultTextProperties.ForegroundBrush as SolidColorBrush;
+
             // 初始化 _textBlock，但不添加到 _adornmentLayer 中
             _textBlock = new TextBlock
             {
@@ -44,7 +49,10 @@ namespace LLMCopilot
                 Background = new SolidColorBrush(Colors.Gray),
                 Opacity = 0.8, // 设置不透明度以使其看起来像预测文本
                 TextWrapping = TextWrapping.Wrap, // 设置自动换行
-                MaxWidth = CalculateMaxWidth() // 设置最大宽度
+                MaxWidth = CalculateMaxWidth(), // 设置最大宽度
+                FontFamily = typeface.FontFamily, // 设置字体
+                FontSize = fontRenderingSize, // 设置字体大小
+                Foreground = foregroundBrush // 设置前景色
             };
         }
 
@@ -58,8 +66,8 @@ namespace LLMCopilot
             var defaultTextProperties = _view.FormattedLineSource.DefaultTextProperties;
             double fontSize = defaultTextProperties.FontRenderingEmSize; // 获取字体大小
 
-            // 假设每个字符的平均宽度是字体大小的0.6倍（根据实际情况调整）
-            double averageCharWidth = fontSize * 0.6;
+            // 假设每个字符的平均宽度是字体大小的1倍（根据实际情况调整）
+            double averageCharWidth = fontSize;
             return averageCharWidth * 80;
         }
 
