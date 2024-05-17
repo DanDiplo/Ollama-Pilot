@@ -11,6 +11,8 @@ using System.Windows.Media;
 using Microsoft.VisualStudio.Utilities;
 using System.ComponentModel.Composition;
 using System.Windows.Input;
+using System.Windows;
+using System.Text.RegularExpressions;
 
 namespace LLMCopilot
 {
@@ -19,6 +21,7 @@ namespace LLMCopilot
         private IWpfTextView _view;
         private IAdornmentLayer _adornmentLayer;
         private TextBlock _textBlock; // 用于显示预测结果
+        private string _originalPredictionText; // 用于存储原始预测文本
 
         public LLMAdornment(IWpfTextView view)
         {
@@ -32,9 +35,10 @@ namespace LLMCopilot
             {
                 Text = "", // 初始内容为空
                 Background = new SolidColorBrush(Colors.Gray),
-                Opacity = 1.0 // 设置不透明度以使其看起来像预测文本
+                Opacity = 0.8, // 设置不透明度以使其看起来像预测文本
+                TextWrapping = TextWrapping.Wrap, // 设置自动换行
+                MaxWidth = CalculateMaxWidth() // 设置最大宽度
             };
-            SetMaxWidthForTextBlock();
         }
 
         private void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
@@ -42,14 +46,14 @@ namespace LLMCopilot
             
         }
 
-        private void SetMaxWidthForTextBlock()
+        private double CalculateMaxWidth()
         {
             var defaultTextProperties = _view.FormattedLineSource.DefaultTextProperties;
             double fontSize = defaultTextProperties.FontRenderingEmSize; // 获取字体大小
 
             // 假设每个字符的平均宽度是字体大小的0.6倍（根据实际情况调整）
             double averageCharWidth = fontSize * 0.6;
-            _textBlock.MaxWidth = averageCharWidth * 80;
+            return averageCharWidth * 80;
         }
 
         private void CreateVisuals(SnapshotPoint position)
@@ -75,12 +79,14 @@ namespace LLMCopilot
 
         public void UpdatePrediction(string prediction)
         {
+            _originalPredictionText = prediction;
+
             if (_textBlock != null)
             {
                 // 在 UI 线程上更新 _textBlock.Text
                 _view.VisualElement.Dispatcher.Invoke(() =>
                 {
-                    _textBlock.Text = prediction;
+                    _textBlock.Text = AddLineNumbers(prediction);
 
                     // 获取当前光标位置
                     var caretPosition = _view.Caret.Position.BufferPosition;
@@ -94,10 +100,17 @@ namespace LLMCopilot
             }
         }
 
+        private string AddLineNumbers(string text)
+        {
+            var lines = text.Split(new[] { '\n' }, StringSplitOptions.None);
+            var numberedLines = lines.Select((line, index) => $"{index + 1}: {line}");
+            return string.Join("\n", numberedLines);
+        }
+
         public string GetPredictionText()
-    {
-        return _textBlock?.Text ?? string.Empty;
-    }
+        {
+            return _originalPredictionText ?? string.Empty;
+        }
     }
 
     [Export(typeof(IWpfTextViewCreationListener))]
@@ -153,6 +166,11 @@ namespace LLMCopilot
                 AcceptPrediction();
                 e.Handled = true;
             }
+            else if ((e.Key >= Key.D1 && e.Key <= Key.D9) || (e.Key >= Key.NumPad1 && e.Key <= Key.NumPad9))
+            {
+                AcceptPredictionLines(GetDigitFromKey(e.Key));
+                e.Handled = true;
+            }
             else
             {
                 CancelPrediction();
@@ -170,6 +188,40 @@ namespace LLMCopilot
                 _view.TextBuffer.Insert(caretPosition, adornment.GetPredictionText());
                 ClearAdornment();
             }
+        }
+
+        private void AcceptPredictionLines(int lines)
+        {
+            // Logic to accept the first 'lines' lines of the prediction and insert it into the editor
+            var adornment = LLMAdornmentFactory.GetCurrentAdornment();
+            if (adornment != null)
+            {
+                // 使用正则表达式处理 \r\n 和 \n
+                var predictionLines = Regex.Split(adornment.GetPredictionText(), "\r\n|\r|\n");
+
+                // 确保 lines 不超过实际行数
+                lines = Math.Min(lines, predictionLines.Length);
+
+                var linesToInsert = string.Join(Environment.NewLine, predictionLines.Take(lines));
+
+                var caretPosition = _view.Caret.Position.BufferPosition;
+                _view.TextBuffer.Insert(caretPosition, linesToInsert);
+                ClearAdornment();
+            }
+        }
+
+
+        private int GetDigitFromKey(Key key)
+        {
+            if (key >= Key.D1 && key <= Key.D9)
+            {
+                return (int)key - (int)Key.D0;
+            }
+            else if (key >= Key.NumPad1 && key <= Key.NumPad9)
+            {
+                return (int)key - (int)Key.NumPad0;
+            }
+            return 0;
         }
 
         private void CancelPrediction()

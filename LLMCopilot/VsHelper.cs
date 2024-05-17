@@ -221,8 +221,7 @@ namespace LLMCopilot
             {
                 if (lineIsBracketEnding && line.Trim() == nextLine.Trim())
                 {
-                    result.AppendLine(nextLine);
-                    continue;
+                    break;
                 }
 
                 bool lineQualifies = nextLine.Length > 4 && line.Length > 4;
