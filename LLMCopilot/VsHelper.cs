@@ -325,7 +325,7 @@ namespace LLMCopilot
                     var resp = await client.GetCompletion(req);
                     LLMErrorHandler.WriteLog(resp.Response);
 
-                    var comp_text = VsHelpers.StopAtSimilarLine(resp.Response, SuffixCode);
+                    var comp_text = resp.Response;
                     // 在 UI 线程上创建和更新 Adornment
                     var textView = await VsHelpers.GetActiveTextViewAsync(ServiceProvider.Package);
                     textView.VisualElement.Dispatcher.Invoke(() =>
