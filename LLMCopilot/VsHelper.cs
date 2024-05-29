@@ -15,12 +15,52 @@ using IAsyncServiceProvider = Microsoft.VisualStudio.Shell.IAsyncServiceProvider
 using Task = System.Threading.Tasks.Task;
 using OllamaSharp.Models;
 using System.Threading;
+using Thread = System.Threading.Thread;
+using System.Collections.Concurrent;
 
 namespace LLMCopilot
 {
     public static class VsHelpers
     {
         public static bool IsSending { get; set; } = false;
+        private static readonly Thread _completionThread;
+        private static readonly BlockingCollection<Func<CancellationToken, Task>> _taskQueue = new BlockingCollection<Func<CancellationToken, Task>>();
+        private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        private static readonly object _lock = new object();
+
+        static VsHelpers()
+        {
+            _completionThread = new Thread(Run);
+            _completionThread.IsBackground = true;
+            _completionThread.Start();
+        }
+
+        private static void Run()
+        {
+            foreach (var task in _taskQueue.GetConsumingEnumerable())
+            {
+                try
+                {
+                    var cts = new CancellationTokenSource();
+                    lock (_lock)
+                    {
+                        _cancellationTokenSource.Cancel();
+                        _cancellationTokenSource = cts;
+                    }
+                    task(cts.Token).GetAwaiter().GetResult();
+                }
+                catch (OperationCanceledException)
+                {
+                    // Task was canceled, continue with next task
+                }
+            }
+        }
+
+        public static void EnqueueTask(Func<CancellationToken, Task> task)
+        {
+            _taskQueue.Add(task);
+        }
+
         public static async Task<IWpfTextView> GetActiveTextViewAsync(IAsyncServiceProvider serviceProvider)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -289,56 +329,67 @@ namespace LLMCopilot
 
         public static void CodeCompleteCommand()
         {
-            if (IsSending)
+            EnqueueTask(async (cancellationToken) =>
             {
-                return;
-            }
+                await CodeCompleteCommandAsync(cancellationToken);
+            });
+        }
 
+        public static async Task CodeCompleteCommandAsync(CancellationToken cancellationToken)
+        {
             IsSending = true;
+
             try
             {
-                Task.Run(async () =>
+                var client = OllamaClientFactory.CreateClient();
+
+                RequestOptions reqOps = OllamaHelper.Instance.CompRequestOptions;
+                int nPrefixLines = OllamaHelper.EstimatePrefixLinesByCtx(reqOps.NumCtx);
+                int nSuffixLines = OllamaHelper.EstimateSuffixLinesByCtx(reqOps.NumCtx);
+
+                string PrefixCode = await VsHelpers.GetPrefixLinesAsync(ServiceProvider.Package, nPrefixLines);
+                string SuffixCode = await VsHelpers.GetSuffixLinesAsync(ServiceProvider.Package, nSuffixLines);
+
+                var options = OllamaHelper.Instance.Options;
+                var textView = await VsHelpers.GetActiveTextViewAsync(ServiceProvider.Package);
+
+                string template = $"{options.FimBegin}{PrefixCode}{options.FimHole}{SuffixCode}{options.FimEnd}";
+                LLMErrorHandler.WriteLog(template);
+                GenerateCompletionRequest req = new GenerateCompletionRequest
                 {
-                    var client = OllamaClientFactory.CreateClient();
+                    Model = client.SelectedModel,
+                    Prompt = template,
+                    Options = reqOps,
+                    Raw = true
+                };
 
-                    RequestOptions reqOps = OllamaHelper.Instance.CompRequestOptions;
-                    int nPrefixLines = OllamaHelper.EstimatePrefixLinesByCtx(reqOps.NumCtx);
-                    int nSuffixLines = OllamaHelper.EstimateSuffixLinesByCtx(reqOps.NumCtx);
+                var OldCaretPosition = textView.Caret.Position.BufferPosition;
+                var resp = await client.GetCompletion(req, cancellationToken);
+                var NewCaretPosition = textView.Caret.Position.BufferPosition;
+                if (NewCaretPosition.CompareTo(OldCaretPosition) != 0)
+                {
+                    return;
+                }
 
-                    string PrefixCode = await VsHelpers.GetPrefixLinesAsync(ServiceProvider.Package, nPrefixLines);
-                    string SuffixCode = await VsHelpers.GetSuffixLinesAsync(ServiceProvider.Package, nSuffixLines);
-
-                    var options = OllamaHelper.Instance.Options;
-
-                    string template = $"{options.FimBegin}{PrefixCode}{options.FimHole}{SuffixCode}{options.FimEnd}";
-                    LLMErrorHandler.WriteLog(template);
-                    GenerateCompletionRequest req = new GenerateCompletionRequest
+                var comp_text = resp.Response;
+                // 在 UI 线程上创建和更新 Adornment
+                textView.VisualElement.Dispatcher.Invoke(() =>
+                {
+                    LLMAdornmentFactory.CreateAdornment(textView);
+                    var adornment = LLMAdornmentFactory.GetCurrentAdornment();
+                    if (adornment != null)
                     {
-                        Model = client.SelectedModel,
-                        Prompt = template,
-                        Options = reqOps,
-                        Raw = true
-                    };
-
-                    var cts = new CancellationTokenSource();
-                    cts.CancelAfter(TimeSpan.FromSeconds(30)); // 设置超时时间为30秒
-                    var resp = await client.GetCompletion(req);
-                    LLMErrorHandler.WriteLog(resp.Response);
-
-                    var comp_text = resp.Response;
-                    // 在 UI 线程上创建和更新 Adornment
-                    var textView = await VsHelpers.GetActiveTextViewAsync(ServiceProvider.Package);
-                    textView.VisualElement.Dispatcher.Invoke(() =>
-                    {
-                        LLMAdornmentFactory.CreateAdornment(textView);
-                        var adornment = LLMAdornmentFactory.GetCurrentAdornment();
-                        if (adornment != null)
-                        {
-                            adornment.UpdatePrediction(comp_text);
-
-                        }
-                    });
+                        adornment.UpdatePrediction(comp_text);
+                    }
                 });
+            }
+            catch (OperationCanceledException)
+            {
+                LLMErrorHandler.WriteLog("Code completion was canceled.");
+            }
+            catch (Exception ex)
+            {
+                LLMErrorHandler.HandleException(ex);
             }
             finally
             {

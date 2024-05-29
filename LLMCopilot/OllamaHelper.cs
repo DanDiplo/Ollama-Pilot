@@ -60,7 +60,7 @@ namespace LLMCopilot
 
             CompRequestOptions = new RequestOptions {
                 NumCtx = 4096,
-                NumPredict = 1024,
+                NumPredict = 128,
                 Stop = stop,
                 Temperature = 0.01f
             };
@@ -287,12 +287,11 @@ The programming language is {code_type}.
 
         private void SetOllamaOptions()
         {
-            string baseUrl = Options.BaseUrl;
-            string completeModel = Options.CompleteModel;
-            string chatModel = Options.ChatModel;
             stop[0] = Options.FimBegin;
             stop[1] = Options.FimEnd;
             stop[2] = Options.FimHole;
+            CompRequestOptions.Stop = stop;
+            
             Task.Run(async () => await this.InitModelCtx());
         }
 

@@ -30,6 +30,12 @@ namespace LLMCopilot
         private TextBlock _textBlock; // 用于显示预测结果
         private string _originalPredictionText; // 用于存储原始预测文本
 
+        public IWpfTextView View { get
+            {
+                return _view;
+            }
+        }
+
         public LLMAdornment(IWpfTextView view)
         {
             _view = view;
@@ -87,8 +93,11 @@ namespace LLMCopilot
                 Canvas.SetLeft(_textBlock, caretLeft);
                 Canvas.SetTop(_textBlock, caretTop);
 
+                // 设置 ZIndex 确保其显示在顶部
+                Canvas.SetZIndex(_textBlock, 1000);
+
                 var span = new SnapshotSpan(position, 0);
-                _adornmentLayer.AddAdornment(AdornmentPositioningBehavior.TextRelative, span, null, _textBlock, null);
+                _adornmentLayer.AddAdornment(AdornmentPositioningBehavior.OwnerControlled, span, null, _textBlock, null);
             }
         }
 
@@ -160,7 +169,12 @@ namespace LLMCopilot
 
         public static void CreateAdornment(IWpfTextView textView)
         {
-            _currentAdornment = new LLMAdornment(textView);
+            var adornment = GetCurrentAdornment();
+            if (adornment == null || adornment.View != textView)
+            {
+                ClearAdornment(textView);
+                _currentAdornment = new LLMAdornment(textView);
+            }
         }
 
         public static LLMAdornment GetCurrentAdornment()
