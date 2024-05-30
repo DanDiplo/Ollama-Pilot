@@ -111,12 +111,8 @@ namespace LLMCopilot
             return null;
         }
 
-        public static async Task<string> GetPrefixLinesAsync(IAsyncServiceProvider serviceProvider, int n)
+        public static string GetPrefixLines(IWpfTextView textView, int n)
         {
-            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
-            var textView = await GetActiveTextViewAsync(serviceProvider);
-
             if (textView == null)
             {
                 return null;
@@ -145,12 +141,8 @@ namespace LLMCopilot
         }
 
 
-        public static async Task<string> GetSuffixLinesAsync(IAsyncServiceProvider serviceProvider, int n)
+        public static string GetSuffixLines(IWpfTextView textView, int n)
         {
-            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
-            var textView = await GetActiveTextViewAsync(serviceProvider);
-
             if (textView == null)
             {
                 return null;
@@ -317,7 +309,7 @@ namespace LLMCopilot
             // Get the instance number 0 of this tool window. This window is single instance so this instance
             // is actually the only one.
             // The last flag is set to true so that if the tool window does not exists it will be created.
-            ToolWindowPane window = ServiceProvider.Package.FindToolWindow(typeof(LLMChatWindow), 0, true);
+            ToolWindowPane window = LLMCopilotProvider.Package.FindToolWindow(typeof(LLMChatWindow), 0, true);
             if ((null == window) || (null == window.Frame))
             {
                 throw new NotSupportedException("Cannot create tool window");
@@ -341,20 +333,25 @@ namespace LLMCopilot
 
             try
             {
+                await LLMCopilotProvider.EnsurePackageLoadedAsync();
+
                 var client = OllamaClientFactory.CreateClient();
+
+                var Package = LLMCopilotProvider.Package;
 
                 RequestOptions reqOps = OllamaHelper.Instance.CompRequestOptions;
                 int nPrefixLines = OllamaHelper.EstimatePrefixLinesByCtx(reqOps.NumCtx);
                 int nSuffixLines = OllamaHelper.EstimateSuffixLinesByCtx(reqOps.NumCtx);
 
-                string PrefixCode = await VsHelpers.GetPrefixLinesAsync(ServiceProvider.Package, nPrefixLines);
-                string SuffixCode = await VsHelpers.GetSuffixLinesAsync(ServiceProvider.Package, nSuffixLines);
+                var textView = await VsHelpers.GetActiveTextViewAsync(Package);
+
+                string PrefixCode = VsHelpers.GetPrefixLines(textView, nPrefixLines);
+                string SuffixCode = VsHelpers.GetSuffixLines(textView, nSuffixLines);
 
                 var options = OllamaHelper.Instance.Options;
-                var textView = await VsHelpers.GetActiveTextViewAsync(ServiceProvider.Package);
-
+               
                 string template = $"{options.FimBegin}{PrefixCode}{options.FimHole}{SuffixCode}{options.FimEnd}";
-                LLMErrorHandler.WriteLog(template);
+
                 GenerateCompletionRequest req = new GenerateCompletionRequest
                 {
                     Model = client.SelectedModel,

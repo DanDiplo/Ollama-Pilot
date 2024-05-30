@@ -41,7 +41,7 @@ namespace LLMCopilot
 
         private OllamaHelper()
         {
-            var package = ServiceProvider.Package;
+            var package = LLMCopilotProvider.Package;
             Options = (OptionPageGrid)package.GetDialogPage(typeof(OptionPageGrid));
 
             stop = new string[]{

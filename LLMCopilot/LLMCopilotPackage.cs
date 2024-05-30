@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -6,8 +7,25 @@ using Task = System.Threading.Tasks.Task;
 
 namespace LLMCopilot
 {
-    public static class ServiceProvider
+    public static class LLMCopilotProvider
     {
+        public static async Task EnsurePackageLoadedAsync()
+        {
+            if (Package != null)
+            {
+                return;
+            }
+
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            var shell = await ServiceProvider.GetGlobalServiceAsync(typeof(SVsShell)) as IVsShell;
+            if (shell != null)
+            {
+                var packageGuid = new Guid(LLMCopilotPackage.PackageGuidString);
+                shell.LoadPackage(ref packageGuid, out IVsPackage package);
+            }
+        }
+
         public static AsyncPackage Package { get; set; }
     }
 
@@ -34,6 +52,8 @@ namespace LLMCopilot
     [ProvideToolWindow(typeof(LLMChatWindow))]
     [ProvideOptionPage(typeof(OptionPageGrid),
     "LLMCopilot", "常规", 0, 0, true)]
+    [ProvideAutoLoad(UIContextGuids.SolutionExists, PackageAutoLoadFlags.BackgroundLoad)]
+    [ProvideAutoLoad(UIContextGuids.NoSolution, PackageAutoLoadFlags.BackgroundLoad)]  // 当没有打开解决方案时也加载包
     public sealed class LLMCopilotPackage : AsyncPackage
     {
         /// <summary>
@@ -55,7 +75,8 @@ namespace LLMCopilot
             // When initialized asynchronously, the current thread may be a background thread at this point.
             // Do any initialization that requires the UI thread after switching to the UI thread.
             await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
-            ServiceProvider.Package = this;
+            LLMErrorHandler.WriteLog("LLMCopilotPackage.InitializeAsync");
+            LLMCopilotProvider.Package = this;
             await OllamaHelper.Instance.InitModelCtx();
             await ExplainCommand.InitializeAsync(this);
             await LLMChatWindowCommand.InitializeAsync(this);

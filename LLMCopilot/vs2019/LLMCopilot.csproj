@@ -108,6 +108,9 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="AvalonEdit">
+      <Version>6.3.0.90</Version>
+    </PackageReference>
     <PackageReference Include="MdXaml">
       <Version>1.27.0</Version>
     </PackageReference>

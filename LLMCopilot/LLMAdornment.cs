@@ -20,6 +20,8 @@ using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.Shell;
+using ICSharpCode.AvalonEdit;
+using ICSharpCode.AvalonEdit.Rendering;
 
 namespace LLMCopilot
 {
@@ -27,13 +29,12 @@ namespace LLMCopilot
     {
         private IWpfTextView _view;
         private IAdornmentLayer _adornmentLayer;
-        private TextBlock _textBlock; // 用于显示预测结果
+        private TextEditor _textEditor; // 用于显示预测结果
         private string _originalPredictionText; // 用于存储原始预测文本
 
-        public IWpfTextView View { get
-            {
-                return _view;
-            }
+        public IWpfTextView View
+        {
+            get { return _view; }
         }
 
         public LLMAdornment(IWpfTextView view)
@@ -48,23 +49,27 @@ namespace LLMCopilot
             var fontRenderingSize = defaultTextProperties.FontRenderingEmSize;
             var foregroundBrush = defaultTextProperties.ForegroundBrush as SolidColorBrush;
 
-            // 初始化 _textBlock，但不添加到 _adornmentLayer 中
-            _textBlock = new TextBlock
+            // 初始化 TextEditor，但不添加到 _adornmentLayer 中
+            _textEditor = new TextEditor
             {
-                Text = "", // 初始内容为空
-                Background = new SolidColorBrush(Colors.Gray),
-                Opacity = 0.8, // 设置不透明度以使其看起来像预测文本
-                TextWrapping = TextWrapping.Wrap, // 设置自动换行
-                MaxWidth = CalculateMaxWidth(), // 设置最大宽度
-                FontFamily = typeface.FontFamily, // 设置字体
-                FontSize = fontRenderingSize, // 设置字体大小
-                Foreground = foregroundBrush // 设置前景色
+                IsReadOnly = true,
+                ShowLineNumbers = true,
+                Background = new SolidColorBrush(Colors.Gray) { Opacity = 0.8 },
+                FontFamily = typeface.FontFamily,
+                FontSize = fontRenderingSize,
+                Foreground = foregroundBrush,
+                WordWrap = true,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Hidden, // 隐藏垂直滚动条
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden // 隐藏水平滚动条
             };
+
+            // 设置不可编辑
+            _textEditor.IsHitTestVisible = false;
         }
 
         private void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
         {
-            
+
         }
 
         private double CalculateMaxWidth()
@@ -79,7 +84,7 @@ namespace LLMCopilot
 
         private void CreateVisuals(SnapshotPoint position)
         {
-            if (_textBlock != null)
+            if (_textEditor != null)
             {
                 // 获取光标所在行
                 var line = position.GetContainingLine();
@@ -90,14 +95,21 @@ namespace LLMCopilot
                 var caretTop = _view.Caret.ContainingTextViewLine.Top;
                 var caretLeft = _view.Caret.Left;
 
-                Canvas.SetLeft(_textBlock, caretLeft);
-                Canvas.SetTop(_textBlock, caretTop);
+                Canvas.SetLeft(_textEditor, caretLeft);
+                Canvas.SetTop(_textEditor, caretTop);
 
                 // 设置 ZIndex 确保其显示在顶部
-                Canvas.SetZIndex(_textBlock, 32766);
+                Canvas.SetZIndex(_textEditor, 32766);
 
                 var span = new SnapshotSpan(position, 0);
-                _adornmentLayer.AddAdornment(AdornmentPositioningBehavior.OwnerControlled, span, null, _textBlock, null);
+
+                // 移除已有的父级
+                if (_textEditor.Parent is Panel parent)
+                {
+                    parent.Children.Remove(_textEditor);
+                }
+
+                _adornmentLayer.AddAdornment(AdornmentPositioningBehavior.OwnerControlled, span, null, _textEditor, null);
             }
         }
 
@@ -105,12 +117,12 @@ namespace LLMCopilot
         {
             _originalPredictionText = prediction;
 
-            if (_textBlock != null)
+            if (_textEditor != null)
             {
-                // 在 UI 线程上更新 _textBlock.Text
+                // 在 UI 线程上更新 _textEditor.Text
                 _view.VisualElement.Dispatcher.Invoke(() =>
                 {
-                    _textBlock.Text = AddLineNumbers(prediction.TrimStart());
+                    _textEditor.Text = SplitLines(prediction.TrimStart());
 
                     // 获取当前光标位置
                     var caretPosition = _view.Caret.Position.BufferPosition;
@@ -124,16 +136,13 @@ namespace LLMCopilot
             }
         }
 
-        private string AddLineNumbers(string text)
+        private string SplitLines(string text)
         {
             // 使用正则表达式来分割文本，匹配 \n、\r\n 或 \r 作为换行符
             var lines = Regex.Split(text, "\r\n|\r|\n");
 
-            // 给每一行添加行号
-            var numberedLines = lines.Select((line, index) => $"{index + 1}: {line}");
-
             // 将处理过的文本行重新连接成一个字符串，使用 Environment.NewLine 保证在当前操作系统上使用正确的换行符
-            return string.Join(Environment.NewLine, numberedLines);
+            return string.Join(Environment.NewLine, lines);
         }
 
 
@@ -279,54 +288,63 @@ namespace LLMCopilot
 
         public int Exec(ref Guid pguidCmdGroup, uint nCmdID, uint nCmdexecopt, IntPtr pvaIn, IntPtr pvaOut)
         {
-            if (!IsFilteredCommand(nCmdID))
+            try
             {
-                return _nextCommandTarget.Exec(ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
-            }
-
-            if (LLMAdornmentFactory.GetCurrentAdornment() == null)
-            {
-                switch (nCmdID)
+                if (!IsFilteredCommand(nCmdID) || LLMCopilotProvider.Package == null)
                 {
-                    case (uint)VSConstants.VSStd2KCmdID.RETURN:
-                    case (uint)VSConstants.VSStd2KCmdID.TAB:
-                    case (uint)VSConstants.VSStd2KCmdID.TYPECHAR:
-                        {
-                            var options = OllamaHelper.Instance.Options;
-                            if (options.EnableAutoComplete)
-                            {
-                                VsHelpers.CodeCompleteCommand();
-                                break;
-                            }
-                        }
-                        break;
-                    default:
-                        {
-                            return _nextCommandTarget.Exec(ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
-                        }
+                    return _nextCommandTarget.Exec(ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
                 }
-            }
-            else
-            {
-                switch (nCmdID)
+
+                if (LLMAdornmentFactory.GetCurrentAdornment() == null)
                 {
-                    case (uint)VSConstants.VSStd2KCmdID.CANCEL:
-                        {
-                            LLMAdornmentFactory.CancelPrediction(_view);
-                            return VSConstants.S_OK;
-                        }
-                        break;
-                    case (uint)VSConstants.VSStd2KCmdID.TYPECHAR:
-                        {
-                            char typedChar = (char)(ushort)Marshal.GetObjectForNativeVariant(pvaIn);
-                            if (typedChar >= '1' && typedChar <= '9')
+                    switch (nCmdID)
+                    {
+                        case (uint)VSConstants.VSStd2KCmdID.RETURN:
+                        case (uint)VSConstants.VSStd2KCmdID.TAB:
+                        case (uint)VSConstants.VSStd2KCmdID.TYPECHAR:
                             {
-                                LLMAdornmentFactory.AcceptPredictionLines(_view, typedChar - '0');
+                                var options = OllamaHelper.Instance.Options;
+                                if (options.EnableAutoComplete)
+                                {
+                                    VsHelpers.CodeCompleteCommand();
+                                    break;
+                                }
+                            }
+                            break;
+                        default:
+                            {
+                                return _nextCommandTarget.Exec(ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
+                            }
+                    }
+                }
+                else
+                {
+                    switch (nCmdID)
+                    {
+                        case (uint)VSConstants.VSStd2KCmdID.CANCEL:
+                            {
+                                LLMAdornmentFactory.CancelPrediction(_view);
                                 return VSConstants.S_OK;
                             }
-                        }
-                        break;
+                            break;
+                        case (uint)VSConstants.VSStd2KCmdID.TYPECHAR:
+                            {
+                                char typedChar = (char)(ushort)Marshal.GetObjectForNativeVariant(pvaIn);
+                                if (typedChar >= '1' && typedChar <= '9')
+                                {
+                                    LLMAdornmentFactory.AcceptPredictionLines(_view, typedChar - '0');
+                                    return VSConstants.S_OK;
+                                }
+                            }
+                            break;
+                    }
                 }
+
+                return _nextCommandTarget.Exec(ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
+            }
+            catch(Exception e)
+            {
+                LLMErrorHandler.HandleException(e);
             }
 
             return _nextCommandTarget.Exec(ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
@@ -345,7 +363,7 @@ namespace LLMCopilot
 
         public override void PreviewKeyDown(KeyEventArgs e)
         {
-            if (LLMAdornmentFactory.GetCurrentAdornment() == null)
+            if (LLMAdornmentFactory.GetCurrentAdornment() == null || LLMCopilotProvider.Package == null)
             {
                 return;
             }
