@@ -94,7 +94,7 @@ namespace LLMCopilot
                 Canvas.SetTop(_textBlock, caretTop);
 
                 // 设置 ZIndex 确保其显示在顶部
-                Canvas.SetZIndex(_textBlock, 1000);
+                Canvas.SetZIndex(_textBlock, 32766);
 
                 var span = new SnapshotSpan(position, 0);
                 _adornmentLayer.AddAdornment(AdornmentPositioningBehavior.OwnerControlled, span, null, _textBlock, null);

@@ -29,6 +29,7 @@ namespace LLMCopilot
         private static readonly int defaultCodeLineLength = 80;
         private static readonly double PrefixCodeLinePercent = 0.8;
         private static readonly double SuffixCodeLinePercent = 1 - PrefixCodeLinePercent;
+        private static readonly double defaultContextUsage = 0.8;
 
         public RequestOptions CompRequestOptions { get; private set; }
         public RequestOptions ChatRequestOptions { get; private set; }
@@ -59,7 +60,7 @@ namespace LLMCopilot
                 };
 
             CompRequestOptions = new RequestOptions {
-                NumCtx = 4096,
+                NumCtx = 2048,
                 NumPredict = 128,
                 Stop = stop,
                 Temperature = 0.01f
@@ -254,7 +255,7 @@ The programming language is {code_type}.
 
         public static int EstimateCharsByTokens(int nTokens)
         {
-            return nTokens/2 * 4;
+            return Convert.ToInt32(Convert.ToDouble(nTokens) * defaultContextUsage * 4);
         }
 
 
@@ -320,8 +321,8 @@ The programming language is {code_type}.
                 int chatCtx = GetCtx(chatModelInfo.Parameters, Options.ChatModel);
                 ChatRequestOptions.NumCtx = chatCtx;
 
-                int CompCtx = GetCtx(compModelInfo.Parameters, Options.CompleteModel);
-                CompRequestOptions.NumCtx = CompCtx;
+                //int CompCtx = GetCtx(compModelInfo.Parameters, Options.CompleteModel);
+                //CompRequestOptions.NumCtx = CompCtx;
             }
             catch (Exception ex)
             {
