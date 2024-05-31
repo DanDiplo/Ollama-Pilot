@@ -374,7 +374,7 @@ namespace LLMCopilot
                 LLMAdornmentFactory.AcceptPrediction(_view);
                 e.Handled = true;
             }
-            else if ((e.Key >= Key.D1 && e.Key <= Key.D9) || (e.Key >= Key.NumPad1 && e.Key <= Key.NumPad9))
+            else if (Keyboard.Modifiers == ModifierKeys.None && ((e.Key >= Key.D1 && e.Key <= Key.D9) || (e.Key >= Key.NumPad1 && e.Key <= Key.NumPad9)))
             {
                 LLMAdornmentFactory.AcceptPredictionLines(_view, GetDigitFromKey(e.Key));
                 e.Handled = true;
