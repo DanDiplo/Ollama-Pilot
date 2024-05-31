@@ -108,7 +108,7 @@ namespace LLMCopilot
                 // 将新内容添加到缓存
                 _messageCache.Append(response.Message.Content);
 
-                string[] delimeters = {"\n", ",", "，", ".", "。", ":", "："};
+                string[] delimeters = {"\n", ",", "，", ".", "。", ":", "：", ";", "；", "\t"};
 
                 bool containsKeyword = delimeters.Any(keyword => response.Message.Content.Contains(keyword));
                 // 检查是否需要更新消息列表
@@ -192,9 +192,27 @@ namespace LLMCopilot
 
         private async void MessageTextBox_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)
+            if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)
             {
                 await SendMessageAsync();
+            }
+        }
+
+        private void MessageTextBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (MessageTextBox.Text == "Press Ctrl+Enter to Send Message")
+            {
+                MessageTextBox.Text = "";
+                MessageTextBox.Foreground = new SolidColorBrush(Colors.Black);
+            }
+        }
+
+        private void MessageTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(MessageTextBox.Text))
+            {
+                MessageTextBox.Text = "Press Ctrl+Enter to Send Message";
+                MessageTextBox.Foreground = new SolidColorBrush(Colors.Gray);
             }
         }
 

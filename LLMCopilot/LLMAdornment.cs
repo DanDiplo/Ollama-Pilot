@@ -327,16 +327,16 @@ namespace LLMCopilot
                                 return VSConstants.S_OK;
                             }
                             break;
-                        case (uint)VSConstants.VSStd2KCmdID.TYPECHAR:
-                            {
-                                char typedChar = (char)(ushort)Marshal.GetObjectForNativeVariant(pvaIn);
-                                if (typedChar >= '1' && typedChar <= '9')
-                                {
-                                    LLMAdornmentFactory.AcceptPredictionLines(_view, typedChar - '0');
-                                    return VSConstants.S_OK;
-                                }
-                            }
-                            break;
+                        //case (uint)VSConstants.VSStd2KCmdID.TYPECHAR:
+                        //    {
+                        //        char typedChar = (char)(ushort)Marshal.GetObjectForNativeVariant(pvaIn);
+                        //        if (typedChar >= '1' && typedChar <= '9')
+                        //        {
+                        //            LLMAdornmentFactory.AcceptPredictionLines(_view, typedChar - '0');
+                        //            return VSConstants.S_OK;
+                        //        }
+                        //    }
+                        //    break;
                     }
                 }
 
@@ -368,7 +368,8 @@ namespace LLMCopilot
                 return;
             }
 
-            if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl)
+            if ((Keyboard.Modifiers == ModifierKeys.Alt && e.Key == Key.Q)
+                || (e.SystemKey == Key.Q && Keyboard.Modifiers == ModifierKeys.Alt))
             {
                 LLMAdornmentFactory.AcceptPrediction(_view);
                 e.Handled = true;
@@ -377,6 +378,13 @@ namespace LLMCopilot
             {
                 LLMAdornmentFactory.AcceptPredictionLines(_view, GetDigitFromKey(e.Key));
                 e.Handled = true;
+            }
+            else if(e.Key == Key.LeftAlt || e.Key == Key.RightAlt
+                || e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl
+                || e.Key == Key.LeftShift || e.Key == Key.RightShift
+                || e.Key == Key.System)
+            {
+                // do nothing
             }
             else
             {
