@@ -58,13 +58,21 @@ namespace LLMCopilot
 
         public static void EnqueueTask(Func<CancellationToken, Task> task)
         {
-            _taskQueue.Add(task);
+            lock (_lock)
+            {
+                _cancellationTokenSource.Cancel(); // 取消之前的所有任务
+                while (_taskQueue.Count > 0)
+                {
+                    _taskQueue.Take();
+                }
+                _taskQueue.Add(task); // 添加新任务
+            }
         }
 
         public static async Task<IWpfTextView> GetActiveTextViewAsync(IAsyncServiceProvider serviceProvider)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            var textManager = await serviceProvider.GetServiceAsync<SVsTextManager, IVsTextManager>();
+            var textManager = await serviceProvider.GetServiceAsync(typeof(SVsTextManager)) as IVsTextManager;
             textManager.GetActiveView(1, null, out IVsTextView vTextView);
             IVsUserData userData = vTextView as IVsUserData;
             if (userData == null)
@@ -79,7 +87,7 @@ namespace LLMCopilot
         public static async Task<string> GetActiveDocumentFileNameAsync(IAsyncServiceProvider serviceProvider)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            var textManager = await serviceProvider.GetServiceAsync<SVsTextManager, IVsTextManager>();
+            var textManager = await serviceProvider.GetServiceAsync(typeof(SVsTextManager)) as IVsTextManager;
             textManager.GetActiveView(1, null, out IVsTextView vTextView);
 
             if (vTextView != null)
@@ -100,7 +108,7 @@ namespace LLMCopilot
         public static async Task<IVsTextLines> GetActiveTextLinesAsync(IAsyncServiceProvider serviceProvider)
         {
             var textView = await GetActiveTextViewAsync(serviceProvider);
-            var textManager = await serviceProvider.GetServiceAsync<SVsTextManager, IVsTextManager>();
+            var textManager = await serviceProvider.GetServiceAsync(typeof(SVsTextManager)) as IVsTextManager;
             textManager.GetActiveView(1, null, out IVsTextView vTextView);
             if (vTextView != null)
             {
