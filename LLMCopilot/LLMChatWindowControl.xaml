@@ -17,7 +17,8 @@
             <Border Padding="10" Margin="5">
                 <StackPanel>
                     <TextBlock Text="{Binding Role, Converter={StaticResource CapitalizeFirstLetterConverter}}" FontWeight="Bold" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" Margin="0,0,0,5"/>
-                    <md:MarkdownScrollViewer Markdown="{Binding Content}"
+                    <md:MarkdownScrollViewer MarkdownStyleName="Sasabune"
+                                             Markdown="{Binding Content}"
                                              Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
                                              VerticalScrollBarVisibility="Disabled"
                                              HorizontalScrollBarVisibility="Disabled"
