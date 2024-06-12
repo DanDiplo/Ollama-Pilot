@@ -31,6 +31,7 @@ namespace LLMCopilot
         private IAdornmentLayer _adornmentLayer;
         private TextEditor _textEditor; // 用于显示预测结果
         private string _originalPredictionText; // 用于存储原始预测文本
+        public SnapshotPoint Pos { get; private set; }
 
         public IWpfTextView View
         {
@@ -127,6 +128,7 @@ namespace LLMCopilot
                     // 获取当前光标位置
                     var caretPosition = _view.Caret.Position.BufferPosition;
 
+                    Pos = caretPosition;
                     // 更新并显示 Adornment
                     CreateVisuals(caretPosition);
 
@@ -201,7 +203,11 @@ namespace LLMCopilot
             if (adornment != null)
             {
                 var caretPosition = view.Caret.Position.BufferPosition;
-                view.TextBuffer.Insert(caretPosition, adornment.GetPredictionText());
+                if (caretPosition.CompareTo(adornment.Pos) == 0)
+                {
+                    view.TextBuffer.Insert(caretPosition, adornment.GetPredictionText());
+                }
+                
                 ClearAdornment(view);
             }
         }
@@ -216,14 +222,17 @@ namespace LLMCopilot
             var adornment = LLMAdornmentFactory.GetCurrentAdornment();
             if (adornment != null)
             {
-                var predictionLines = Regex.Split(adornment.GetPredictionText(), "\r\n|\r|\n");
-
-                lines = Math.Min(lines, predictionLines.Length);
-
-                var linesToInsert = string.Join(Environment.NewLine, predictionLines.Take(lines));
-
                 var caretPosition = view.Caret.Position.BufferPosition;
-                view.TextBuffer.Insert(caretPosition, linesToInsert);
+                if (caretPosition.CompareTo(adornment.Pos) == 0)
+                {
+                    var predictionLines = Regex.Split(adornment.GetPredictionText(), "\r\n|\r|\n");
+
+                    lines = Math.Min(lines, predictionLines.Length);
+
+                    var linesToInsert = string.Join(Environment.NewLine, predictionLines.Take(lines));
+                    view.TextBuffer.Insert(caretPosition, linesToInsert);
+                }
+
                 ClearAdornment();
             }
         }
