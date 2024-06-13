@@ -120,6 +120,28 @@ namespace LLMCopilot
             return null;
         }
 
+        public static string RemoveCommonSuffixPrefix(string A, string B)
+        {
+            B = B.TrimStart();
+            int minLen = Math.Min(A.Length, B.Length);
+
+            int commonLength = 0;
+            for (int i = 1; i <= minLen; i++)
+            {
+                if (A.Substring(A.Length - i) == B.Substring(0, i))
+                {
+                    commonLength = i;
+                }
+            }
+
+            if (commonLength > 0)
+            {
+                return A.Substring(0, A.Length - commonLength);
+            }
+
+            return A;
+        }
+
         public static string GetPrefixLines(IWpfTextView textView, int n)
         {
             if (textView == null)
@@ -391,7 +413,8 @@ namespace LLMCopilot
             }
             catch (OperationCanceledException)
             {
-                LLMErrorHandler.WriteLog("Code completion was canceled.");
+                //do nothing
+                //LLMErrorHandler.WriteLog("Code completion was canceled.");
             }
             catch (Exception ex)
             {

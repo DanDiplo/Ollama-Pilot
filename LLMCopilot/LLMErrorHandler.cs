@@ -49,7 +49,6 @@ namespace LLMCopilot
 
         public static void Initialize(IServiceProvider provider)
         {
-            LogHelper.Log();
             serviceProvider = provider;
         }
 

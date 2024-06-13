@@ -205,7 +205,15 @@ namespace LLMCopilot
                 var caretPosition = view.Caret.Position.BufferPosition;
                 if (caretPosition.CompareTo(adornment.Pos) == 0)
                 {
-                    view.TextBuffer.Insert(caretPosition, adornment.GetPredictionText());
+                    var text = adornment.GetPredictionText();
+                    var suffix = VsHelpers.GetSuffixLines(view, 5);
+                    
+                    if (!string.IsNullOrEmpty(suffix))
+                    {
+                        text = VsHelpers.RemoveCommonSuffixPrefix(text, suffix);
+                    }
+
+                    view.TextBuffer.Insert(caretPosition, text);
                 }
                 
                 ClearAdornment(view);
@@ -230,6 +238,11 @@ namespace LLMCopilot
                     lines = Math.Min(lines, predictionLines.Length);
 
                     var linesToInsert = string.Join(Environment.NewLine, predictionLines.Take(lines));
+                    var suffix = VsHelpers.GetSuffixLines(view, 5);
+                    if (!string.IsNullOrEmpty(suffix))
+                    {
+                        linesToInsert = VsHelpers.RemoveCommonSuffixPrefix(linesToInsert, suffix);
+                    }
                     view.TextBuffer.Insert(caretPosition, linesToInsert);
                 }
 
@@ -276,17 +289,30 @@ namespace LLMCopilot
             return _nextCommandTarget.QueryStatus(ref pguidCmdGroup, cCmds, prgCmds, pCmdText);
         }
 
-        private bool IsFilteredCommand(uint nCmdID)
+        private bool IsConcernedCommand(uint nCmdID, IntPtr pvaIn)
         {
             switch (nCmdID)
             {
                 case (uint)VSConstants.VSStd2KCmdID.RETURN:
                 case (uint)VSConstants.VSStd2KCmdID.TAB:
-                case (uint)VSConstants.VSStd2KCmdID.TYPECHAR:
+               
                 case (uint)VSConstants.VSStd2KCmdID.CANCEL:
                     {
                         return true;
                     }
+                    break;
+                case (uint)VSConstants.VSStd2KCmdID.TYPECHAR:
+                    {
+                        char typedChar = (char)(ushort)Marshal.GetObjectForNativeVariant(pvaIn);
+                        if (typedChar >= '0' && typedChar <= '9')
+                        {
+
+                            return false;
+                        }
+
+                        return true;
+                    }
+
                     break;
                 default:
                     {
@@ -299,7 +325,7 @@ namespace LLMCopilot
         {
             try
             {
-                if (!IsFilteredCommand(nCmdID) || LLMCopilotProvider.Package == null)
+                if (!IsConcernedCommand(nCmdID, pvaIn) || LLMCopilotProvider.Package == null)
                 {
                     return _nextCommandTarget.Exec(ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
                 }
