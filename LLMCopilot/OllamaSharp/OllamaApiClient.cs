@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 using System.Threading.Tasks;
 using OllamaSharp.Models.Chat;
 using System.Threading;
+using System.Net.Http.Headers;
 
 namespace OllamaSharp
 {
@@ -24,6 +25,14 @@ namespace OllamaSharp
         private readonly HttpClient _client;
         public Configuration Config { get; }
         public string SelectedModel { get; set; }
+
+        public void SetAuthorizationHeader(string value)
+        {
+            if (string.IsNullOrEmpty(value)) 
+                return;
+
+            _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", value);
+        }
 
         public OllamaApiClient(string uriString, string defaultModel = "")
             : this(new Uri(uriString), defaultModel)

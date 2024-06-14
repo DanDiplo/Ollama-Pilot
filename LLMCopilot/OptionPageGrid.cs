@@ -20,6 +20,7 @@ namespace LLMCopilot
         private string fim_end = "<｜fim▁end｜>";
         private string fim_hole = "<｜fim▁hole｜>";
         private ResponseLanguage language = ResponseLanguage.English;
+        private string access_token = string.Empty;
 
         public event EventHandler SettingsChanged;
 
@@ -75,7 +76,7 @@ namespace LLMCopilot
         }
 
         [Category("LLMCopilot")]
-        [DisplayName("Complete Model")]
+        [DisplayName("Code Complete Model")]
         [Description("LLM model name used for code complete")]
         public string CompleteModel
         {
@@ -98,7 +99,7 @@ namespace LLMCopilot
 
         [Category("LLMCopilot")]
         [DisplayName("Enable Auto Complete")]
-        [Description("Auto complete code when starting a new blank line")]
+        [Description("Auto complete code when you typing")]
         public bool EnableAutoComplete
         {
             get { return enableAutoComplete; }
@@ -142,6 +143,15 @@ namespace LLMCopilot
             {
                 fim_hole = value;
             }
+        }
+
+        [Category("LLMCopilot")]
+        [DisplayName("Reverse Proxy Access Token")]
+        [Description("Bearer access token used for reverse proxy to connect to your Ollama server")]
+        public string AccessToken
+        {
+            get { return access_token; }
+            set { access_token = value; }
         }
     }
 }

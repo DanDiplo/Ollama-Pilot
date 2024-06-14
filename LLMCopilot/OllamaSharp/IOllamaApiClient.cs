@@ -14,17 +14,23 @@ namespace OllamaSharp
 		/// </summary>
 		string SelectedModel { get; set; }
 
-		/// <summary>
-		/// Sends a request to the /api/chat endpoint
-		/// </summary>
-		/// <param name="chatRequest">The request to send to Ollama</param>
-		/// <param name="streamer">
-		/// The streamer that receives parts of the answer as they are streamed by the Ollama endpoint.
-		/// Can be used to update the user interface while the answer is still being generated.
-		/// </param>
-		/// <param name="cancellationToken">The token to cancel the operation with</param>
-		/// <returns>List of the returned messages including the previous context</returns>
-		Task<IEnumerable<Message>> SendChat(ChatRequest chatRequest, IResponseStreamer<ChatResponseStream> streamer, CancellationToken cancellationToken = default);
+        /// <summary>
+        /// This method is used to set the Authorization header for HTTP requests.
+        /// </summary>
+        /// <param name="value">The value to be set in the Authorization header</param>
+        void SetAuthorizationHeader(string value);
+
+        /// <summary>
+        /// Sends a request to the /api/chat endpoint
+        /// </summary>
+        /// <param name="chatRequest">The request to send to Ollama</param>
+        /// <param name="streamer">
+        /// The streamer that receives parts of the answer as they are streamed by the Ollama endpoint.
+        /// Can be used to update the user interface while the answer is still being generated.
+        /// </param>
+        /// <param name="cancellationToken">The token to cancel the operation with</param>
+        /// <returns>List of the returned messages including the previous context</returns>
+        Task<IEnumerable<Message>> SendChat(ChatRequest chatRequest, IResponseStreamer<ChatResponseStream> streamer, CancellationToken cancellationToken = default);
 
 		/// <summary>
 		/// Sends a request to the /api/copy endpoint to copy a model

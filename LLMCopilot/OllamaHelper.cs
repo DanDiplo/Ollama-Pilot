@@ -14,6 +14,7 @@ using Task = System.Threading.Tasks.Task;
 using System.Text.RegularExpressions;
 using IAsyncServiceProvider = Microsoft.VisualStudio.Shell.IAsyncServiceProvider;
 using Microsoft.VisualStudio;
+using System.Net.Http.Headers;
 
 namespace LLMCopilot
 {
@@ -375,13 +376,17 @@ The programming language is {code_type}.
         {
             var options = OllamaHelper.Instance.Options;
             var ollamaApiClient = new OllamaApiClient(options.BaseUrl);
-            ollamaApiClient.SelectedModel = options.ChatModel;
+            ollamaApiClient.SelectedModel = options.CompleteModel;
+            ollamaApiClient.SetAuthorizationHeader(options.AccessToken);
+            
             return ollamaApiClient;
         }
 
         public static Chat CreateChat(Action<ChatResponseStream> streamer)
         {
             var ollamaApiClient = CreateClient();
+            var options = OllamaHelper.Instance.Options;
+            ollamaApiClient.SelectedModel = options.ChatModel;
             var chat = new Chat(ollamaApiClient, streamer, OllamaHelper.Instance.ChatRequestOptions);
 
             return chat;
