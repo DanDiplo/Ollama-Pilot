@@ -133,7 +133,7 @@ namespace LLMCopilot
         private void LLMChatWindowControl_loaded(object sender, RoutedEventArgs e)
         {
             EventManager.CodeCommandExecuted += OnExplainCodeCommandExecuted;
-
+            
             Chat.Client.SelectedModel = OllamaHelper.Instance.Options.ChatModel;
             Chat.Options = OllamaHelper.Instance.ChatRequestOptions;
             Chat.Client.SetAuthorizationHeader(OllamaHelper.Instance.Options.AccessToken);

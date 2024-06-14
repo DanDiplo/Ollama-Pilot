@@ -206,13 +206,7 @@ namespace LLMCopilot
                 if (caretPosition.CompareTo(adornment.Pos) == 0)
                 {
                     var text = adornment.GetPredictionText();
-                    var suffix = VsHelpers.GetSuffixLines(view, 5);
                     
-                    if (!string.IsNullOrEmpty(suffix))
-                    {
-                        text = VsHelpers.RemoveCommonSuffixPrefix(text, suffix);
-                    }
-
                     view.TextBuffer.Insert(caretPosition, text);
                 }
                 
@@ -238,11 +232,7 @@ namespace LLMCopilot
                     lines = Math.Min(lines, predictionLines.Length);
 
                     var linesToInsert = string.Join(Environment.NewLine, predictionLines.Take(lines));
-                    var suffix = VsHelpers.GetSuffixLines(view, 5);
-                    if (!string.IsNullOrEmpty(suffix))
-                    {
-                        linesToInsert = VsHelpers.RemoveCommonSuffixPrefix(linesToInsert, suffix);
-                    }
+                   
                     view.TextBuffer.Insert(caretPosition, linesToInsert);
                 }
 

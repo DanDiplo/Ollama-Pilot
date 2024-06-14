@@ -48,6 +48,7 @@
     <Compile Include="..\AddCommentCommand.cs" />
     <Compile Include="..\CodeCompleteCommand.cs" />
     <Compile Include="..\FindBugCommand.cs" />
+    <Compile Include="..\UnitTestCommand.cs" />
     <Compile Include="..\LLMAdornment.cs" />
     <Compile Include="..\LLMErrorHandler.cs" />
     <Compile Include="..\LLMChatWindow.cs" />

@@ -400,6 +400,7 @@ namespace LLMCopilot
                 }
 
                 var comp_text = resp.Response;
+                comp_text = RemoveCommonSuffixPrefix(comp_text, SuffixCode);
                 // 在 UI 线程上创建和更新 Adornment
                 textView.VisualElement.Dispatcher.Invoke(() =>
                 {

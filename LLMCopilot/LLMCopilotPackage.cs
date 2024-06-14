@@ -83,6 +83,7 @@ namespace LLMCopilot
             await FindBugCommand.InitializeAsync(this);
             await OptimizeCodeCommand.InitializeAsync(this);
             await AddCommentCommand.InitializeAsync(this);
+            await UnitTestCommand.InitializeAsync(this);
         }
 
         #endregion

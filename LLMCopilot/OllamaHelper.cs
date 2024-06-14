@@ -64,7 +64,7 @@ namespace LLMCopilot
                 NumCtx = 2048,
                 NumPredict = 128,
                 Stop = stop,
-                Temperature = 0.01f
+                Temperature = 0.3f
             };
 
             ChatRequestOptions = new RequestOptions
@@ -210,6 +210,43 @@ The code snippets must contain valid {code_type} code.
 代码片段必须包含有效的{code_type}代码。
 
 ## 可读性和性能改进
+
+";
+
+            return Options.Language == ResponseLanguage.English ? templateEN : templateCN;
+        }
+
+        public string GetUnitTestTemplate(string code, string file)
+        {
+            string code_type = VsHelpers.GetSourceCodeType(file);
+            string templateEN = $@"## Instructions
+Write a unit test for the code below.
+
+## Selected Code
+```{code_type}
+{code}
+```
+
+## Task
+Write a unit test that contains test cases for the happy path and for all edge cases.
+The programming language is {code_type}.
+
+## Response
+
+";
+            string templateCN = $@"## 说明
+为下面的代码编写单元测试。
+
+## 选定代码
+```{code_type}
+{code}
+```
+
+## 任务
+编写一个包含正常情况和所有边缘情况的单元测试。
+编程语言是{code_type}。
+
+## 回答
 
 ";
 
