@@ -10,6 +10,12 @@ namespace LLMCopilot
         English,
         Chinese,
     }
+
+    public enum ApiProvider
+    {
+        Ollama,
+        OpenAI
+    }
     public class OptionPageGrid : DialogPage
     {
         private string baseUrl = "http://localhost:11434";
@@ -21,6 +27,10 @@ namespace LLMCopilot
         private string fim_hole = "<｜fim▁hole｜>";
         private ResponseLanguage language = ResponseLanguage.English;
         private string access_token = string.Empty;
+        private string api_key = string.Empty;
+        private int chat_ctx_size = 4096;
+        private int complete_ctx_size = 2048;
+        private ApiProvider api_provider = ApiProvider.Ollama;
 
         public event EventHandler SettingsChanged;
 
@@ -76,6 +86,27 @@ namespace LLMCopilot
         }
 
         [Category("LLMCopilot")]
+        [DisplayName("LLM Api Provider")]
+        [Description("LLM Api Provider: Ollama or OpenAI compatible provider")]
+        public ApiProvider ApiProvider
+        {
+            get { return api_provider; }
+            set { api_provider = value; }
+        }
+
+        [Category("LLMCopilot")]
+        [DisplayName("Api key")]
+        [Description("required for openAI compatible api, not used for ollama")]
+        public string ApiKey
+        {
+            get { return api_key; }
+            set
+            {
+                api_key = value;
+            }
+        }
+
+        [Category("LLMCopilot")]
         [DisplayName("Code Complete Model")]
         [Description("LLM model name used for code complete")]
         public string CompleteModel
@@ -87,13 +118,37 @@ namespace LLMCopilot
         }
 
         [Category("LLMCopilot")]
-        [DisplayName("Chat Model")]
+        [DisplayName("complete ctx length")]
+        [Description("Context length for complete model")]
+        public int CompleteCtxSize
+        {
+            get { return complete_ctx_size; }
+            set
+            {
+                complete_ctx_size = value;
+            }
+        }
+
+        [Category("LLMCopilot")]
+        [DisplayName("Chat model")]
         [Description("LLM model name used for chat")]
         public string ChatModel
         {
             get { return chatModel; }
             set { 
                 chatModel = value;
+            }
+        }
+
+        [Category("LLMCopilot")]
+        [DisplayName("chat ctx length")]
+        [Description("Context length for chat model")]
+        public int ChatCtxSize
+        {
+            get { return chat_ctx_size; }
+            set
+            {
+                chat_ctx_size = value;
             }
         }
 

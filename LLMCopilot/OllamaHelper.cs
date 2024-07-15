@@ -61,7 +61,7 @@ namespace LLMCopilot
                 };
 
             CompRequestOptions = new RequestOptions {
-                NumCtx = 2048,
+                NumCtx = Options.CompleteCtxSize,
                 NumPredict = 128,
                 Stop = stop,
                 Temperature = 0.3f
@@ -69,7 +69,7 @@ namespace LLMCopilot
 
             ChatRequestOptions = new RequestOptions
             {
-                NumCtx = 4096,
+                NumCtx = Options.ChatCtxSize,
                 NumPredict = 1024,
                 Temperature = 0.7f
             };
@@ -330,8 +330,10 @@ The programming language is {code_type}.
             stop[1] = Options.FimEnd;
             stop[2] = Options.FimHole;
             CompRequestOptions.Stop = stop;
+            CompRequestOptions.NumCtx = Options.CompleteCtxSize;
+            ChatRequestOptions.NumCtx = Options.ChatCtxSize;
             
-            Task.Run(async () => await this.InitModelCtx());
+            //Task.Run(async () => await this.InitModelCtx());
         }
 
         public async Task InitModelCtx()

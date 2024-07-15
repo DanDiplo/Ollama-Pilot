@@ -75,7 +75,6 @@
     <Compile Include="..\OllamaSharp\ListModels.cs" />
     <Compile Include="..\OllamaSharp\Message.cs" />
     <Compile Include="..\OllamaSharp\OllamaApiClient.cs" />
-    <Compile Include="..\OllamaSharp\OllamaApiClientExtensions.cs" />
     <Compile Include="..\OllamaSharp\PullModel.cs" />
     <Compile Include="..\OllamaSharp\PushModel.cs" />
     <Compile Include="..\OllamaSharp\RequestOptions.cs" />
