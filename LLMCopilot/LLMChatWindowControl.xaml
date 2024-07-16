@@ -9,57 +9,148 @@
              Background="{DynamicResource {x:Static vsshell:VsBrushes.WindowKey}}"
              Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
              mc:Ignorable="d"
-             d:DesignHeight="450" d:DesignWidth="800" 
+             d:DesignHeight="450"
+             d:DesignWidth="800"
              Name="MyToolWindow">
     <UserControl.Resources>
-        <local:CapitalizeFirstLetterConverter x:Key="CapitalizeFirstLetterConverter"/>
+        <local:CapitalizeFirstLetterConverter x:Key="CapitalizeFirstLetterConverter" />
         <DataTemplate x:Key="MessageTemplate">
-            <Border Padding="10" Margin="5">
+            <Border Padding="10"
+                    Margin="5">
                 <StackPanel>
-                    <TextBlock Text="{Binding Role, Converter={StaticResource CapitalizeFirstLetterConverter}}" FontWeight="Bold" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" Margin="0,0,0,5"/>
+                    <TextBlock Text="{Binding Role, Converter={StaticResource CapitalizeFirstLetterConverter}}"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
+                               Margin="0,0,0,5" />
                     <md:MarkdownScrollViewer MarkdownStyleName="Sasabune"
                                              Markdown="{Binding Content}"
                                              Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
                                              VerticalScrollBarVisibility="Disabled"
                                              HorizontalScrollBarVisibility="Disabled"
                                              VerticalAlignment="Stretch"
-                                             HorizontalAlignment="Stretch"/>
+                                             HorizontalAlignment="Stretch" />
                 </StackPanel>
             </Border>
         </DataTemplate>
+        <Style x:Key="MenuItemStyle"
+               TargetType="MenuItem">
+            <Setter Property="Background"
+                    Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarGradientBeginKey}}" />
+            <Setter Property="Foreground"
+                    Value="{DynamicResource {x:Static vsshell:VsBrushes.MenuTextKey}}" />
+            <Setter Property="BorderThickness"
+                    Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type MenuItem}">
+                        <Border x:Name="Border"
+                                Background="{TemplateBinding Background}"
+                                BorderThickness="1">
+                            <Grid>
+                                <ContentPresenter ContentSource="Header"
+                                                  Margin="6,3,6,3"
+                                                  RecognizesAccessKey="True" />
+                                <Popup x:Name="Popup"
+                                       AllowsTransparency="True"
+                                       Placement="Bottom"
+                                       IsOpen="{TemplateBinding IsSubmenuOpen}"
+                                       Focusable="False"
+                                       PopupAnimation="Fade">
+                                    <Border x:Name="SubmenuBorder"
+                                            Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarGradientBeginKey}}"
+                                            BorderThickness="0">
+                                        <ScrollViewer CanContentScroll="True"
+                                                      Style="{DynamicResource {ComponentResourceKey ResourceId=MenuScrollViewer, TypeInTargetAssembly={x:Type FrameworkElement}}}">
+                                            <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
+                                        </ScrollViewer>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted"
+                                     Value="True">
+                                <Setter Property="Background"
+                                        Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
     </UserControl.Resources>
-
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" />
+            <!-- 菜单�? -->
+            <RowDefinition Height="*" />
+            <!-- 消息列表 -->
+            <RowDefinition Height="Auto" />
+            <!-- 输入区域 -->
         </Grid.RowDefinitions>
-
-        <ScrollViewer x:Name="MessagesScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <ItemsControl x:Name="MessageItemsControl" Background="Transparent" ItemsSource="{Binding Messages}" ItemTemplate="{StaticResource MessageTemplate}">
+        <!-- 菜单�? -->
+        <Menu Grid.Row="0"
+              Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarGradientBeginKey}}"
+              Foreground="{DynamicResource {x:Static vsshell:VsBrushes.MenuTextKey}}">
+            <MenuItem Header="_Menu"
+                      Style="{StaticResource MenuItemStyle}">
+                <MenuItem Header="_List models"
+                          Click="ListModels_Click"
+                          Style="{StaticResource MenuItemStyle}" />
+                <Separator Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarGradientBeginKey}}"
+                           Foreground="{DynamicResource {x:Static vsshell:VsBrushes.MenuTextKey}}" />
+                <MenuItem Header="_Clear chat history"
+                          Click="ClearChatHistory_Click"
+                          Style="{StaticResource MenuItemStyle}" />
+            </MenuItem>
+            <MenuItem Header="_Options"
+                      Style="{StaticResource MenuItemStyle}">
+                <MenuItem Header="_Settings"
+                          Click="SettingsMenuItem_Click"
+                          Style="{StaticResource MenuItemStyle}" />
+            </MenuItem>
+        </Menu>
+        <!-- 消息列表 -->
+        <ScrollViewer x:Name="MessagesScrollViewer"
+                      Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl x:Name="MessageItemsControl"
+                          Background="Transparent"
+                          ItemsSource="{Binding Messages}"
+                          ItemTemplate="{StaticResource MessageTemplate}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <StackPanel Orientation="Vertical"/>
+                        <StackPanel Orientation="Vertical" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
         </ScrollViewer>
-
-        <Grid Grid.Row="1" Margin="5">
+        <!-- 输入区域 -->
+        <Grid Grid.Row="2"
+              Margin="5">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-
-            <TextBox x:Name="MessageTextBox" MinWidth="200" VerticalContentAlignment="Center" 
-                     KeyDown="MessageTextBox_KeyDown" Margin="0 0 5 0" AcceptsReturn="True"
+            <TextBox x:Name="MessageTextBox"
+                     MinWidth="200"
+                     VerticalContentAlignment="Center"
+                     KeyDown="MessageTextBox_KeyDown"
+                     Margin="0 0 5 0"
+                     AcceptsReturn="True"
                      TextWrapping="Wrap"
                      GotFocus="MessageTextBox_GotFocus"
                      LostFocus="MessageTextBox_LostFocus"
-                     VerticalScrollBarVisibility="Auto"  Foreground="Gray"
-                     Text="Press Ctrl+Enter to Send Message"/>
-            <Button x:Name="SendButton" Content="Send" Click="SendButton_Click" 
-                    Grid.Column="1" HorizontalAlignment="Right"/>
+                     VerticalScrollBarVisibility="Auto"
+                     Foreground="Gray"
+                     Text="Press Ctrl+Enter to Send Message" />
+            <Button x:Name="SendButton"
+                    Content="Send"
+                    Click="SendButton_Click"
+                    Grid.Column="1"
+                    HorizontalAlignment="Right" />
         </Grid>
     </Grid>
 </UserControl>

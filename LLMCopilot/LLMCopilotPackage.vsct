@@ -50,6 +50,9 @@
 			<Group guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" priority="0x0600">
 				<Parent guid="guidLLMCopilotPackageCmdSet" id="TopLevelMenu" />
 			</Group>
+			<Group guid="guidLLMCopilotPackageCmdSet" id="SettingsMenuGroup" priority="0x0600">
+				<Parent guid="guidLLMCopilotPackageCmdSet" id="TopLevelMenu" />
+			</Group>
 		</Groups>
 		<!--Buttons section. -->
 		<!--This section defines the elements the user can interact with, like a menu command or a button
@@ -111,6 +114,13 @@
 					<ButtonText>Generate Unit Test</ButtonText>
 				</Strings>
 			</Button>
+			<Button guid="guidLLMCopilotPackageCmdSet" id="SettingsCmdid" priority="0x0100" type="Button">
+				<Parent guid="guidLLMCopilotPackageCmdSet" id="SettingsMenuGroup" />
+				<Icon guid="settings" id="settings" />
+				<Strings>
+					<ButtonText>Settings</ButtonText>
+				</Strings>
+			</Button>
 		</Buttons>
 
 		<!--The bitmaps section is used to define the bitmaps that are used for the commands.-->
@@ -128,13 +138,11 @@
 			<Bitmap guid="opt" href="Resources\opt.png" usedList="opt" />
 			<Bitmap guid="jiqiren" href="Resources\jiqiren.png" usedList="jiqiren" />
 			<Bitmap guid="test" href="Resources\test.png" usedList="test"  />
+			<Bitmap guid="settings" href="Resources\settings.png" usedList="settings"  />
 		</Bitmaps>
 	</Commands>
 
 	<CommandPlacements>
-		<CommandPlacement guid="guidLLMCopilotPackageCmdSet" id="ChatMenuGroup" priority="0x0600">
-			<Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_CODEWIN" />
-		</CommandPlacement>
 		<CommandPlacement guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" priority="0x0600">
 			<Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_CODEWIN" />
 		</CommandPlacement>
@@ -156,6 +164,8 @@
 			<IDSymbol name="OptimizeCodeCmdid" value="0x1026" />
 			<IDSymbol name="AddCommentCmdid" value="0x1027" />
 			<IDSymbol name="UnitTestCommentCmdid" value="0x1028" />
+			<IDSymbol name="SettingsMenuGroup" value="0x2000" />
+			<IDSymbol name="SettingsCmdid" value="0x2020" />
 		</GuidSymbol>
 
 
@@ -183,6 +193,9 @@
 		</GuidSymbol>
 		<GuidSymbol name="test" value="{19183D63-B340-463F-81C9-724311E2D80E}">
 			<IDSymbol name="test" value="1" />
+		</GuidSymbol>
+		<GuidSymbol name="settings" value="{77DC7C03-3B5E-4ABB-A582-5C4C7C1F5A3E}">
+			<IDSymbol name="settings" value="1" />
 		</GuidSymbol>
 	</Symbols>
 </CommandTable>

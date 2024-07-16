@@ -81,6 +81,7 @@
     <Compile Include="..\OllamaSharp\ShowModel.cs" />
     <Compile Include="..\OptimizeCodeCommand.cs" />
     <Compile Include="..\OptionPageGrid.cs">
+	<Compile Include="..\SettingsCommand.cs" />
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="..\Properties\AssemblyInfo.cs" />

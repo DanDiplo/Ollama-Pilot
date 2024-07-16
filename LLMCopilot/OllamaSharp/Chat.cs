@@ -16,8 +16,6 @@ namespace OllamaSharp.Models.Chat
 
         public IOllamaApiClient Client { get; private set; }
 
-        public string Model { get; set; }
-
         public RequestOptions Options { get; set; }
 
         public IResponseStreamer<ChatResponseStream> Streamer { get; private set; }

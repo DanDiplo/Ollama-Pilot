@@ -376,10 +376,16 @@ The programming language is {code_type}.
     public static class EventManager
     {
         public static event EventHandler<CommandExecutedEventArgs> CodeCommandExecuted;
+        public static event EventHandler<CmdEventArgs> CmdEventsHandler;
 
         public static void OnCodeCommandExecuted(string selectedText)
         {
             CodeCommandExecuted?.Invoke(null, new CommandExecutedEventArgs(selectedText));
+        }
+
+        public static void OnCmdEventHandler(CmdEventType cmdType)
+        {
+            CmdEventsHandler?.Invoke(null, new CmdEventArgs(cmdType));
         }
     }
 
@@ -390,6 +396,22 @@ The programming language is {code_type}.
         public CommandExecutedEventArgs(string selectedText)
         {
             SelectedText = selectedText;
+        }
+    }
+
+    public enum CmdEventType
+    {
+        ClearMessages,
+        ListModels
+    }
+
+    public class CmdEventArgs : EventArgs
+    {
+        public CmdEventType CmdType { get; }
+
+        public CmdEventArgs(CmdEventType cmdType)
+        {
+            CmdType = cmdType;
         }
     }
 

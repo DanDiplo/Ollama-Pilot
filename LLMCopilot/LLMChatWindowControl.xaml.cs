@@ -82,23 +82,7 @@ namespace LLMCopilot
             this.Unloaded += LLMChatWindowControl_Unloaded;
             this.Loaded += LLMChatWindowControl_loaded;
 
-            // 在窗口启动时自动发送ListLocalModels请求
-            Task.Run(async () =>
-            {
-                try
-                {
-                    var client = OllamaClientFactory.CreateClient();
-                    var models = await client.ListLocalModels();
-                    var modelNames = string.Join("  \n", models.Select(m => m.Name));
-
-                    AddMessage(ChatRole.System, $"Available local models:  \n{modelNames}");
-                    
-                }
-                catch (Exception ex)
-                {
-                    LLMErrorHandler.HandleException(ex);
-                }
-            });
+            
         }
 
         private void OnChatResponseReceived(ChatResponseStream response)
@@ -119,6 +103,37 @@ namespace LLMCopilot
                 }
             }
         }
+
+        private void ClearChatHistory_Click(object sender, RoutedEventArgs e)
+        {
+            _messages.Clear();
+        }
+
+        private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            SettingsCommand.Instance.Execute(this, EventArgs.Empty);
+        }
+
+        private void ListModels_Click(object sender, RoutedEventArgs e)
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    var client = OllamaClientFactory.CreateClient();
+                    var models = await client.ListLocalModels();
+                    var modelNames = string.Join("  \n", models.Select(m => m.Name));
+
+                    AddMessage(ChatRole.System, $"Available local models:  \n{modelNames}");
+
+                }
+                catch (Exception ex)
+                {
+                    LLMErrorHandler.HandleException(ex);
+                }
+            });
+        }
+
 
         private void OnExplainCodeCommandExecuted(object sender, CommandExecutedEventArgs e)
         {
@@ -142,7 +157,7 @@ namespace LLMCopilot
         private void LLMChatWindowControl_Unloaded(object sender, RoutedEventArgs e)
         {
             EventManager.CodeCommandExecuted -= OnExplainCodeCommandExecuted;
-            _messages.Clear();
+            //_messages.Clear();
         }
 
         private void AppendOrUpdateLastMessage(string content)
