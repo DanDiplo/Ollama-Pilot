@@ -31,7 +31,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>bin\debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -39,7 +39,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>..\pub\vs2022\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -80,8 +80,8 @@
     <Compile Include="..\OllamaSharp\RequestOptions.cs" />
     <Compile Include="..\OllamaSharp\ShowModel.cs" />
     <Compile Include="..\OptimizeCodeCommand.cs" />
+    <Compile Include="..\SettingsCommand.cs" />
     <Compile Include="..\OptionPageGrid.cs">
-	<Compile Include="..\SettingsCommand.cs" />
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="..\Properties\AssemblyInfo.cs" />

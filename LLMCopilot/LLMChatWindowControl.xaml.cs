@@ -158,6 +158,7 @@ namespace LLMCopilot
         {
             EventManager.CodeCommandExecuted -= OnExplainCodeCommandExecuted;
             //_messages.Clear();
+            KeepLastTenMessages();
         }
 
         private void AppendOrUpdateLastMessage(string content)
@@ -202,6 +203,18 @@ namespace LLMCopilot
         private async void SendButton_Click(object sender, RoutedEventArgs e)
         {
             await SendMessageAsync();
+        }
+
+        public void KeepLastTenMessages()
+        {
+            if (_messages.Count > 10)
+            {
+                int removeCount = _messages.Count - 10;
+                for (int i = 0; i < removeCount; i++)
+                {
+                    _messages.RemoveAt(0);
+                }
+            }
         }
 
         private async void MessageTextBox_KeyDown(object sender, KeyEventArgs e)

@@ -12,6 +12,7 @@ bld/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
+pub/
 
 # Visual Studio 2015/2017 缓存/选项目录
 .vs/
