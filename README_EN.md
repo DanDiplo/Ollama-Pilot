@@ -2,6 +2,8 @@
 
 [中文](https://github.com/foryoung365/vs-extension-llmcopilot)
 
+**LLMCopilot** is now **fully open source**! Previously, it was not open source mainly because this extension was a toy project of vibecoding, and I planned to optimize it later. In fact, I don't have much energy to maintain this project, so now it's open source under the `MIT LICENSE`. You are free to modify it. PRs are welcome, but I may not be able to process them in time.
+
 This is a Visual Studio extension based on [Ollama](https://github.com/ollama/ollama). Thanks to Ollama's localized deployment and powerful LLM (Large Language Model) support, you can get code suggestions and tips similar to GitHub Copilot, but all data is local and can even run offline.
 
 **If this extension is helpful to you, please give us a 5-star rating on the marketplace.**

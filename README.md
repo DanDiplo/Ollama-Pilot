@@ -1,6 +1,8 @@
 # LLMCopilot
 [English](https://github.com/foryoung365/vs-extension-llmcopilot/blob/main/README_EN.md)
 
+**LLMCopilot**现在**完全开源**了。之前之所以迟迟不开源，主要是因为这个插件是vibecoding的一个玩具，本想着后续再优化，但事实上我并没有太多精力维护这个项目，因此现在基于`MIT LISENCE`开源，你可以随意修改。也欢迎提交PR，但我可能无法及时处理。
+
 这是一个基于[Ollama](https://github.com/ollama/ollama)的Visual Studio扩展。得益于Ollama的本地化部署和强大的LLM（大型语言模型）支持，你可以像使用github copilot一样获得代码提示和建议，但是所有数据都在本地，甚至可以离线运行。
 
 **如果此插件对你有帮助，请在marketplace中给我们一个五星评价。**
