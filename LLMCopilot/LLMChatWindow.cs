@@ -2,7 +2,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace LLMCopilot
+namespace OllamaPilot
 {
     /// <summary>
     /// This class implements the tool window exposed by this package and hosts a user control.
@@ -15,7 +15,7 @@ namespace LLMCopilot
     /// implementation of the IVsUIElementPane interface.
     /// </para>
     /// </remarks>
-    [Guid("0feb262a-26d8-4068-af46-052c42b7b275")]
+    [Guid("a764671b-0f0e-4b76-b80c-b324719391f3")]
     public class LLMChatWindow : ToolWindowPane
     {
         /// <summary>

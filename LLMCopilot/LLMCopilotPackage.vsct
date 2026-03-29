@@ -198,10 +198,10 @@
 
 	<Symbols>
 		<!-- This is the package guid. -->
-		<GuidSymbol name="guidLLMCopilotPackage" value="{f416f114-4489-4a9e-bc3a-fd1afc259ce9}" />
+		<GuidSymbol name="guidLLMCopilotPackage" value="{93399514-383b-4900-9615-9f4ad8b809e6}" />
 
 		<!-- This is the guid used to group the menu commands together -->
-		<GuidSymbol name="guidLLMCopilotPackageCmdSet" value="{97b2029e-4a4a-44a2-89bd-a85b80527fb0}">
+		<GuidSymbol name="guidLLMCopilotPackageCmdSet" value="{d9bd5408-e04b-4cd1-95ac-5b6240ab8bd1}">
 			<IDSymbol name="ChatMenuGroup" value="0x1020" />
 			<IDSymbol name="LLMMenuCommandId" value="0x0100" />
 			<IDSymbol name="ExplainErrorCmdid" value="0x0101" />

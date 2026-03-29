@@ -1,4 +1,4 @@
-# LLMCopilot
+ LLMCopilot
 
 [中文](https://github.com/foryoung365/vs-extension-llmcopilot)
 

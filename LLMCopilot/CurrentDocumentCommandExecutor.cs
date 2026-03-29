@@ -2,7 +2,7 @@ using Microsoft.VisualStudio.Shell;
 using System;
 using System.IO;
 
-namespace LLMCopilot
+namespace OllamaPilot
 {
     internal static class CurrentDocumentCommandExecutor
     {

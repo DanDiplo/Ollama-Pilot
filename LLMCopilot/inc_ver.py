@@ -24,7 +24,5 @@ def increment_version(xml_file_path):
         print(f"Error: {e}")
 
 if __name__ == "__main__":
-    project_dir = sys.argv[1]  # 接收命令行传入的项目目录
-    # 确保路径拼接正确
-    xml_file_path = f"{project_dir}\\source.extension.vsixmanifest"  # Windows 路径使用反斜杠
-    increment_version(xml_file_path)
+    manifest_path = sys.argv[1]
+    increment_version(manifest_path)

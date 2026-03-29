@@ -3,7 +3,7 @@ using System.ComponentModel;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 
-namespace LLMCopilot
+namespace OllamaPilot
 {
     public enum ResponseLanguage
     { 

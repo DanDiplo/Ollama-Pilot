@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using Task = System.Threading.Tasks.Task;
 
-namespace LLMCopilot
+namespace OllamaPilot
 {
     public static class LLMCopilotProvider
     {
@@ -59,7 +59,7 @@ namespace LLMCopilot
         /// <summary>
         /// LLMCopilotPackage GUID string.
         /// </summary>
-        public const string PackageGuidString = "f416f114-4489-4a9e-bc3a-fd1afc259ce9";
+        public const string PackageGuidString = "93399514-383b-4900-9615-9f4ad8b809e6";
 
         #region Package Members
 

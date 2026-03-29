@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Diagnostics;
 using System.IO;
 
-namespace LLMCopilot
+namespace OllamaPilot
 {
     public static class LogHelper
     {

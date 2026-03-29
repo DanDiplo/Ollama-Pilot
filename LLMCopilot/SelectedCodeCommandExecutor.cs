@@ -2,7 +2,7 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text.Editor;
 using System;
 
-namespace LLMCopilot
+namespace OllamaPilot
 {
     internal static class SelectedCodeCommandExecutor
     {

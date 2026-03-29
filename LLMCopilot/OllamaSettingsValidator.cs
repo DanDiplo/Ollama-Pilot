@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace LLMCopilot
+namespace OllamaPilot
 {
     public sealed class OllamaValidationResult
     {

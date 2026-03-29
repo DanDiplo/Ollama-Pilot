@@ -8,7 +8,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Diagnostics.CodeAnalysis;
 
-namespace LLMCopilot
+namespace OllamaPilot
 {
     public partial class SettingsWindow : Window
     {

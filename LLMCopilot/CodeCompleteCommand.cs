@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
 using OllamaSharp.Models;
 
-namespace LLMCopilot
+namespace OllamaPilot
 {
     class CodeCompleteCommand
     {
@@ -20,7 +20,7 @@ namespace LLMCopilot
         /// <summary>
         /// Command menu group (command set GUID).
         /// </summary>
-        public static readonly Guid CommandSet = new Guid("97b2029e-4a4a-44a2-89bd-a85b80527fb0");
+        public static readonly Guid CommandSet = new Guid("d9bd5408-e04b-4cd1-95ac-5b6240ab8bd1");
 
         /// <summary>
         /// VS Package that provides this command, not null.

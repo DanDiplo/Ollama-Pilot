@@ -4,12 +4,12 @@ using System;
 using System.ComponentModel.Design;
 using System.Threading.Tasks;
 
-namespace LLMCopilot
+namespace OllamaPilot
 {
     internal sealed class TestConnectionCommand
     {
         public const int CommandId = 0x2021;
-        public static readonly Guid CommandSet = new Guid("97b2029e-4a4a-44a2-89bd-a85b80527fb0");
+        public static readonly Guid CommandSet = new Guid("d9bd5408-e04b-4cd1-95ac-5b6240ab8bd1");
         private readonly AsyncPackage package;
 
         private TestConnectionCommand(AsyncPackage package, OleMenuCommandService commandService)

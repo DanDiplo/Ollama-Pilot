@@ -17,7 +17,7 @@ using Microsoft.VisualStudio;
 using System.Net.Http.Headers;
 using System.IO;
 
-namespace LLMCopilot
+namespace OllamaPilot
 {
     public sealed class OllamaHelper
     {
@@ -36,7 +36,7 @@ namespace LLMCopilot
         public RequestOptions CompRequestOptions { get; private set; }
         public RequestOptions ChatRequestOptions { get; private set; }
 
-        private string[] stop;
+        private readonly string[] stop;
 
         public OptionPageGrid Options { get; private set; }
         private PromptTemplateService TemplateService { get; set; }

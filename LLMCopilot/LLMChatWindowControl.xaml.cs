@@ -18,11 +18,11 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.Shell;
 
-namespace LLMCopilot
+namespace OllamaPilot
 {
     public class MyMessage : INotifyPropertyChanged
     {
-        Message _message;
+        readonly Message _message;
         public string Content
         {
             get => _message.Content;
@@ -66,10 +66,10 @@ namespace LLMCopilot
     /// </summary>
     public partial class LLMChatWindowControl : UserControl, INotifyPropertyChanged
     {
-        private ObservableCollection<MyMessage> _messages = new ObservableCollection<MyMessage>();
+        private readonly ObservableCollection<MyMessage> _messages = new ObservableCollection<MyMessage>();
         public ObservableCollection<MyMessage> Messages => _messages;
         private Chat Chat { get; set; }
-        private StringBuilder _messageCache = new StringBuilder(); // 用于缓存数据
+        private readonly StringBuilder _messageCache = new StringBuilder(); // 用于缓存数据
         private CancellationTokenSource _sendCancellationTokenSource;
         private string _statusText = "Ready to connect to your local Ollama server.";
         private Brush _statusBrush = new SolidColorBrush(Colors.Gray);

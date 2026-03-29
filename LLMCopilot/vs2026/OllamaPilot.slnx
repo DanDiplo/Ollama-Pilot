@@ -9,7 +9,7 @@
     <File Path="../.gitignore" />
     <File Path="source.extension.vsixmanifest" />
   </Folder>
-  <Project Path="LLMCopilot.csproj">
+  <Project Path="D:/Websites/Projects/Ollama-Pilot/LLMCopilot/vs2026/OllamaPilot.csproj" Id="860e359c-963c-4cad-b7b3-0812890d4a4a">
     <Platform Solution="*|arm64" Project="arm64" />
     <Platform Solution="*|x86" Project="x86" />
   </Project>

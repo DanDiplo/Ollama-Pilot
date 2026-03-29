@@ -23,13 +23,13 @@ using Microsoft.VisualStudio.Shell;
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Rendering;
 
-namespace LLMCopilot
+namespace OllamaPilot
 {
     public class LLMAdornment
     {
-        private IWpfTextView _view;
-        private IAdornmentLayer _adornmentLayer;
-        private TextEditor _textEditor; // 用于显示预测结果
+        private readonly IWpfTextView _view;
+        private readonly IAdornmentLayer _adornmentLayer;
+        private readonly TextEditor _textEditor; // 用于显示预测结果
         private string _originalPredictionText; // 用于存储原始预测文本
         public SnapshotPoint Pos { get; private set; }
 
@@ -75,7 +75,6 @@ namespace LLMCopilot
 
         private void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
         {
-
         }
 
         private double CalculateMaxWidth()
@@ -410,7 +409,7 @@ namespace LLMCopilot
 
     public class LLMAdornmentKeyProcessor : KeyProcessor
     {
-        private IWpfTextView _view;
+        private readonly IWpfTextView _view;
 
         public LLMAdornmentKeyProcessor(IWpfTextView view)
         {
