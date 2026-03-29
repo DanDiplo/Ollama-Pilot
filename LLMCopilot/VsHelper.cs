@@ -618,17 +618,33 @@ namespace OllamaPilot
                     return "csharp";
                 case ".js":
                     return "javascript";
+                case ".jsx":
+                    return "jsx";
                 case ".html":
                 case ".htm":
                     return "html";
+                case ".cshtml":
+                case ".razor":
+                    return "razor";
                 case ".css":
                     return "css";
+                case ".scss":
+                    return "scss";
+                case ".sass":
+                    return "sass";
+                case ".less":
+                    return "less";
                 case ".java":
                     return "java";
                 case ".ts":
                     return "typescript";
+                case ".tsx":
+                    return "tsx";
                 case ".json":
                     return "json";
+                case ".yaml":
+                case ".yml":
+                    return "yaml";
                 case ".xml":
                     return "xml";
                 case ".sql":
@@ -648,6 +664,10 @@ namespace OllamaPilot
                     return "kotlin";
                 case ".sh":
                     return "bash";
+                case ".ps1":
+                case ".psm1":
+                case ".psd1":
+                    return "powershell";
                 case ".bat":
                     return "batch";
                 case ".md":
