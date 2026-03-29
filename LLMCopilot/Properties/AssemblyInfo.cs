@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("OllamaPilot")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("LLM Pilot using Ollama")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Diplodocus Squad")]
 [assembly: AssemblyProduct("OllamaPilot")]
 [assembly: AssemblyCopyright("")]
 [assembly: AssemblyTrademark("")]
