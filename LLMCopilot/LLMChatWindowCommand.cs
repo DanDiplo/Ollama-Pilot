@@ -86,6 +86,7 @@ namespace LLMCopilot
         /// <param name="e">The event args.</param>
         private void Execute(object sender, EventArgs e)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             VsHelpers.OpenChatWindow();
         }
     }

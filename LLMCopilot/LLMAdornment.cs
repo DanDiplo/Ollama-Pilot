@@ -54,15 +54,20 @@ namespace LLMCopilot
             _textEditor = new TextEditor
             {
                 IsReadOnly = true,
-                ShowLineNumbers = true,
-                Background = new SolidColorBrush(Colors.Gray) { Opacity = 0.8 },
+                ShowLineNumbers = false,
+                Background = new SolidColorBrush(Color.FromRgb(42, 42, 42)) { Opacity = 0.92 },
                 FontFamily = typeface.FontFamily,
                 FontSize = fontRenderingSize,
-                Foreground = foregroundBrush,
+                Foreground = new SolidColorBrush(Color.FromRgb(212, 212, 212)),
                 WordWrap = true,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Hidden, // 隐藏垂直滚动条
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden // 隐藏水平滚动条
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden, // 隐藏水平滚动条
+                Opacity = 0.96
             };
+
+            _textEditor.TextArea.SelectionBrush = new SolidColorBrush(Colors.Transparent);
+            _textEditor.MaxWidth = CalculateMaxWidth();
+            _textEditor.MaxHeight = fontRenderingSize * 12;
 
             // 设置不可编辑
             _textEditor.IsHitTestVisible = false;
@@ -114,16 +119,17 @@ namespace LLMCopilot
             }
         }
 
-        public void UpdatePrediction(string prediction)
+        public void UpdatePrediction(string prediction, string statusText = null)
         {
             _originalPredictionText = prediction;
 
             if (_textEditor != null)
             {
-                // 在 UI 线程上更新 _textEditor.Text
-                _view.VisualElement.Dispatcher.Invoke(() =>
+                ThreadHelper.JoinableTaskFactory.Run(async delegate
                 {
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                     _textEditor.Text = SplitLines(prediction.TrimStart());
+                    _textEditor.ToolTip = statusText;
 
                     // 获取当前光标位置
                     var caretPosition = _view.Caret.Position.BufferPosition;
@@ -276,6 +282,7 @@ namespace LLMCopilot
 
         public int QueryStatus(ref Guid pguidCmdGroup, uint cCmds, OLECMD[] prgCmds, IntPtr pCmdText)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             return _nextCommandTarget.QueryStatus(ref pguidCmdGroup, cCmds, prgCmds, pCmdText);
         }
 
@@ -285,34 +292,64 @@ namespace LLMCopilot
             {
                 case (uint)VSConstants.VSStd2KCmdID.RETURN:
                 case (uint)VSConstants.VSStd2KCmdID.TAB:
-               
+                case (uint)VSConstants.VSStd2KCmdID.BACKSPACE:
+                case (uint)VSConstants.VSStd2KCmdID.DELETE:
+                case (uint)VSConstants.VSStd2KCmdID.LEFT:
+                case (uint)VSConstants.VSStd2KCmdID.RIGHT:
+                case (uint)VSConstants.VSStd2KCmdID.UP:
+                case (uint)VSConstants.VSStd2KCmdID.DOWN:
+                case (uint)VSConstants.VSStd2KCmdID.HOME:
+                case (uint)VSConstants.VSStd2KCmdID.END:
                 case (uint)VSConstants.VSStd2KCmdID.CANCEL:
-                    {
-                        return true;
-                    }
-                    break;
+                    return true;
                 case (uint)VSConstants.VSStd2KCmdID.TYPECHAR:
-                    {
-                        char typedChar = (char)(ushort)Marshal.GetObjectForNativeVariant(pvaIn);
-                        if (typedChar >= '0' && typedChar <= '9')
-                        {
-
-                            return false;
-                        }
-
-                        return true;
-                    }
-
-                    break;
-                default:
+                    char typedChar = (char)(ushort)Marshal.GetObjectForNativeVariant(pvaIn);
+                    if (typedChar >= '0' && typedChar <= '9')
                     {
                         return false;
                     }
+
+                    return true;
+                default:
+                    return false;
             }
+        }
+
+        private static bool ShouldCancelPendingCompletion(uint nCmdID)
+        {
+            switch (nCmdID)
+            {
+                case (uint)VSConstants.VSStd2KCmdID.BACKSPACE:
+                case (uint)VSConstants.VSStd2KCmdID.DELETE:
+                case (uint)VSConstants.VSStd2KCmdID.LEFT:
+                case (uint)VSConstants.VSStd2KCmdID.RIGHT:
+                case (uint)VSConstants.VSStd2KCmdID.UP:
+                case (uint)VSConstants.VSStd2KCmdID.DOWN:
+                case (uint)VSConstants.VSStd2KCmdID.HOME:
+                case (uint)VSConstants.VSStd2KCmdID.END:
+                case (uint)VSConstants.VSStd2KCmdID.CANCEL:
+                case (uint)VSConstants.VSStd2KCmdID.TYPECHAR:
+                case (uint)VSConstants.VSStd2KCmdID.TAB:
+                case (uint)VSConstants.VSStd2KCmdID.RETURN:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static char? GetTypedChar(uint nCmdID, IntPtr pvaIn)
+        {
+            if (nCmdID != (uint)VSConstants.VSStd2KCmdID.TYPECHAR || pvaIn == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            return (char)(ushort)Marshal.GetObjectForNativeVariant(pvaIn);
         }
 
         public int Exec(ref Guid pguidCmdGroup, uint nCmdID, uint nCmdexecopt, IntPtr pvaIn, IntPtr pvaOut)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             try
             {
                 if (!IsConcernedCommand(nCmdID, pvaIn) || LLMCopilotProvider.Package == null)
@@ -320,48 +357,42 @@ namespace LLMCopilot
                     return _nextCommandTarget.Exec(ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
                 }
 
+                if (ShouldCancelPendingCompletion(nCmdID))
+                {
+                    VsHelpers.CancelPendingCompletion();
+                }
+
                 if (LLMAdornmentFactory.GetCurrentAdornment() == null)
                 {
-                    switch (nCmdID)
+                    var result = _nextCommandTarget.Exec(ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
+                    var typedChar = GetTypedChar(nCmdID, pvaIn);
+                    if (VsHelpers.ShouldTriggerAutoComplete(_view, typedChar, OllamaHelper.Instance.Options, nCmdID))
                     {
-                        case (uint)VSConstants.VSStd2KCmdID.RETURN:
-                        case (uint)VSConstants.VSStd2KCmdID.TAB:
-                        case (uint)VSConstants.VSStd2KCmdID.TYPECHAR:
-                            {
-                                var options = OllamaHelper.Instance.Options;
-                                if (options.EnableAutoComplete)
-                                {
-                                    VsHelpers.CodeCompleteCommand();
-                                    break;
-                                }
-                            }
-                            break;
-                        default:
-                            {
-                                return _nextCommandTarget.Exec(ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
-                            }
+                        VsHelpers.CodeCompleteCommand();
                     }
+
+                    return result;
                 }
                 else
                 {
                     switch (nCmdID)
                     {
+                        case (uint)VSConstants.VSStd2KCmdID.TAB:
+                            LLMAdornmentFactory.AcceptPrediction(_view);
+                            return VSConstants.S_OK;
                         case (uint)VSConstants.VSStd2KCmdID.CANCEL:
+                            LLMAdornmentFactory.CancelPrediction(_view);
+                            return VSConstants.S_OK;
+                        case (uint)VSConstants.VSStd2KCmdID.TYPECHAR:
                             {
-                                LLMAdornmentFactory.CancelPrediction(_view);
-                                return VSConstants.S_OK;
+                                char typedChar = (char)(ushort)Marshal.GetObjectForNativeVariant(pvaIn);
+                                if (typedChar >= '1' && typedChar <= '9')
+                                {
+                                    LLMAdornmentFactory.AcceptPredictionLines(_view, typedChar - '0');
+                                    return VSConstants.S_OK;
+                                }
                             }
                             break;
-                        //case (uint)VSConstants.VSStd2KCmdID.TYPECHAR:
-                        //    {
-                        //        char typedChar = (char)(ushort)Marshal.GetObjectForNativeVariant(pvaIn);
-                        //        if (typedChar >= '1' && typedChar <= '9')
-                        //        {
-                        //            LLMAdornmentFactory.AcceptPredictionLines(_view, typedChar - '0');
-                        //            return VSConstants.S_OK;
-                        //        }
-                        //    }
-                        //    break;
                     }
                 }
 
@@ -435,7 +466,7 @@ namespace LLMCopilot
     [Export(typeof(IKeyProcessorProvider))]
     [Name("LLMAdornmentKeyProcessorProvider")]
     [ContentType("code")]
-    [TextViewRole(PredefinedTextViewRoles.Interactive)]
+    [TextViewRole(PredefinedTextViewRoles.Document)]
     public class LLMAdornmentKeyProcessorProvider : IKeyProcessorProvider
     {
         public KeyProcessor GetAssociatedProcessor(IWpfTextView textView)

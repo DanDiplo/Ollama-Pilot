@@ -50,6 +50,9 @@
 			<Group guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" priority="0x0600">
 				<Parent guid="guidLLMCopilotPackageCmdSet" id="TopLevelMenu" />
 			</Group>
+			<Group guid="guidLLMCopilotPackageCmdSet" id="ErrorListMenuGroup" priority="0x0600">
+				<Parent guid="guidLLMCopilotPackageCmdSet" id="TopLevelMenu" />
+			</Group>
 			<Group guid="guidLLMCopilotPackageCmdSet" id="SettingsMenuGroup" priority="0x0600">
 				<Parent guid="guidLLMCopilotPackageCmdSet" id="TopLevelMenu" />
 			</Group>
@@ -77,6 +80,34 @@
 				<Icon guid="jieshi" id="jieshi" />
 				<Strings>
 					<ButtonText>Explain Code</ButtonText>
+				</Strings>
+			</Button>
+			<Button guid="guidLLMCopilotPackageCmdSet" id="ExplainErrorCmdid" priority="0x0101" type="Button">
+				<Parent guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" />
+				<Icon guid="bug" id="bug" />
+				<Strings>
+					<ButtonText>Explain Error</ButtonText>
+				</Strings>
+			</Button>
+			<Button guid="guidLLMCopilotPackageCmdSet" id="ReviewFileCmdid" priority="0x0102" type="Button">
+				<Parent guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" />
+				<Icon guid="jieshi" id="jieshi" />
+				<Strings>
+					<ButtonText>Review Current File</ButtonText>
+				</Strings>
+			</Button>
+			<Button guid="guidLLMCopilotPackageCmdSet" id="GenerateFileTestsCmdid" priority="0x0103" type="Button">
+				<Parent guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" />
+				<Icon guid="test" id="test" />
+				<Strings>
+					<ButtonText>Generate Tests for File</ButtonText>
+				</Strings>
+			</Button>
+			<Button guid="guidLLMCopilotPackageCmdSet" id="FixErrorFromListCmdid" priority="0x0102" type="Button">
+				<Parent guid="guidLLMCopilotPackageCmdSet" id="ErrorListMenuGroup" />
+				<Icon guid="bug" id="bug" />
+				<Strings>
+					<ButtonText>Fix Error with LLM Copilot</ButtonText>
 				</Strings>
 			</Button>
 			<Button guid="guidLLMCopilotPackageCmdSet" id="cmdidCodeComplete" priority="0x0100" type="Button">
@@ -121,6 +152,20 @@
 					<ButtonText>Settings</ButtonText>
 				</Strings>
 			</Button>
+			<Button guid="guidLLMCopilotPackageCmdSet" id="TestConnectionCmdid" priority="0x0101" type="Button">
+				<Parent guid="guidLLMCopilotPackageCmdSet" id="SettingsMenuGroup" />
+				<Icon guid="settings" id="settings" />
+				<Strings>
+					<ButtonText>Test Connection</ButtonText>
+				</Strings>
+			</Button>
+			<Button guid="guidLLMCopilotPackageCmdSet" id="SummarizeChangesCmdid" priority="0x0102" type="Button">
+				<Parent guid="guidLLMCopilotPackageCmdSet" id="SettingsMenuGroup" />
+				<Icon guid="settings" id="settings" />
+				<Strings>
+					<ButtonText>Summarize Working Changes</ButtonText>
+				</Strings>
+			</Button>
 		</Buttons>
 
 		<!--The bitmaps section is used to define the bitmaps that are used for the commands.-->
@@ -146,6 +191,9 @@
 		<CommandPlacement guid="guidLLMCopilotPackageCmdSet" id="CompleteMenuGroup" priority="0x0600">
 			<Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_CODEWIN" />
 		</CommandPlacement>
+		<CommandPlacement guid="guidLLMCopilotPackageCmdSet" id="ErrorListMenuGroup" priority="0x0600">
+			<Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_ERRORLIST" />
+		</CommandPlacement>
 	</CommandPlacements>
 
 	<Symbols>
@@ -156,16 +204,23 @@
 		<GuidSymbol name="guidLLMCopilotPackageCmdSet" value="{97b2029e-4a4a-44a2-89bd-a85b80527fb0}">
 			<IDSymbol name="ChatMenuGroup" value="0x1020" />
 			<IDSymbol name="LLMMenuCommandId" value="0x0100" />
+			<IDSymbol name="ExplainErrorCmdid" value="0x0101" />
+			<IDSymbol name="ReviewFileCmdid" value="0x0102" />
+			<IDSymbol name="GenerateFileTestsCmdid" value="0x0103" />
+			<IDSymbol name="FixErrorFromListCmdid" value="0x0104" />
 			<IDSymbol name="TopLevelMenu" value="0x1021" />
 			<IDSymbol name="cmdidLLMChatWindowCommand" value="0x1022"/>
 			<IDSymbol name="cmdidCodeComplete" value="0x1023"/>
 			<IDSymbol name="CompleteMenuGroup" value="0x1024" />
+			<IDSymbol name="ErrorListMenuGroup" value="0x1029" />
 			<IDSymbol name="findBugCmdid" value="0x1025" />
 			<IDSymbol name="OptimizeCodeCmdid" value="0x1026" />
 			<IDSymbol name="AddCommentCmdid" value="0x1027" />
 			<IDSymbol name="UnitTestCommentCmdid" value="0x1028" />
 			<IDSymbol name="SettingsMenuGroup" value="0x2000" />
 			<IDSymbol name="SettingsCmdid" value="0x2020" />
+			<IDSymbol name="TestConnectionCmdid" value="0x2021" />
+			<IDSymbol name="SummarizeChangesCmdid" value="0x2022" />
 		</GuidSymbol>
 
 

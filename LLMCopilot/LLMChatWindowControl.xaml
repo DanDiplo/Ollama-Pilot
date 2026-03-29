@@ -14,14 +14,26 @@
              Name="MyToolWindow">
     <UserControl.Resources>
         <local:CapitalizeFirstLetterConverter x:Key="CapitalizeFirstLetterConverter" />
+        <local:AssistantMessageVisibilityConverter x:Key="AssistantMessageVisibilityConverter" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <DataTemplate x:Key="MessageTemplate">
-            <Border Padding="10"
-                    Margin="5">
+            <Border Padding="12"
+                    Margin="6"
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarBorderKey}}"
+                    Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarGradientBeginKey}}">
                 <StackPanel>
-                    <TextBlock Text="{Binding Role, Converter={StaticResource CapitalizeFirstLetterConverter}}"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
-                               Margin="0,0,0,5" />
+                    <Border Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}"
+                            CornerRadius="999"
+                            HorizontalAlignment="Left"
+                            Padding="8,3"
+                            Margin="0,0,0,8">
+                        <TextBlock Text="{Binding Role, Converter={StaticResource CapitalizeFirstLetterConverter}}"
+                                   FontWeight="SemiBold"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" />
+                    </Border>
                     <md:MarkdownScrollViewer MarkdownStyleName="Sasabune"
                                              Markdown="{Binding Content}"
                                              Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
@@ -29,6 +41,37 @@
                                              HorizontalScrollBarVisibility="Disabled"
                                              VerticalAlignment="Stretch"
                                              HorizontalAlignment="Stretch" />
+                    <StackPanel Orientation="Horizontal"
+                                Margin="0,8,0,0"
+                                Visibility="{Binding Role, Converter={StaticResource AssistantMessageVisibilityConverter}}">
+                        <Button Content="Preview Diff"
+                                Click="PreviewDiff_Click"
+                                Tag="{Binding}"
+                                Margin="0,0,8,0" />
+                        <Button Content="Copy Code"
+                                Click="CopyCode_Click"
+                                Tag="{Binding}"
+                                Margin="0,0,8,0" />
+                        <Button Content="Use As Draft"
+                                Click="UseAsDraft_Click"
+                                Tag="{Binding}"
+                                Margin="0,0,8,0" />
+                        <Button Content="Create Sibling File"
+                                Click="CreateSiblingFile_Click"
+                                Tag="{Binding}"
+                                Margin="0,0,8,0" />
+                        <Button Content="Insert Into Editor"
+                                Click="InsertIntoEditor_Click"
+                                Tag="{Binding}"
+                                Margin="0,0,8,0" />
+                        <Button Content="Replace Selection"
+                                Click="ReplaceSelection_Click"
+                                Tag="{Binding}"
+                                Margin="0,0,8,0" />
+                        <Button Content="Replace File"
+                                Click="ReplaceFile_Click"
+                                Tag="{Binding}" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </DataTemplate>
@@ -83,13 +126,10 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <!-- 菜单�? -->
-            <RowDefinition Height="*" />
-            <!-- 消息列表 -->
             <RowDefinition Height="Auto" />
-            <!-- 输入区域 -->
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <!-- 菜单�? -->
         <Menu Grid.Row="0"
               Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarGradientBeginKey}}"
               Foreground="{DynamicResource {x:Static vsshell:VsBrushes.MenuTextKey}}">
@@ -111,9 +151,83 @@
                           Style="{StaticResource MenuItemStyle}" />
             </MenuItem>
         </Menu>
-        <!-- 消息列表 -->
+
+        <Border Grid.Row="1"
+                Margin="8,8,8,4"
+                Padding="14"
+                CornerRadius="12"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarBorderKey}}"
+                Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandShelfHighlightGradientBeginKey}}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Row="0"
+                            Grid.Column="0">
+                    <TextBlock Text="Local Ollama Workspace"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" />
+                    <TextBlock Text="{Binding StatusText}"
+                               Margin="0,4,0,0"
+                               Foreground="{Binding StatusBrush}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="0"
+                            Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Top">
+                    <Button Content="Test Connection"
+                            Click="TestConnection_Click"
+                            Margin="0,0,8,0" />
+                    <Button Content="Regenerate Last"
+                            Click="RegenerateLast_Click"
+                            Margin="0,0,8,0"
+                            IsEnabled="{Binding CanRegenerateLast}" />
+                    <Button Content="Cancel Response"
+                            Click="CancelResponse_Click"
+                            IsEnabled="{Binding CanCancelResponse}" />
+                </StackPanel>
+
+                <WrapPanel Grid.Row="1"
+                           Grid.ColumnSpan="2"
+                           Margin="0,12,0,0">
+                    <Border Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}"
+                            CornerRadius="999"
+                            Padding="10,5"
+                            Margin="0,0,8,0">
+                        <TextBlock Text="{Binding ChatModelBadge}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold" />
+                    </Border>
+                    <Border Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}"
+                            CornerRadius="999"
+                            Padding="10,5"
+                            Margin="0,0,8,0">
+                        <TextBlock Text="{Binding CompletionModelBadge}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold" />
+                    </Border>
+                    <Border Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}"
+                            CornerRadius="999"
+                            Padding="10,5">
+                        <TextBlock Text="{Binding AutoCompleteBadge}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold" />
+                    </Border>
+                </WrapPanel>
+            </Grid>
+        </Border>
+
         <ScrollViewer x:Name="MessagesScrollViewer"
-                      Grid.Row="1"
+                      Grid.Row="2"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled">
             <ItemsControl x:Name="MessageItemsControl"
@@ -127,30 +241,74 @@
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
         </ScrollViewer>
-        <!-- 输入区域 -->
-        <Grid Grid.Row="2"
-              Margin="5">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBox x:Name="MessageTextBox"
-                     MinWidth="200"
-                     VerticalContentAlignment="Center"
-                     KeyDown="MessageTextBox_KeyDown"
-                     Margin="0 0 5 0"
-                     AcceptsReturn="True"
-                     TextWrapping="Wrap"
-                     GotFocus="MessageTextBox_GotFocus"
-                     LostFocus="MessageTextBox_LostFocus"
-                     VerticalScrollBarVisibility="Auto"
-                     Foreground="Gray"
-                     Text="Press Ctrl+Enter to Send Message" />
-            <Button x:Name="SendButton"
-                    Content="Send"
-                    Click="SendButton_Click"
-                    Grid.Column="1"
-                    HorizontalAlignment="Right" />
-        </Grid>
+        <Border Grid.Row="3"
+                Margin="8,4,8,8"
+                Padding="10"
+                CornerRadius="12"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarBorderKey}}"
+                Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarGradientBeginKey}}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <WrapPanel Grid.Row="0"
+                           Margin="0,0,0,8">
+                    <Button Content="Review File"
+                            Click="ReviewFile_Click"
+                            Margin="0,0,8,0" />
+                    <Button Content="Test File"
+                            Click="GenerateTestsForFile_Click"
+                            Margin="0,0,8,0" />
+                    <Button Content="Summarize Changes"
+                            Click="SummarizeChanges_Click"
+                            Margin="0,0,8,0" />
+                    <Button Content="Explain Error"
+                            Click="ExplainError_Click"
+                            Margin="0,0,8,0" />
+                    <Button Content="Edit Selection"
+                            Click="EditSelection_Click"
+                            Margin="0,0,8,0" />
+                    <Button Content="Insert Selection"
+                            Click="InsertSelectionIntoPrompt_Click"
+                            Margin="0,0,8,0" />
+                    <Button Content="Clear Draft"
+                            Click="ClearDraft_Click"
+                            Margin="0,0,8,0" />
+                    <TextBlock Text="Ctrl+Enter sends"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarTextInactiveKey}}" />
+                </WrapPanel>
+
+                <TextBox x:Name="MessageTextBox"
+                         Grid.Row="1"
+                         MinWidth="200"
+                         MinHeight="82"
+                         VerticalContentAlignment="Top"
+                         KeyDown="MessageTextBox_KeyDown"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         GotFocus="MessageTextBox_GotFocus"
+                         LostFocus="MessageTextBox_LostFocus"
+                         VerticalScrollBarVisibility="Auto"
+                         Foreground="Gray"
+                         Text="Ask Ollama for an explanation, refactor, test, or paste selected code into the prompt." />
+
+                <DockPanel Grid.Row="2"
+                           Margin="0,8,0,0">
+                    <TextBlock Text="{Binding DraftHintText}"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarTextInactiveKey}}" />
+                    <Button x:Name="SendButton"
+                            Content="Send"
+                            Click="SendButton_Click"
+                            DockPanel.Dock="Right"
+                            HorizontalAlignment="Right"
+                            MinWidth="88" />
+                </DockPanel>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

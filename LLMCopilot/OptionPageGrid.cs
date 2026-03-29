@@ -11,6 +11,13 @@ namespace LLMCopilot
         Chinese,
     }
 
+    public enum AutoCompleteTriggerMode
+    {
+        ManualOnly,
+        Smart,
+        Aggressive,
+    }
+
     public class OptionPageGrid : DialogPage
     {
         private string baseUrl = "http://localhost:11434";
@@ -24,6 +31,9 @@ namespace LLMCopilot
         private string access_token = string.Empty;
         private int chat_ctx_size = 4096;
         private int complete_ctx_size = 2048;
+        private AutoCompleteTriggerMode autoCompleteTriggerMode = AutoCompleteTriggerMode.Smart;
+        private int autoCompleteDelayMs = 350;
+        private int autoCompleteMinPrefixLength = 3;
 
         public event EventHandler SettingsChanged;
 
@@ -50,26 +60,56 @@ namespace LLMCopilot
             SettingsChanged?.Invoke(this, EventArgs.Empty);
         }
 
+        public OllamaValidationResult ValidateSettings()
+        {
+            return OllamaSettingsValidator.Validate(this);
+        }
+
+        public void PersistSettings()
+        {
+            SaveSettingsToStorage();
+            OnSettingsChanged();
+        }
+
         protected override void OnApply(PageApplyEventArgs e)
         {
             if (!IsValidUrl(BaseUrl))
             {
-                // 如果 URL 无效，显示错误消息并阻止页面关闭
                 VsShellUtilities.ShowMessageBox(
                     this.Site,
                     "The URL provided is invalid, please try again.",
-                    "IVALID URL",
+                    "Invalid URL",
                     OLEMSGICON.OLEMSGICON_WARNING,
                     OLEMSGBUTTON.OLEMSGBUTTON_OK,
                     OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
 
                 e.ApplyBehavior = ApplyKind.Cancel;
             }
-            else
+
+            if (e.ApplyBehavior != ApplyKind.Cancel)
             {
-                OnSettingsChanged();
-                base.OnApply(e);
+                var validation = OllamaSettingsValidator.Validate(this);
+                if (!validation.Success)
+                {
+                    VsShellUtilities.ShowMessageBox(
+                        this.Site,
+                        validation.Message,
+                        "LLMCopilot Settings",
+                        OLEMSGICON.OLEMSGICON_WARNING,
+                        OLEMSGBUTTON.OLEMSGBUTTON_OK,
+                        OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
+
+                    e.ApplyBehavior = ApplyKind.Cancel;
+                }
             }
+
+            if (e.ApplyBehavior == ApplyKind.Cancel)
+            {
+                return;
+            }
+
+            OnSettingsChanged();
+            base.OnApply(e);
         }
 
         private bool IsValidUrl(string url)
@@ -134,6 +174,33 @@ namespace LLMCopilot
             {
                 enableAutoComplete = value;
             }
+        }
+
+        [Category("LLMCopilot")]
+        [DisplayName("Auto Complete Trigger Mode")]
+        [Description("ManualOnly triggers on Tab. Smart uses punctuation and Tab. Aggressive also reacts to Enter.")]
+        public AutoCompleteTriggerMode AutoCompleteTriggerMode
+        {
+            get { return autoCompleteTriggerMode; }
+            set { autoCompleteTriggerMode = value; }
+        }
+
+        [Category("LLMCopilot")]
+        [DisplayName("Auto Complete Delay (ms)")]
+        [Description("Delay before requesting inline completion after a trigger.")]
+        public int AutoCompleteDelayMs
+        {
+            get { return autoCompleteDelayMs; }
+            set { autoCompleteDelayMs = value; }
+        }
+
+        [Category("LLMCopilot")]
+        [DisplayName("Auto Complete Min Prefix")]
+        [Description("Minimum non-whitespace prefix length before automatic completion can trigger.")]
+        public int AutoCompleteMinPrefixLength
+        {
+            get { return autoCompleteMinPrefixLength; }
+            set { autoCompleteMinPrefixLength = value; }
         }
 
         [Category("LLMCopilot")]

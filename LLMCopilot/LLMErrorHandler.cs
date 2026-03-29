@@ -52,18 +52,25 @@ namespace LLMCopilot
             serviceProvider = provider;
         }
 
-        public static void HandleException(Exception exception)
+        public static void HandleException(Exception exception, string userMessage = null)
         {
             var message = $"发生异常: {FormatException(exception)}\n";
+            var shortMessage = userMessage ?? "LLMCopilot hit an unexpected error. Check the log file in Documents for details.";
 
-            //// 弹出对话框
-            //VsShellUtilities.ShowMessageBox(
-            //    serviceProvider,
-            //    message,
-            //    "错误",
-            //    OLEMSGICON.OLEMSGICON_CRITICAL,
-            //    OLEMSGBUTTON.OLEMSGBUTTON_OK,
-            //    OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
+            if (serviceProvider != null)
+            {
+                ThreadHelper.JoinableTaskFactory.Run(async delegate
+                {
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                    VsShellUtilities.ShowMessageBox(
+                        serviceProvider,
+                        shortMessage,
+                        "LLMCopilot",
+                        OLEMSGICON.OLEMSGICON_WARNING,
+                        OLEMSGBUTTON.OLEMSGBUTTON_OK,
+                        OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
+                });
+            }
 
             LLMErrorHandler.WriteLog(message);
         }

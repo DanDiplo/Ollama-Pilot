@@ -93,36 +93,8 @@ namespace LLMCopilot
         /// <param name="e">Event args.</param>
         private void Execute(object sender, EventArgs e)
         {
-            Task.Run(async () =>
-            {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
-                var textView = await VsHelpers.GetActiveTextViewAsync(ServiceProvider);
-                if (textView != null)
-                {
-
-                    var selectedText = textView.Selection.SelectedSpans[0].GetText();
-
-                    if (string.IsNullOrEmpty(selectedText))
-                    {
-                        VsShellUtilities.ShowMessageBox(
-                            this.package,
-                            "No text is selected.",
-                            "Information",
-                            OLEMSGICON.OLEMSGICON_INFO,
-                            OLEMSGBUTTON.OLEMSGBUTTON_OK,
-                            OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
-                    }
-                    else
-                    {
-                        VsHelpers.OpenChatWindow();
-                        var fileName = await VsHelpers.GetActiveDocumentFileNameAsync(ServiceProvider);
-                        var prompt = OllamaHelper.Instance.GetUnitTestTemplate(selectedText, fileName);
-                        EventManager.OnCodeCommandExecuted(prompt);
-                    }
-                }
-            });
-
+            ThreadHelper.ThrowIfNotOnUIThread();
+            SelectedCodeCommandExecutor.Execute(this.package, OllamaHelper.Instance.GetUnitTestTemplate);
         }
 
     }

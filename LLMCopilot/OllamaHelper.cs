@@ -15,6 +15,7 @@ using System.Text.RegularExpressions;
 using IAsyncServiceProvider = Microsoft.VisualStudio.Shell.IAsyncServiceProvider;
 using Microsoft.VisualStudio;
 using System.Net.Http.Headers;
+using System.IO;
 
 namespace LLMCopilot
 {
@@ -38,12 +39,14 @@ namespace LLMCopilot
         private string[] stop;
 
         public OptionPageGrid Options { get; private set; }
+        private PromptTemplateService TemplateService { get; set; }
 
 
         private OllamaHelper()
         {
             var package = LLMCopilotProvider.Package;
             Options = (OptionPageGrid)package.GetDialogPage(typeof(OptionPageGrid));
+            TemplateService = new PromptTemplateService(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates"));
 
             stop = new string[]{
                 Options.FimBegin,
@@ -85,6 +88,193 @@ namespace LLMCopilot
         public string GetExplainCodeTemplate(string code, string file)
         {
             string code_type = VsHelpers.GetSourceCodeType(file);
+            var fileTemplate = RenderPrompt("explain-code.rdt.md", code, code_type, file);
+            if (!string.IsNullOrWhiteSpace(fileTemplate))
+            {
+                return fileTemplate;
+            }
+
+            return BuildLegacyExplainTemplate(code, code_type);
+        }
+
+        public string GetFindBugTemplate(string code, string file)
+        {
+            string code_type = VsHelpers.GetSourceCodeType(file);
+            var fileTemplate = RenderPrompt("find-bugs.rdt.md", code, code_type, file);
+            if (!string.IsNullOrWhiteSpace(fileTemplate))
+            {
+                return fileTemplate;
+            }
+
+            return BuildLegacyFindBugTemplate(code, code_type);
+        }
+
+        public string GetOptimizeCodeTemplate(string code, string file)
+        {
+            string code_type = VsHelpers.GetSourceCodeType(file);
+            var fileTemplate = RenderPrompt("optimize-code.rdt.md", code, code_type, file);
+            if (!string.IsNullOrWhiteSpace(fileTemplate))
+            {
+                return fileTemplate;
+            }
+
+            return BuildLegacyOptimizeCodeTemplate(code, code_type);
+        }
+
+        public string GetUnitTestTemplate(string code, string file)
+        {
+            string code_type = VsHelpers.GetSourceCodeType(file);
+            var fileTemplate = RenderPrompt("generate-unit-test.rdt.md", code, code_type, file);
+            if (!string.IsNullOrWhiteSpace(fileTemplate))
+            {
+                return fileTemplate;
+            }
+
+            return BuildLegacyUnitTestTemplate(code, code_type);
+        }
+
+        public string GetReviewFileTemplate(string code, string file)
+        {
+            string code_type = VsHelpers.GetSourceCodeType(file);
+            var fileTemplate = RenderPrompt("review-file.rdt.md", code, code_type, file);
+            if (!string.IsNullOrWhiteSpace(fileTemplate))
+            {
+                return fileTemplate;
+            }
+
+            return BuildLegacyReviewFileTemplate(code, code_type, file);
+        }
+
+        public string GetGenerateFileTestsTemplate(string code, string file)
+        {
+            string code_type = VsHelpers.GetSourceCodeType(file);
+            var fileTemplate = RenderPrompt("generate-file-tests.rdt.md", code, code_type, file);
+            if (!string.IsNullOrWhiteSpace(fileTemplate))
+            {
+                return fileTemplate;
+            }
+
+            return BuildLegacyGenerateFileTestsTemplate(code, code_type, file);
+        }
+
+        public string GetSummarizeChangesTemplate(string repositoryRoot, string gitStatus, string diffText)
+        {
+            var prompt = TemplateService.RenderInitialPrompt("summarize-changes.rdt.md", new Dictionary<string, string>
+            {
+                { "selectedText", diffText },
+                { "language", "diff" },
+                { "location", Path.GetFileName(repositoryRoot ?? string.Empty) },
+                { "statusText", string.IsNullOrWhiteSpace(gitStatus) ? "(clean status unavailable)" : gitStatus }
+            });
+
+            if (!string.IsNullOrWhiteSpace(prompt))
+            {
+                return ReplaceFirst(prompt, "```", "```diff");
+            }
+
+            return BuildLegacySummarizeChangesTemplate(repositoryRoot, gitStatus, diffText);
+        }
+
+        public string GetAddCommentTemplate(string code, string file)
+        {
+            string code_type = VsHelpers.GetSourceCodeType(file);
+            var fileTemplate = RenderPrompt("document-code.rdt.md", code, code_type, file);
+            if (!string.IsNullOrWhiteSpace(fileTemplate))
+            {
+                return fileTemplate;
+            }
+
+            return BuildLegacyAddCommentTemplate(code, code_type);
+        }
+
+        public string GetDiagnoseErrorsTemplate(string code, string file, string diagnosticText = null)
+        {
+            string code_type = VsHelpers.GetSourceCodeType(file);
+            if (TemplateService.TemplateExists("diagnose-errors.rdt.md"))
+            {
+                var prompt = TemplateService.RenderInitialPrompt("diagnose-errors.rdt.md", new Dictionary<string, string>
+                {
+                    { "selectedTextWithDiagnostics", BuildDiagnosticInput(code, code_type, diagnosticText) },
+                    { "location", Path.GetFileName(file ?? string.Empty) }
+                });
+
+                if (!string.IsNullOrWhiteSpace(prompt))
+                {
+                    return prompt;
+                }
+            }
+
+            return BuildLegacyDiagnoseErrorsTemplate(code, code_type, diagnosticText);
+        }
+
+        public string GetFixErrorTemplate(string code, string file, string diagnosticText, int? lineNumber = null, int? columnNumber = null)
+        {
+            string code_type = VsHelpers.GetSourceCodeType(file);
+            var prompt = TemplateService.RenderInitialPrompt("fix-error.rdt.md", new Dictionary<string, string>
+            {
+                { "selectedText", code },
+                { "language", code_type },
+                { "location", Path.GetFileName(file ?? string.Empty) },
+                { "diagnosticText", BuildDiagnosticSummary(diagnosticText, lineNumber, columnNumber) }
+            });
+
+            if (!string.IsNullOrWhiteSpace(prompt))
+            {
+                return ReplaceFirst(prompt, "```", $"```{code_type}");
+            }
+
+            return BuildLegacyFixErrorTemplate(code, code_type, diagnosticText, lineNumber, columnNumber);
+        }
+
+        public string GetEditSelectionTemplate(string code, string file, string instructions)
+        {
+            string code_type = VsHelpers.GetSourceCodeType(file);
+            var prompt = TemplateService.RenderInitialPrompt("edit-selection.rdt.md", new Dictionary<string, string>
+            {
+                { "selectedText", code },
+                { "language", code_type },
+                { "location", Path.GetFileName(file ?? string.Empty) },
+                { "instructions", instructions }
+            });
+
+            if (!string.IsNullOrWhiteSpace(prompt))
+            {
+                return ReplaceFirst(prompt, "```", $"```{code_type}");
+            }
+
+            return BuildLegacyEditSelectionTemplate(code, code_type, instructions);
+        }
+
+        private string RenderPrompt(string templateFileName, string code, string language, string file)
+        {
+            var prompt = TemplateService.RenderInitialPrompt(templateFileName, new Dictionary<string, string>
+            {
+                { "selectedText", code },
+                { "language", language },
+                { "location", Path.GetFileName(file ?? string.Empty) }
+            });
+
+            if (string.IsNullOrWhiteSpace(prompt))
+            {
+                return null;
+            }
+
+            return ReplaceFirst(prompt, "```", $"```{language}");
+        }
+
+        private static string ReplaceFirst(string text, string find, string replace)
+        {
+            var index = text.IndexOf(find, StringComparison.Ordinal);
+            if (index < 0)
+            {
+                return text;
+            }
+
+            return text.Substring(0, index) + replace + text.Substring(index + find.Length);
+        }
+
+        private string BuildLegacyExplainTemplate(string code, string code_type)
+        {
             string templateEN = $@"## Instructions
 Summarize the code below (emphasizing its key functionality).
 
@@ -117,9 +307,8 @@ Summarize the code at a high level (including goal and purpose) with an emphasis
             return Options.Language == ResponseLanguage.English ? templateEN : templateCN;
         }
 
-        public string GetFindBugTemplate(string code, string file)
+        private string BuildLegacyFindBugTemplate(string code, string code_type)
         {
-            string code_type = VsHelpers.GetSourceCodeType(file);
             string templateEN = $@"## Instructions
 What could be wrong with the code below?
 Only consider defects that would lead to incorrect behavior.
@@ -165,9 +354,8 @@ Include code snippets(using Markdown) and examples where appropriate.
             return Options.Language == ResponseLanguage.English ? templateEN : templateCN;
         }
 
-        public string GetOptimizeCodeTemplate(string code, string file)
+        private string BuildLegacyOptimizeCodeTemplate(string code, string code_type)
         {
-            string code_type = VsHelpers.GetSourceCodeType(file);
             string templateEN = $@"## Instructions
 How could the readability and performance of the code below be improved?
 The programming language is {code_type}.
@@ -216,9 +404,8 @@ The code snippets must contain valid {code_type} code.
             return Options.Language == ResponseLanguage.English ? templateEN : templateCN;
         }
 
-        public string GetUnitTestTemplate(string code, string file)
+        private string BuildLegacyUnitTestTemplate(string code, string code_type)
         {
-            string code_type = VsHelpers.GetSourceCodeType(file);
             string templateEN = $@"## Instructions
 Write a unit test for the code below.
 
@@ -253,9 +440,8 @@ The programming language is {code_type}.
             return Options.Language == ResponseLanguage.English ? templateEN : templateCN;
         }
 
-        public string GetAddCommentTemplate(string code, string file)
+        private string BuildLegacyAddCommentTemplate(string code, string code_type)
         {
-            string code_type = VsHelpers.GetSourceCodeType(file);
             string templateEN = $@"## Instructions
 Document the code on function/method/class level.
 Avoid line comments.
@@ -284,6 +470,315 @@ The programming language is {code_type}.
 ";
 
             return Options.Language == ResponseLanguage.English ? templateEN : templateCN;
+        }
+
+        private string BuildLegacyReviewFileTemplate(string code, string code_type, string file)
+        {
+            string location = Path.GetFileName(file ?? string.Empty);
+            string templateEN = $@"## Instructions
+Review the current file from {location}.
+Focus on correctness risks, maintainability issues, and the most valuable improvements first.
+Call out missing tests where appropriate.
+
+## Current File
+```{code_type}
+{code}
+```
+
+## Task
+Summarize the file's purpose briefly, then list the most important findings.
+Include concrete fix suggestions.
+If the file looks good, say so and mention residual risks or test gaps.
+
+## Review
+
+";
+            string templateCN = $@"## 说明
+审查来自 {location} 的当前文件。
+优先关注正确性风险、可维护性问题以及最有价值的改进点。
+在适当情况下指出缺失的测试。
+
+## 当前文件
+```{code_type}
+{code}
+```
+
+## 任务
+先简要总结文件用途，然后列出最重要的问题。
+提供具体修复建议。
+如果文件整体不错，也请说明剩余风险或测试缺口。
+
+## 审查
+
+";
+
+            return Options.Language == ResponseLanguage.English ? templateEN : templateCN;
+        }
+
+        private string BuildLegacyGenerateFileTestsTemplate(string code, string code_type, string file)
+        {
+            string location = Path.GetFileName(file ?? string.Empty);
+            string templateEN = $@"## Instructions
+Generate a practical test file for the current code from {location}.
+Cover happy paths, edge cases, and likely regressions.
+Return exactly one fenced code block containing the test code only.
+
+## Current File
+```{code_type}
+{code}
+```
+
+## Task
+Write tests that match the conventions most likely used for {code_type}.
+Prefer a complete, directly usable test scaffold over commentary.
+
+## Response
+
+";
+            string templateCN = $@"## 说明
+为来自 {location} 的当前代码生成一个实用的测试文件。
+覆盖正常路径、边缘情况和可能的回归点。
+仅返回一个包含测试代码的 fenced code block。
+
+## 当前文件
+```{code_type}
+{code}
+```
+
+## 任务
+编写符合 {code_type} 常见约定的测试代码。
+优先提供可直接使用的测试骨架，而不是说明文字。
+
+## 回答
+
+";
+
+            return Options.Language == ResponseLanguage.English ? templateEN : templateCN;
+        }
+
+        private string BuildLegacySummarizeChangesTemplate(string repositoryRoot, string gitStatus, string diffText)
+        {
+            string location = Path.GetFileName(repositoryRoot ?? string.Empty);
+            string templateEN = $@"## Instructions
+Summarize the current Git changes for the repository {location}.
+Draft a concise commit message and a short change summary.
+Call out any risky or incomplete changes you notice from the diff.
+
+## Git Status
+{gitStatus}
+
+## Diff
+```diff
+{diffText}
+```
+
+## Task
+Respond with:
+1. A one-line commit title.
+2. A short paragraph summary.
+3. Any notable risks, gaps, or follow-up checks.
+
+## Response
+
+";
+            string templateCN = $@"## 说明
+总结仓库 {location} 的当前 Git 变更。
+草拟一个简洁的提交标题和简短的变更摘要。
+指出从 diff 中看到的风险或未完成点。
+
+## Git 状态
+{gitStatus}
+
+## Diff
+```diff
+{diffText}
+```
+
+## 任务
+请返回：
+1. 一行提交标题。
+2. 一小段变更摘要。
+3. 值得注意的风险、缺口或后续检查项。
+
+## 回答
+
+";
+
+            return Options.Language == ResponseLanguage.English ? templateEN : templateCN;
+        }
+
+        private string BuildLegacyEditSelectionTemplate(string code, string code_type, string instructions)
+        {
+            string templateEN = $@"## Instructions
+You are editing existing {code_type} code.
+Apply the user's requested change conservatively.
+Preserve behavior unless the request clearly asks for a behavior change.
+Keep naming, formatting, and style consistent with the original code.
+Return exactly one fenced code block containing only the revised code.
+
+## Requested Change
+{instructions}
+
+## Selected Code
+```{code_type}
+{code}
+```
+
+## Response
+
+";
+            string templateCN = $@"## 说明
+你正在编辑现有的 {code_type} 代码。
+请谨慎应用用户请求的修改。
+除非请求明确要求改变行为，否则应保持原有行为。
+保持与原始代码一致的命名、格式和风格。
+只返回一个 Markdown 代码块，并且只包含修改后的代码。
+
+## 修改要求
+{instructions}
+
+## 选定代码
+```{code_type}
+{code}
+```
+
+## 回答
+
+";
+
+            return Options.Language == ResponseLanguage.English ? templateEN : templateCN;
+        }
+
+        private string BuildLegacyDiagnoseErrorsTemplate(string code, string code_type, string diagnosticText)
+        {
+            var diagnosticSectionEn = string.IsNullOrWhiteSpace(diagnosticText)
+                ? "No explicit error text was provided. Infer likely issues from the code and nearby context."
+                : diagnosticText;
+            var diagnosticSectionCn = string.IsNullOrWhiteSpace(diagnosticText)
+                ? "未提供明确的错误文本。请根据代码和附近上下文推断最可能的问题。"
+                : diagnosticText;
+
+            string templateEN = $@"## Instructions
+You are diagnosing a likely error or warning in existing {code_type} code.
+Focus on the most probable cause, the smallest safe fix, and any assumptions.
+
+## Diagnostic Context
+{diagnosticSectionEn}
+
+## Selected Code
+```{code_type}
+{code}
+```
+
+## Task
+Explain the likely cause of the error or warning.
+Suggest the minimal fix first.
+If a code change is helpful, include a short Markdown code block.
+
+## Answer
+
+";
+            string templateCN = $@"## 说明
+你正在诊断现有 {code_type} 代码中可能出现的错误或警告。
+重点说明最可能的原因、最小且安全的修复方案，以及任何必要的假设。
+
+## 诊断上下文
+{diagnosticSectionCn}
+
+## 选定代码
+```{code_type}
+{code}
+```
+
+## 任务
+解释错误或警告最可能的原因。
+优先给出最小修复方案。
+如果有助于说明，可以附上简短的 Markdown 代码块。
+
+## 回答
+
+";
+
+            return Options.Language == ResponseLanguage.English ? templateEN : templateCN;
+        }
+
+        private static string BuildDiagnosticInput(string code, string language, string diagnosticText)
+        {
+            var builder = new StringBuilder();
+            if (!string.IsNullOrWhiteSpace(diagnosticText))
+            {
+                builder.AppendLine("Diagnostic details:");
+                builder.AppendLine(diagnosticText.Trim());
+                builder.AppendLine();
+            }
+
+            builder.AppendLine($"Code ({language}):");
+            builder.AppendLine(code);
+            return builder.ToString().TrimEnd();
+        }
+
+        private string BuildLegacyFixErrorTemplate(string code, string code_type, string diagnosticText, int? lineNumber, int? columnNumber)
+        {
+            var summaryEn = BuildDiagnosticSummary(diagnosticText, lineNumber, columnNumber);
+            var summaryCn = BuildDiagnosticSummary(diagnosticText, lineNumber, columnNumber);
+
+            string templateEN = $@"## Instructions
+You are fixing an existing {code_type} error or warning.
+Make the smallest safe change that resolves the diagnostic.
+Preserve behavior unless the diagnostic requires a behavior change.
+Return a brief explanation followed by exactly one fenced code block with the corrected code.
+
+## Diagnostic
+{summaryEn}
+
+## Relevant Code
+```{code_type}
+{code}
+```
+
+## Response
+
+";
+            string templateCN = $@"## 说明
+你正在修复现有 {code_type} 代码中的错误或警告。
+请给出能解决诊断问题的最小且安全的修改。
+除非诊断明确要求改变行为，否则应保持原有行为。
+先给出简短说明，再返回且只返回一个包含修正后代码的 Markdown 代码块。
+
+## 诊断信息
+{summaryCn}
+
+## 相关代码
+```{code_type}
+{code}
+```
+
+## 回答
+
+";
+
+            return Options.Language == ResponseLanguage.English ? templateEN : templateCN;
+        }
+
+        private static string BuildDiagnosticSummary(string diagnosticText, int? lineNumber, int? columnNumber)
+        {
+            var builder = new StringBuilder();
+            if (lineNumber.HasValue)
+            {
+                builder.Append("Line ");
+                builder.Append(lineNumber.Value);
+                if (columnNumber.HasValue)
+                {
+                    builder.Append(", Column ");
+                    builder.Append(columnNumber.Value);
+                }
+                builder.AppendLine();
+            }
+
+            builder.Append(string.IsNullOrWhiteSpace(diagnosticText)
+                ? "No explicit diagnostic text was provided."
+                : diagnosticText.Trim());
+            return builder.ToString().Trim();
         }
 
         public static int EstimateTokensByChars(string str)
@@ -333,10 +828,10 @@ The programming language is {code_type}.
             CompRequestOptions.NumCtx = Options.CompleteCtxSize;
             ChatRequestOptions.NumCtx = Options.ChatCtxSize;
             
-            //Task.Run(async () => await this.InitModelCtx());
+            //Task.Run(async () => await this.InitModelCtxAsync());
         }
 
-        public async Task InitModelCtx()
+        public async Task InitModelCtxAsync()
         {
             try
             {
@@ -366,7 +861,7 @@ The programming language is {code_type}.
             }
             catch (Exception ex)
             {
-                LLMErrorHandler.HandleException(ex);
+                LLMErrorHandler.HandleException(ex, "Unable to initialize Ollama model settings. Check that Ollama is reachable and the configured models exist.");
             }
 
         }
@@ -378,9 +873,9 @@ The programming language is {code_type}.
         public static event EventHandler<CommandExecutedEventArgs> CodeCommandExecuted;
         public static event EventHandler<CmdEventArgs> CmdEventsHandler;
 
-        public static void OnCodeCommandExecuted(string selectedText)
+        public static void OnCodeCommandExecuted(string selectedText, string promptOverride = null)
         {
-            CodeCommandExecuted?.Invoke(null, new CommandExecutedEventArgs(selectedText));
+            CodeCommandExecuted?.Invoke(null, new CommandExecutedEventArgs(selectedText, promptOverride));
         }
 
         public static void OnCmdEventHandler(CmdEventType cmdType)
@@ -392,10 +887,12 @@ The programming language is {code_type}.
     public class CommandExecutedEventArgs : EventArgs
     {
         public string SelectedText { get; }
+        public string PromptOverride { get; }
 
-        public CommandExecutedEventArgs(string selectedText)
+        public CommandExecutedEventArgs(string selectedText, string promptOverride = null)
         {
             SelectedText = selectedText;
+            PromptOverride = promptOverride;
         }
     }
 

@@ -95,7 +95,9 @@ namespace LLMCopilot
         {
             ThreadHelper.ThrowIfNotOnUIThread();
             var package = this.package as LLMCopilotPackage;
-            package.ShowOptionPage(typeof(OptionPageGrid));
+            var options = (OptionPageGrid)package.GetDialogPage(typeof(OptionPageGrid));
+            var window = new SettingsWindow(options);
+            window.ShowDialog();
         }
 
     }
