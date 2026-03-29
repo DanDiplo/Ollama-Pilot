@@ -49,7 +49,11 @@ namespace OllamaPilot
 
         public MyMessage(ChatRole? role, string content)
         {
-            _message = new Message(role, content);
+            _message = new Message
+            {
+                Role = role,
+                Content = content
+            };
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

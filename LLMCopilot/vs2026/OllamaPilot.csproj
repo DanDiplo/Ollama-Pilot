@@ -158,29 +158,45 @@
     </VSCTCompile>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\logo.png">
+    <Content Include="..\Images\app-logo.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>Images\app-logo.png</Link>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="..\Resources\bug.png">
+    <Content Include="..\Images\bug.png">
+      <Link>Images\bug.png</Link>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="..\Resources\jieshi.png">
+    <Content Include="..\Images\explain.png">
+      <Link>Images\explain.png</Link>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="..\Resources\jiqiren.png">
+    <Content Include="..\Images\robot.png">
+      <Link>Images\robot.png</Link>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="..\Resources\liaotian.png">
+    <Content Include="..\Images\chat.png">
+      <Link>Images\chat.png</Link>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="..\Resources\opt.png">
+    <Content Include="..\Images\optimize.png">
+      <Link>Images\optimize.png</Link>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="..\Resources\wancheng.png">
+    <Content Include="..\Images\complete.png">
+      <Link>Images\complete.png</Link>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="..\Resources\zhushi.png">
+    <Content Include="..\Images\comment.png">
+      <Link>Images\comment.png</Link>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="..\Images\settings.png">
+      <Link>Images\settings.png</Link>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="..\Images\test.png">
+      <Link>Images\test.png</Link>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
     <Content Include="..\Templates\*.rdt.md">

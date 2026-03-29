@@ -175,15 +175,15 @@
             bitmap strip containing the bitmaps and then there are the numeric ids of the elements used
             inside a button definition. An important aspect of this declaration is that the element id
             must be the actual index (1-based) of the bitmap inside the bitmap strip. -->
-			<Bitmap guid="liaotian" href="Resources\liaotian.png" usedList="liaotian" />
-			<Bitmap guid="bug" href="Resources\bug.png" usedList="bug" />
-			<Bitmap guid="jieshi" href="Resources\jieshi.png" usedList="jieshi" />
-			<Bitmap guid="wancheng" href="Resources\wancheng.png" usedList="wancheng" />
-			<Bitmap guid="zhushi" href="Resources\zhushi.png" usedList="zhushi" />
-			<Bitmap guid="opt" href="Resources\opt.png" usedList="opt" />
-			<Bitmap guid="jiqiren" href="Resources\jiqiren.png" usedList="jiqiren" />
-			<Bitmap guid="test" href="Resources\test.png" usedList="test"  />
-			<Bitmap guid="settings" href="Resources\settings.png" usedList="settings"  />
+			<Bitmap guid="liaotian" href="Images\chat.png" usedList="liaotian" />
+			<Bitmap guid="bug" href="Images\bug.png" usedList="bug" />
+			<Bitmap guid="jieshi" href="Images\explain.png" usedList="jieshi" />
+			<Bitmap guid="wancheng" href="Images\complete.png" usedList="wancheng" />
+			<Bitmap guid="zhushi" href="Images\comment.png" usedList="zhushi" />
+			<Bitmap guid="opt" href="Images\optimize.png" usedList="opt" />
+			<Bitmap guid="jiqiren" href="Images\robot.png" usedList="jiqiren" />
+			<Bitmap guid="test" href="Images\test.png" usedList="test"  />
+			<Bitmap guid="settings" href="Images\settings.png" usedList="settings"  />
 		</Bitmaps>
 	</Commands>
 
