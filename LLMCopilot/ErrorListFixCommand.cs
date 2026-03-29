@@ -2,16 +2,18 @@ using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
 using System;
+using System.Collections;
 using System.ComponentModel.Design;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace OllamaPilot
 {
     internal sealed class ErrorListFixCommand
     {
-        public const int CommandId = 0x0102;
+        public const int CommandId = 0x0104;
 
         public static readonly Guid CommandSet = new Guid("d9bd5408-e04b-4cd1-95ac-5b6240ab8bd1");
 
@@ -61,6 +63,23 @@ namespace OllamaPilot
                 return;
             }
 
+            if (string.IsNullOrWhiteSpace(errorInfo.FilePath))
+            {
+                var diagnosticPrompt = OllamaHelper.Instance.GetFixDiagnosticTemplate(errorInfo.Description, errorInfo.ProjectName);
+                try
+                {
+                    VsHelpers.OpenChatWindow();
+                    EventManager.OnCodeCommandExecuted(
+                        $"Help fix this diagnostic in {errorInfo.ProjectName ?? "the current project"}: {errorInfo.Description}",
+                        diagnosticPrompt);
+                }
+                catch (Exception ex)
+                {
+                    LLMErrorHandler.HandleException(ex, "Unable to open the LLM chat window.");
+                }
+                return;
+            }
+
             VsHelpers.OpenFileAndSelectContext(dte, errorInfo.FilePath, errorInfo.Line, errorInfo.Column, 6, 6);
             var codeContext = VsHelpers.GetFileContext(errorInfo.FilePath, errorInfo.Line, 6, 6);
             if (string.IsNullOrWhiteSpace(codeContext))
@@ -99,34 +118,44 @@ namespace OllamaPilot
 
             try
             {
+                LogErrorListState(dte, "TryGetSelectedErrorInfo");
+
                 var ideSelection = TryGetInfoFromIdeSelection(dte);
                 if (ideSelection != null)
                 {
                     return ideSelection;
                 }
 
-                dynamic errorList = dte.ToolWindows.ErrorList;
-                var selectedItems = TryGetProperty(errorList, "SelectedItems");
-                var count = TryGetCount(selectedItems);
-                if (count > 0)
+                var errorList = dte.ToolWindows.ErrorList;
+                if (errorList == null)
                 {
-                    for (var index = 1; index <= count; index++)
+                    return null;
+                }
+
+                var selectedItems = errorList.SelectedItems;
+                foreach (var item in EnumerateCollection(selectedItems))
+                {
+                    var info = CreateErrorInfo(item);
+                    if (info != null)
                     {
-                        var item = TryInvokeItem(selectedItems, index);
-                        var info = CreateErrorInfo(item);
-                        if (info != null)
-                        {
-                            return info;
-                        }
+                        return info;
                     }
                 }
 
-                var errorItems = TryGetProperty(errorList, "ErrorItems");
-                var errorCount = TryGetCount(errorItems);
-                for (var index = 1; index <= errorCount; index++)
+                var errorItems = errorList.ErrorItems;
+                foreach (var item in EnumerateCollection(errorItems))
                 {
-                    var item = TryInvokeItem(errorItems, index);
-                    if (!TryGetBool(item, "IsSelected"))
+                    var isSelected = false;
+                    try
+                    {
+                        isSelected = TryGetBool(item, "IsSelected");
+                    }
+                    catch
+                    {
+                        // Some providers may not surface IsSelected reliably.
+                    }
+
+                    if (!isSelected)
                     {
                         continue;
                     }
@@ -152,14 +181,13 @@ namespace OllamaPilot
 
             try
             {
-                dynamic errorList = dte.ToolWindows.ErrorList;
-                var errorItems = TryGetProperty(errorList, "ErrorItems");
-                var errorCount = TryGetCount(errorItems);
-                if (errorCount <= 0)
+                var errorList = dte.ToolWindows.ErrorList;
+                if (errorList == null)
                 {
                     return null;
                 }
 
+                var errorItems = errorList.ErrorItems;
                 string activeDocument = null;
                 int? activeLine = null;
                 if (dte.ActiveDocument != null)
@@ -172,9 +200,8 @@ namespace OllamaPilot
                 }
 
                 ErrorInfo bestMatch = null;
-                for (var index = 1; index <= errorCount; index++)
+                foreach (var item in EnumerateCollection(errorItems))
                 {
-                    var item = TryInvokeItem(errorItems, index);
                     var info = CreateErrorInfo(item);
                     if (info == null)
                     {
@@ -213,32 +240,50 @@ namespace OllamaPilot
             }
         }
 
-        private static ErrorInfo CreateErrorInfo(object item)
+        private static ErrorInfo CreateErrorInfo(object itemObject)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+
+            if (!(itemObject is EnvDTE80.ErrorItem item))
+            {
+                item = TryGetProperty(itemObject, "Object") as EnvDTE80.ErrorItem
+                    ?? itemObject as EnvDTE80.ErrorItem;
+            }
 
             if (item == null)
             {
                 return null;
             }
 
-            var filePath = TryGetString(item, "FileName");
-            if (string.IsNullOrWhiteSpace(filePath))
+            string filePath = null;
+            string description = null;
+            string projectName = null;
+            int? line = null;
+            int? column = null;
+
+            try { filePath = item.FileName; } catch { }
+            try { description = item.Description; } catch { }
+            try { projectName = item.Project; } catch { }
+            try { line = item.Line; } catch { }
+            try { column = item.Column; } catch { }
+
+            if (!string.IsNullOrWhiteSpace(filePath) && !File.Exists(filePath))
             {
-                filePath = TryGetString(item, "Document");
+                filePath = null;
             }
 
-            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+            if (string.IsNullOrWhiteSpace(filePath) && string.IsNullOrWhiteSpace(description))
             {
                 return null;
             }
 
             return new ErrorInfo
             {
-                Description = TryGetString(item, "Description"),
+                Description = description,
                 FilePath = filePath,
-                Line = TryGetInt(item, "Line"),
-                Column = TryGetInt(item, "Column")
+                ProjectName = projectName,
+                Line = line,
+                Column = column
             };
         }
 
@@ -261,7 +306,7 @@ namespace OllamaPilot
                         continue;
                     }
 
-                    var candidate = TryGetProperty(selectedItem, "Object");
+                    var candidate = TryGetProperty(selectedItem, "Object") as EnvDTE80.ErrorItem;
                     var info = CreateErrorInfo(candidate);
                     if (info != null)
                     {
@@ -277,8 +322,74 @@ namespace OllamaPilot
             return null;
         }
 
+        private static IEnumerable EnumerateCollection(object collection)
+        {
+            if (collection == null)
+            {
+                yield break;
+            }
+
+            if (collection is IEnumerable enumerable)
+            {
+                foreach (var item in enumerable)
+                {
+                    if (item != null)
+                    {
+                        yield return item;
+                    }
+                }
+
+                yield break;
+            }
+
+            var count = TryGetCount(collection);
+            for (var index = 1; index <= count; index++)
+            {
+                var item = TryInvokeItem(collection, index);
+                if (item != null)
+                {
+                    yield return item;
+                }
+            }
+        }
+
+        private static void LogErrorListState(DTE2 dte, string source)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            try
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine($"{source}: inspecting Error List state.");
+                sb.AppendLine($"ActiveWindow: {dte.ActiveWindow?.Caption ?? "<null>"}");
+                sb.AppendLine($"ActiveDocument: {dte.ActiveDocument?.FullName ?? "<null>"}");
+
+                var errorList = dte.ToolWindows.ErrorList;
+                sb.AppendLine($"ErrorList available: {errorList != null}");
+                if (errorList != null)
+                {
+                    sb.AppendLine($"SelectedItems type: {errorList.SelectedItems?.GetType().FullName ?? "<null>"}");
+                    sb.AppendLine($"SelectedItems count: {TryGetCount(errorList.SelectedItems)}");
+                    sb.AppendLine($"ErrorItems type: {errorList.ErrorItems?.GetType().FullName ?? "<null>"}");
+                    sb.AppendLine($"ErrorItems count: {TryGetCount(errorList.ErrorItems)}");
+                }
+
+                sb.AppendLine($"DTE.SelectedItems count: {dte.SelectedItems?.Count ?? 0}");
+                LLMErrorHandler.WriteLog(sb.ToString());
+            }
+            catch
+            {
+                // Logging should never affect command execution.
+            }
+        }
+
         private static object TryGetProperty(object instance, string propertyName)
         {
+            if (instance == null || string.IsNullOrWhiteSpace(propertyName))
+            {
+                return null;
+            }
+
             try
             {
                 return instance.GetType().InvokeMember(
@@ -296,6 +407,11 @@ namespace OllamaPilot
 
         private static object TryInvokeItem(object instance, int index)
         {
+            if (instance == null)
+            {
+                return null;
+            }
+
             try
             {
                 return instance.GetType().InvokeMember(
@@ -314,7 +430,24 @@ namespace OllamaPilot
         private static int TryGetCount(object instance)
         {
             var value = TryGetProperty(instance, "Count");
-            return value is int count ? count : 0;
+            if (value == null)
+            {
+                return 0;
+            }
+
+            if (value is int intCount)
+            {
+                return intCount;
+            }
+
+            try
+            {
+                return Convert.ToInt32(value);
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         private static bool TryGetBool(object instance, string propertyName)
@@ -347,7 +480,14 @@ namespace OllamaPilot
                 return parsed;
             }
 
-            return null;
+            try
+            {
+                return Convert.ToInt32(value);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private sealed class ErrorInfo
@@ -355,6 +495,8 @@ namespace OllamaPilot
             public string Description { get; set; }
 
             public string FilePath { get; set; }
+
+            public string ProjectName { get; set; }
 
             public int? Line { get; set; }
 

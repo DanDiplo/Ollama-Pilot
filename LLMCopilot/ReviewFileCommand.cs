@@ -7,7 +7,7 @@ namespace OllamaPilot
 {
     internal sealed class ReviewFileCommand
     {
-        public const int CommandId = 0x0103;
+        public const int CommandId = 0x0102;
         public static readonly Guid CommandSet = new Guid("d9bd5408-e04b-4cd1-95ac-5b6240ab8bd1");
 
         private readonly AsyncPackage package;

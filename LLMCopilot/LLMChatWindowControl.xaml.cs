@@ -468,6 +468,11 @@ namespace OllamaPilot
         {
             try
             {
+                if (e.ResetConversation)
+                {
+                    ResetChatSession();
+                }
+
                 await SendChatMessageAsync(e.SelectedText, ChatRole.System, e.PromptOverride, e.ResponseGuard, e.OriginalSelection);
             }
             catch (Exception ex)
@@ -1023,6 +1028,14 @@ namespace OllamaPilot
                 ? $"Autocomplete: {options.AutoCompleteTriggerMode} ({options.AutoCompleteDelayMs} ms)"
                 : "Autocomplete: Off";
             AutoCompleteBadge = autoCompleteMode;
+        }
+
+        private void ResetChatSession()
+        {
+            Chat = OllamaClientFactory.CreateChat(OnChatResponseReceived);
+            Chat.SelectedModel = OllamaHelper.Instance.Options.ChatModel;
+            Chat.Options = OllamaHelper.Instance.ChatRequestOptions;
+            Chat.AccessToken = OllamaHelper.Instance.Options.AccessToken;
         }
 
         private void UpdateStatus(string message, Color color)

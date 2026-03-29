@@ -157,6 +157,15 @@ namespace OllamaPilot
             return ReplaceFirst(prompt, "```", $"```{code_type}");
         }
 
+        public string GetFixDiagnosticTemplate(string diagnosticText, string location)
+        {
+            return RenderInitialPromptOrThrow("fix-diagnostic.rdt.md", new Dictionary<string, string>
+            {
+                { "diagnosticText", string.IsNullOrWhiteSpace(diagnosticText) ? "No diagnostic text was provided." : diagnosticText.Trim() },
+                { "location", string.IsNullOrWhiteSpace(location) ? "the current project" : location.Trim() }
+            });
+        }
+
         public string GetEditSelectionTemplate(string code, string file, string instructions)
         {
             string code_type = VsHelpers.GetSourceCodeType(file);
@@ -365,9 +374,10 @@ namespace OllamaPilot
             string selectedText,
             string promptOverride = null,
             string originalSelection = null,
-            GeneratedResponseGuard responseGuard = GeneratedResponseGuard.None)
+            GeneratedResponseGuard responseGuard = GeneratedResponseGuard.None,
+            bool resetConversation = true)
         {
-            var args = new CommandExecutedEventArgs(selectedText, promptOverride, originalSelection, responseGuard);
+            var args = new CommandExecutedEventArgs(selectedText, promptOverride, originalSelection, responseGuard, resetConversation);
             var handler = codeCommandExecuted;
             if (handler == null)
             {
@@ -395,17 +405,20 @@ namespace OllamaPilot
         public string PromptOverride { get; }
         public string OriginalSelection { get; }
         public GeneratedResponseGuard ResponseGuard { get; }
+        public bool ResetConversation { get; }
 
         public CommandExecutedEventArgs(
             string selectedText,
             string promptOverride = null,
             string originalSelection = null,
-            GeneratedResponseGuard responseGuard = GeneratedResponseGuard.None)
+            GeneratedResponseGuard responseGuard = GeneratedResponseGuard.None,
+            bool resetConversation = true)
         {
             SelectedText = selectedText;
             PromptOverride = promptOverride;
             OriginalSelection = originalSelection;
             ResponseGuard = responseGuard;
+            ResetConversation = resetConversation;
         }
     }
 

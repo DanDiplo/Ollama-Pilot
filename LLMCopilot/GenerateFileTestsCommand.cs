@@ -10,7 +10,7 @@ namespace OllamaPilot
         /// <summary>
         /// Identifies the command with an ID of 0x0104 in the command set with GUID "d9bd5408-e04b-4cd1-95ac-5b6240ab8bd1".
         /// </summary>
-        public const int CommandId = 0x0104;
+        public const int CommandId = 0x0103;
 
         /// <summary>
         /// Represents the command set that contains the GenerateFileTestsCommand.

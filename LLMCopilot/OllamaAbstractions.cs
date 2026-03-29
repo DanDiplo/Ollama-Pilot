@@ -23,7 +23,7 @@ namespace OllamaPilot
         /// <summary>
         /// The temperature parameter controls the randomness of the generated text. Higher values make the output more random, while lower values make it more deterministic and predictable.
         /// </summary>
-        public float? Temperature { get; set; }
+        public float Temperature { get; set; }
 
         /// <summary>
         /// An array of stop tokens that can be used to control the generation process. The model will stop generating when it encounters one of these tokens in the input or output text.
