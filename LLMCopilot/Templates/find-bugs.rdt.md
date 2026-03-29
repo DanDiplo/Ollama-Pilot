@@ -81,8 +81,9 @@ The programming language is {{language}}.
 Describe what could be wrong with the code?
 Only consider defects that would lead to incorrect behavior.
 Provide potential fix suggestions where possible.
-Consider that there might not be any problems with the code."
+Consider that there might not be any problems with the code.
 Include code snippets (using Markdown) and examples where appropriate.
+Do not rewrite or modify the original code unless showing a small illustrative fix snippet.
 
 ## Analysis
 

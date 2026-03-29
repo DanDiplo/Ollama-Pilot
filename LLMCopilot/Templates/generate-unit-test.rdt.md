@@ -63,9 +63,12 @@ Generate unit test cases for the selected code.
 ```template-initial-message
 ## Instructions
 Write a unit test for the code below.
+Use the most likely unit test framework for {{language}}.
+Return exactly one fenced code block containing only the test code.
+Do not include explanations outside the code block.
 
 ## Selected Code
-\`\`\`
+\`\`\`{{language}}
 {{selectedText}}
 \`\`\`
 
@@ -81,20 +84,18 @@ The programming language is {{language}}.
 
 ```template-response
 ## Instructions
-Rewrite the code below as follows: "{{lastMessage}}"
+Revise the previously generated {{language}} unit test code using the latest user request.
+Keep the existing valid tests unless the request clearly asks to replace them.
+Return exactly one fenced code block containing only the revised test code.
+Do not include explanations outside the code block.
 
-## Code
-\`\`\`
-{{temporaryEditorContent}}
-\`\`\`
+## Latest Request
+{{lastMessage}}
 
-## Task
-Write a response that continues the conversation.
-Stay focused on current developer request.
-Ask for clarification if the message does not make sense or more input is needed.
-Omit any links.
-Include code snippets (using Markdown) and examples where appropriate.
+## Original Code Under Test
+\`\`\`{{language}}
+{{selectedText}}
+\`\`\`
 
 ## Response
-Bot:
 ```
