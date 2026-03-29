@@ -218,7 +218,7 @@
       <VSIXSourceItem Include="@(ReferencePath)" Condition="$([System.String]::new('%(ReferencePath.FusionName)').StartsWith('System.Threading.Tasks.Extensions'))" />
     </ItemGroup>
   </Target>
-  <PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PreBuildEvent>python "$(ProjectDir)..\inc_ver.py" "$(ProjectDir)source.extension.vsixmanifest"
 </PreBuildEvent>
   </PropertyGroup>

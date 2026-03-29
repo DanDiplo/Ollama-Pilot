@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <PackageManifest xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:ns1="http://schemas.microsoft.com/developer/vsx-schema-design/2011" Version="2.0.0">
     <Metadata>
-        <Identity Id="DanDiplo.OllamaPilot" Version="1.7.80" Language="en-US" Publisher="DanDiplo" />
+        <Identity Id="DanDiplo.OllamaPilot" Version="1.7.81" Language="en-US" Publisher="DanDiplo" />
         <DisplayName>Ollama Pilot</DisplayName>
         <Description xml:space="preserve">Ollama-powered coding assistant for Visual Studio 2026</Description>
     </Metadata>
