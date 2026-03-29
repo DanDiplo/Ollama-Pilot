@@ -176,9 +176,9 @@ namespace OllamaPilot
                 typeof(CodeBlockViewer),
                 new PropertyMetadata(string.Empty, OnCodeOrLanguageChanged));
 
-        public static readonly DependencyProperty LanguageProperty =
+        public static readonly DependencyProperty CodeLanguageProperty =
             DependencyProperty.Register(
-                "Language",
+                "CodeLanguage",
                 typeof(string),
                 typeof(CodeBlockViewer),
                 new PropertyMetadata(string.Empty, OnCodeOrLanguageChanged));
@@ -205,10 +205,10 @@ namespace OllamaPilot
             set { SetValue(CodeProperty, value); }
         }
 
-        public string Language
+        public string CodeLanguage
         {
-            get { return (string)GetValue(LanguageProperty); }
-            set { SetValue(LanguageProperty, value); }
+            get { return (string)GetValue(CodeLanguageProperty); }
+            set { SetValue(CodeLanguageProperty, value); }
         }
 
         private static void OnCodeOrLanguageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -220,7 +220,7 @@ namespace OllamaPilot
             }
 
             viewer.Text = viewer.Code ?? string.Empty;
-            viewer.SyntaxHighlighting = HighlightingManager.Instance.GetDefinition(NormalizeLanguage(viewer.Language));
+            viewer.SyntaxHighlighting = HighlightingManager.Instance.GetDefinition(NormalizeLanguage(viewer.CodeLanguage));
         }
 
         private static string NormalizeLanguage(string language)

@@ -43,7 +43,7 @@
                                FontWeight="SemiBold"
                                Foreground="#57606A" />
                     <local:CodeBlockViewer Code="{Binding Content}"
-                                           Language="{Binding Language}"
+                                           CodeLanguage="{Binding Language}"
                                            Margin="0,18,0,0"
                                            MinHeight="40" />
                 </Grid>
