@@ -50,7 +50,7 @@ namespace OllamaPilot
         public static void HandleException(Exception exception, string userMessage = null)
         {
             var message = $"发生异常: {FormatException(exception)}\n";
-            var shortMessage = userMessage ?? "LLMCopilot hit an unexpected error. Check the log file in Documents for details.";
+            var shortMessage = userMessage ?? "Ollama Pilot hit an unexpected error. Check the log file in Documents for details.";
 
             if (serviceProvider != null)
             {
@@ -60,7 +60,7 @@ namespace OllamaPilot
                     VsShellUtilities.ShowMessageBox(
                         serviceProvider,
                         shortMessage,
-                        "LLMCopilot",
+                "Ollama Pilot",
                         OLEMSGICON.OLEMSGICON_WARNING,
                         OLEMSGBUTTON.OLEMSGBUTTON_OK,
                         OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
@@ -73,7 +73,7 @@ namespace OllamaPilot
         public static void WriteLog(string log)
         {
             // 格式化文件名以包含日期
-            string logFileName = $"LLMCopilot_{DateTime.Now:yyyy-MM-dd}.log";
+            string logFileName = $"OllamaPilot_{DateTime.Now:yyyy-MM-dd}.log";
             string logFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), logFileName);
             log += $"---------{DateTime.Now:yyyy-MM-dd HH:mm:ss}\r\n";
             // 写入文件

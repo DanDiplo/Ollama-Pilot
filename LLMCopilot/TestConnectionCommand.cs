@@ -38,7 +38,7 @@ namespace OllamaPilot
             var options = (OptionPageGrid)package.GetDialogPage(typeof(OptionPageGrid));
             var result = OllamaSettingsValidator.Validate(options);
             var icon = result.Success ? OLEMSGICON.OLEMSGICON_INFO : OLEMSGICON.OLEMSGICON_WARNING;
-            var title = result.Success ? "LLMCopilot Connection OK" : "LLMCopilot Connection Failed";
+            var title = result.Success ? "Ollama Pilot Connection OK" : "Ollama Pilot Connection Failed";
 
             VsShellUtilities.ShowMessageBox(
                 package,

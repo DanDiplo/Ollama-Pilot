@@ -246,7 +246,7 @@ namespace OllamaPilot
             var models = _availableModels;
             if (models == null || models.Count == 0)
             {
-                SetStatus("Refresh models first so LLMCopilot can suggest a chat/completion split.", Brushes.DarkGoldenrod);
+                SetStatus("Refresh models first so Ollama Pilot can suggest a chat/completion split.", Brushes.DarkGoldenrod);
                 return;
             }
 

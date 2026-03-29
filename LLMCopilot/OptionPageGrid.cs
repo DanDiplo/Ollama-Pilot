@@ -94,7 +94,7 @@ namespace OllamaPilot
                     VsShellUtilities.ShowMessageBox(
                         this.Site,
                         validation.Message,
-                        "LLMCopilot Settings",
+                    "Ollama Pilot Settings",
                         OLEMSGICON.OLEMSGICON_WARNING,
                         OLEMSGBUTTON.OLEMSGBUTTON_OK,
                         OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);

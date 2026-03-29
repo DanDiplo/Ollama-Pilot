@@ -39,7 +39,7 @@
 			<Menu guid="guidLLMCopilotPackageCmdSet" id="TopLevelMenu" priority="0x700" type="Menu">
 				<Parent guid="guidSHLMainMenu" id="IDG_VS_MM_TOOLSADDINS" />
 				<Strings>
-					<ButtonText>LLM Copilot</ButtonText>
+					<ButtonText>Ollama Pilot</ButtonText>
 				</Strings>
 			</Menu>
 		</Menus>
@@ -107,7 +107,7 @@
 				<Parent guid="guidLLMCopilotPackageCmdSet" id="ErrorListMenuGroup" />
 				<Icon guid="bug" id="bug" />
 				<Strings>
-					<ButtonText>Fix Error with LLM Copilot</ButtonText>
+					<ButtonText>Fix Error with Ollama Pilot</ButtonText>
 				</Strings>
 			</Button>
 			<Button guid="guidLLMCopilotPackageCmdSet" id="cmdidCodeComplete" priority="0x0100" type="Button">
