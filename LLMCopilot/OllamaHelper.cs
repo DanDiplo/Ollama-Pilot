@@ -1,21 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using OllamaSharp;
-using OllamaSharp.Models.Chat;
-using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
-using System.Windows.Controls;
-using System.Windows;
-using OllamaSharp.Models;
-using Task = System.Threading.Tasks.Task;
-using System.Text.RegularExpressions;
-using IAsyncServiceProvider = Microsoft.VisualStudio.Shell.IAsyncServiceProvider;
-using Microsoft.VisualStudio;
-using System.Net.Http.Headers;
 using System.IO;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Windows;
+using System.Windows.Controls;
+using Task = System.Threading.Tasks.Task;
 
 namespace OllamaPilot
 {
@@ -24,6 +14,7 @@ namespace OllamaPilot
         public string CodeCompleteTemplate = $"<|fim▁begin|>{0}<|fim▁hole|>{1}<|fim▁end|>";
 
         private static readonly Lazy<OllamaHelper> lazy = new Lazy<OllamaHelper>(() => new OllamaHelper());
+        private static readonly IOllamaService ollamaService = new OllamaSharpService();
 
         public static OllamaHelper Instance { get { return lazy.Value; } }
 
@@ -63,7 +54,8 @@ namespace OllamaPilot
                 "\nvoid"
                 };
 
-            CompRequestOptions = new RequestOptions {
+            CompRequestOptions = new RequestOptions
+            {
                 NumCtx = Options.CompleteCtxSize,
                 NumPredict = 128,
                 Stop = stop,
@@ -827,7 +819,7 @@ Return a brief explanation followed by exactly one fenced code block with the co
             CompRequestOptions.Stop = stop;
             CompRequestOptions.NumCtx = Options.CompleteCtxSize;
             ChatRequestOptions.NumCtx = Options.ChatCtxSize;
-            
+
             //Task.Run(async () => await this.InitModelCtxAsync());
         }
 
@@ -835,13 +827,12 @@ Return a brief explanation followed by exactly one fenced code block with the co
         {
             try
             {
-                var client = OllamaClientFactory.CreateClient();
-                var chatModelInfo = await client.ShowModelInformationAsync(Options.ChatModel);
-                var compModelInfo = await client.ShowModelInformationAsync(Options.CompleteModel);
+                var chatModelInfo = await ollamaService.ShowModelInformationAsync(Options.BaseUrl, Options.AccessToken, Options.ChatModel, default(System.Threading.CancellationToken));
+                var compModelInfo = await ollamaService.ShowModelInformationAsync(Options.BaseUrl, Options.AccessToken, Options.CompleteModel, default(System.Threading.CancellationToken));
 
                 Func<string, string, int> GetCtx = (string parameters, string model) =>
                 {
-                    int num_ctx = defaultContext; 
+                    int num_ctx = defaultContext;
                     if (!string.IsNullOrEmpty(parameters))
                     {
                         var match = Regex.Match(parameters, @"PARAMETER\s+num_ctx\s+(\d+)");
@@ -930,24 +921,17 @@ Return a brief explanation followed by exactly one fenced code block with the co
 
     public class OllamaClientFactory
     {
-        public static OllamaApiClient CreateClient()
-        {
-            var options = OllamaHelper.Instance.Options;
-            var ollamaApiClient = new OllamaApiClient(options.BaseUrl);
-            ollamaApiClient.SelectedModel = options.CompleteModel;
-            ollamaApiClient.SetAuthorizationHeader(options.AccessToken);
-            
-            return ollamaApiClient;
-        }
+        private static readonly IOllamaService ollamaService = new OllamaSharpService();
 
         public static Chat CreateChat(Action<ChatResponseStream> streamer)
         {
-            var ollamaApiClient = CreateClient();
             var options = OllamaHelper.Instance.Options;
-            ollamaApiClient.SelectedModel = options.ChatModel;
-            var chat = new Chat(ollamaApiClient, streamer, OllamaHelper.Instance.ChatRequestOptions);
-
-            return chat;
+            return ollamaService.CreateChatSession(
+                options.BaseUrl,
+                options.ChatModel,
+                options.AccessToken,
+                OllamaHelper.Instance.ChatRequestOptions,
+                streamer);
         }
     }
 }

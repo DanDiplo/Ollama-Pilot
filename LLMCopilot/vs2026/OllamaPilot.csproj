@@ -85,61 +85,11 @@
     <Compile Include="..\ExplainCommand.cs">
       <Link>Commands\ExplainCommand.cs</Link>
     </Compile>
+    <Compile Include="..\OllamaAbstractions.cs" />
     <Compile Include="..\OllamaHelper.cs" />
+    <Compile Include="..\OllamaLegacyNamespaceShim.cs" />
+    <Compile Include="..\OllamaSharpService.cs" />
     <Compile Include="..\PromptTemplateService.cs" />
-    <Compile Include="..\OllamaSharp\ActionResponseStreamer.cs" />
-    <Compile Include="..\OllamaSharp\Chat.cs">
-      <Link>Models\Chat.cs</Link>
-    </Compile>
-    <Compile Include="..\OllamaSharp\ChatDoneResponseStream.cs">
-      <Link>Models\ChatDoneResponseStream.cs</Link>
-    </Compile>
-    <Compile Include="..\OllamaSharp\ChatRequest.cs">
-      <Link>Models\ChatRequest.cs</Link>
-    </Compile>
-    <Compile Include="..\OllamaSharp\ChatResponseStream.cs">
-      <Link>Models\ChatResponseStream.cs</Link>
-    </Compile>
-    <Compile Include="..\OllamaSharp\ChatRole.cs">
-      <Link>Models\ChatRole.cs</Link>
-    </Compile>
-    <Compile Include="..\OllamaSharp\ChatRoleConverter.cs" />
-    <Compile Include="..\OllamaSharp\CopyModel.cs">
-      <Link>Models\CopyModel.cs</Link>
-    </Compile>
-    <Compile Include="..\OllamaSharp\CreateModel.cs">
-      <Link>Models\CreateModel.cs</Link>
-    </Compile>
-    <Compile Include="..\OllamaSharp\DeleteModel.cs">
-      <Link>Models\DeleteModel.cs</Link>
-    </Compile>
-    <Compile Include="..\OllamaSharp\GenerateCompletion.cs">
-      <Link>Models\GenerateCompletion.cs</Link>
-    </Compile>
-    <Compile Include="..\OllamaSharp\GenerateEmbedding.cs">
-      <Link>Models\GenerateEmbedding.cs</Link>
-    </Compile>
-    <Compile Include="..\OllamaSharp\IOllamaApiClient.cs" />
-    <Compile Include="..\OllamaSharp\IResponseStreamer.cs" />
-    <Compile Include="..\OllamaSharp\ListModels.cs">
-      <Link>Models\ListModels.cs</Link>
-    </Compile>
-    <Compile Include="..\OllamaSharp\Message.cs">
-      <Link>Models\Message.cs</Link>
-    </Compile>
-    <Compile Include="..\OllamaSharp\OllamaApiClient.cs" />
-    <Compile Include="..\OllamaSharp\PullModel.cs">
-      <Link>Models\PullModel.cs</Link>
-    </Compile>
-    <Compile Include="..\OllamaSharp\PushModel.cs">
-      <Link>Models\PushModel.cs</Link>
-    </Compile>
-    <Compile Include="..\OllamaSharp\RequestOptions.cs">
-      <Link>Models\RequestOptions.cs</Link>
-    </Compile>
-    <Compile Include="..\OllamaSharp\ShowModel.cs">
-      <Link>Commands\ShowModel.cs</Link>
-    </Compile>
     <Compile Include="..\OptimizeCodeCommand.cs">
       <Link>Commands\OptimizeCodeCommand.cs</Link>
     </Compile>
@@ -190,6 +140,7 @@
     <PackageReference Include="Newtonsoft.Json">
       <Version>13.0.3</Version>
     </PackageReference>
+    <PackageReference Include="OllamaSharp" Version="5.4.16" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="..\LLMChatWindowControl.xaml">
@@ -245,6 +196,10 @@
       <VSIXSourceItem Include="@(ReferencePath)" Condition="$([System.String]::new('%(ReferencePath.FusionName)').StartsWith('Newtonsoft.Json'))" />
       <VSIXSourceItem Include="@(ReferencePath)" Condition="$([System.String]::new('%(ReferencePath.FusionName)').StartsWith('MdXaml'))" />
       <VSIXSourceItem Include="@(ReferencePath)" Condition="$([System.String]::new('%(ReferencePath.FusionName)').StartsWith('ICSharpCode.AvalonEdit'))" />
+      <VSIXSourceItem Include="@(ReferencePath)" Condition="$([System.String]::new('%(ReferencePath.FusionName)').StartsWith('OllamaSharp'))" />
+      <VSIXSourceItem Include="@(ReferencePath)" Condition="$([System.String]::new('%(ReferencePath.FusionName)').StartsWith('Microsoft.Extensions.AI.Abstractions'))" />
+      <VSIXSourceItem Include="@(ReferencePath)" Condition="$([System.String]::new('%(ReferencePath.FusionName)').StartsWith('Microsoft.Bcl.AsyncInterfaces'))" />
+      <VSIXSourceItem Include="@(ReferencePath)" Condition="$([System.String]::new('%(ReferencePath.FusionName)').StartsWith('System.Threading.Tasks.Extensions'))" />
     </ItemGroup>
   </Target>
   <PropertyGroup>

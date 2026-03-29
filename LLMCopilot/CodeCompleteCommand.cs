@@ -1,12 +1,7 @@
 ﻿using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
 using System;
 using System.ComponentModel.Design;
-using System.Globalization;
-using System.Threading;
-using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
-using OllamaSharp.Models;
 
 namespace OllamaPilot
 {
@@ -72,7 +67,7 @@ namespace OllamaPilot
             // Switch to the main thread - the call to AddCommand in LLMChatWindowCommand's constructor requires
             // the UI thread.
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
-            
+
             OleMenuCommandService commandService = await package.GetServiceAsync(typeof(IMenuCommandService)) as OleMenuCommandService;
             Instance = new CodeCompleteCommand(package, commandService);
         }
@@ -85,7 +80,7 @@ namespace OllamaPilot
         private void Execute(object sender, EventArgs e)
         {
             VsHelpers.CodeCompleteCommand();
-            
+
         }
     }
 }

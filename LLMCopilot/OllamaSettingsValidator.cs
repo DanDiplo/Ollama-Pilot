@@ -1,9 +1,8 @@
-using Microsoft.VisualStudio.Shell;
-using OllamaSharp;
 using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Shell;
 
 namespace OllamaPilot
 {
@@ -15,6 +14,8 @@ namespace OllamaPilot
 
     internal static class OllamaSettingsValidator
     {
+        private static readonly IOllamaService ollamaService = new OllamaSharpService();
+
         public static OllamaValidationResult Validate(OptionPageGrid options)
         {
             return ThreadHelper.JoinableTaskFactory.Run(() => ValidateAsync(options));
@@ -24,7 +25,7 @@ namespace OllamaPilot
         {
             if (options == null)
             {
-                return Fail("LLMCopilot settings are unavailable.");
+                return Fail("OllamaPilot settings are unavailable.");
             }
 
             if (!Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out Uri uri)
@@ -50,10 +51,7 @@ namespace OllamaPilot
 
             try
             {
-                var client = new OllamaApiClient(options.BaseUrl);
-                client.SetAuthorizationHeader(options.AccessToken);
-
-                var models = (await client.ListLocalModelsAsync(cancellationToken)).ToList();
+                var models = (await ollamaService.ListLocalModelsAsync(options.BaseUrl, options.AccessToken, cancellationToken)).ToList();
                 if (models.Count == 0)
                 {
                     return Fail("Connected to Ollama, but no local models were found.");
@@ -73,7 +71,7 @@ namespace OllamaPilot
 
                 if (options.EnableAutoComplete)
                 {
-                    var completeModelInfo = await client.ShowModelInformationAsync(options.CompleteModel, cancellationToken);
+                    var completeModelInfo = await ollamaService.ShowModelInformationAsync(options.BaseUrl, options.AccessToken, options.CompleteModel, cancellationToken);
                     if (!SupportsInsert(completeModelInfo?.Template))
                     {
                         return Fail($"Code Complete Model '{options.CompleteModel}' does not appear to support fill-in-the-middle insert mode.");

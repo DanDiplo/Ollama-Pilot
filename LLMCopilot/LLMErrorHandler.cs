@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.Shell;
+﻿using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using System.Runtime.CompilerServices;
-using System.Diagnostics;
+using System;
 using System.IO;
+using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace OllamaPilot
 {

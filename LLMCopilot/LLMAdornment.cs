@@ -1,27 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.VisualStudio.Text;
-using Microsoft.VisualStudio.Text.Editor;
-using Microsoft.VisualStudio.Text.Formatting;
-using System.Windows.Controls;
-using System.Windows.Media;
-using Microsoft.VisualStudio.Utilities;
-using System.ComponentModel.Composition;
-using System.Windows.Input;
-using System.Windows;
-using System.Text.RegularExpressions;
-using Microsoft.VisualStudio.OLE.Interop;
+﻿using ICSharpCode.AvalonEdit;
 using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.TextManager.Interop;
-using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Editor;
+using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
-using ICSharpCode.AvalonEdit;
-using ICSharpCode.AvalonEdit.Rendering;
+using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Editor;
+using Microsoft.VisualStudio.TextManager.Interop;
+using Microsoft.VisualStudio.Utilities;
+using System;
+using System.ComponentModel.Composition;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 
 namespace OllamaPilot
 {
@@ -118,26 +112,37 @@ namespace OllamaPilot
             }
         }
 
+        /// <summary>
+        /// Updates the prediction text and status for the adornment.
+        /// </summary>
+        /// <param name="prediction">The new prediction text to display.</param>
+        /// <param name="statusText">Optional status text to show as a tooltip.</param>
         public void UpdatePrediction(string prediction, string statusText = null)
         {
+            // Store the original prediction text
             _originalPredictionText = prediction;
 
             if (_textEditor != null)
             {
+                // Run an asynchronous task on the main thread
                 ThreadHelper.JoinableTaskFactory.Run(async delegate
                 {
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                    // Update the TextEditor's text and tooltip
                     _textEditor.Text = SplitLines(prediction.TrimStart());
                     _textEditor.ToolTip = statusText;
 
-                    // 获取当前光标位置
+                    // Get the current caret position in the text view
                     var caretPosition = _view.Caret.Position.BufferPosition;
 
+                    // Update the position of the adornment
                     Pos = caretPosition;
-                    // 更新并显示 Adornment
+
+                    // Create and display the adornment visuals at the caret position
                     CreateVisuals(caretPosition);
 
-                    // 将焦点重新设置到文本视图
+                    // Refocus the text view element
                     _view.VisualElement.Focus();
                 });
             }
@@ -145,10 +150,16 @@ namespace OllamaPilot
 
         private string SplitLines(string text)
         {
-            // 使用正则表达式来分割文本，匹配 \n、\r\n 或 \r 作为换行符
+            /// <summary>
+            /// Splits the input text into lines using regular expressions to match common newline characters.
+            /// </summary>
+            /// <param name="text">The input text to be split.</param>
+            /// <returns>A string with lines joined by the system's default newline character.</returns>
+
+            // Split the text using regex to handle different newline formats: \n, \r\n, or \r
             var lines = Regex.Split(text, "\r\n|\r|\n");
 
-            // 将处理过的文本行重新连接成一个字符串，使用 Environment.NewLine 保证在当前操作系统上使用正确的换行符
+            // Join the split lines back into a single string using the system's default newline character
             return string.Join(Environment.NewLine, lines);
         }
 

@@ -17,7 +17,6 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.TextManager.Interop;
-using OllamaSharp.Models;
 using IAsyncServiceProvider = Microsoft.VisualStudio.Shell.IAsyncServiceProvider;
 using Task = System.Threading.Tasks.Task;
 using Thread = System.Threading.Thread;
@@ -26,6 +25,7 @@ namespace OllamaPilot
 {
     public static class VsHelpers
     {
+        private static readonly IOllamaService ollamaService = new OllamaSharpService();
         public static bool IsSending { get; set; } = false;
         private static readonly Thread _completionThread;
         private static readonly BlockingCollection<Func<CancellationToken, Task>> _taskQueue = new BlockingCollection<Func<CancellationToken, Task>>();
@@ -35,8 +35,10 @@ namespace OllamaPilot
 
         static VsHelpers()
         {
-            _completionThread = new Thread(Run);
-            _completionThread.IsBackground = true;
+            _completionThread = new Thread(Run)
+            {
+                IsBackground = true
+            };
             _completionThread.Start();
         }
 
@@ -62,17 +64,26 @@ namespace OllamaPilot
             }
         }
 
+        /// <summary>
+        /// Enqueues a new task to be executed, canceling any previously enqueued tasks.
+        /// </summary>
+        /// <param name="task">The task to enqueue, which takes a CancellationToken and returns a Task.</param>
         public static void EnqueueTask(Func<CancellationToken, Task> task)
         {
-            lock (_lock)
+            // Cancel the current cancellation token source
+            var previousCancellationTokenSource = Interlocked.Exchange(ref _cancellationTokenSource, new CancellationTokenSource());
+
+            // Cancel all previously enqueued tasks
+            previousCancellationTokenSource?.Cancel();
+
+            // Clear the task queue of any remaining tasks
+            while (_taskQueue.TryTake(out _))
             {
-                _cancellationTokenSource.Cancel(); // 取消之前的所有任务
-                while (_taskQueue.Count > 0)
-                {
-                    _taskQueue.Take();
-                }
-                _taskQueue.Add(task); // 添加新任务
+                // Handle any cleanup if necessary
             }
+
+            // Add the new task to the queue
+            _taskQueue.Add(task);
         }
 
         public static void CancelPendingCompletion()
@@ -764,8 +775,6 @@ namespace OllamaPilot
 
                 await LLMCopilotProvider.EnsurePackageLoadedAsync();
 
-                var client = OllamaClientFactory.CreateClient();
-
                 var Package = LLMCopilotProvider.Package;
 
                 RequestOptions reqOps = OllamaHelper.Instance.CompRequestOptions;
@@ -796,7 +805,7 @@ namespace OllamaPilot
 
                 GenerateCompletionRequest req = new GenerateCompletionRequest
                 {
-                    Model = client.SelectedModel,
+                    Model = options.CompleteModel,
                     Prompt = template,
                     Options = reqOps,
                     Raw = true
@@ -805,7 +814,7 @@ namespace OllamaPilot
                 var OldCaretPosition = textView.Caret.Position.BufferPosition;
                 var oldSnapshotVersion = OldCaretPosition.Snapshot.Version.VersionNumber;
                 var stopwatch = Stopwatch.StartNew();
-                var resp = await client.GetCompletionAsync(req, cancellationToken);
+                var resp = await ollamaService.GenerateCompletionAsync(options.BaseUrl, options.AccessToken, req, cancellationToken);
                 stopwatch.Stop();
 
                 if (requestVersion != Volatile.Read(ref _completionRequestVersion))

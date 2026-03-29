@@ -66,6 +66,7 @@ namespace OllamaPilot
     /// </summary>
     public partial class LLMChatWindowControl : UserControl, INotifyPropertyChanged
     {
+        private static readonly IOllamaService ollamaService = new OllamaSharpService();
         private readonly ObservableCollection<MyMessage> _messages = new ObservableCollection<MyMessage>();
         public ObservableCollection<MyMessage> Messages => _messages;
         private Chat Chat { get; set; }
@@ -238,8 +239,8 @@ namespace OllamaPilot
         {
             try
             {
-                var client = OllamaClientFactory.CreateClient();
-                var models = await client.ListLocalModelsAsync();
+                var options = OllamaHelper.Instance.Options;
+                var models = await ollamaService.ListLocalModelsAsync(options.BaseUrl, options.AccessToken, CancellationToken.None);
                 var modelNames = string.Join("  \n", models.Select(m => m.Name));
 
                 AddMessage(ChatRole.System, $"Available local models:  \n{modelNames}");
@@ -264,9 +265,9 @@ namespace OllamaPilot
         {
             EventManager.CodeCommandExecuted += OnExplainCodeCommandExecuted;
             
-            Chat.Client.SelectedModel = OllamaHelper.Instance.Options.ChatModel;
+            Chat.SelectedModel = OllamaHelper.Instance.Options.ChatModel;
             Chat.Options = OllamaHelper.Instance.ChatRequestOptions;
-            Chat.Client.SetAuthorizationHeader(OllamaHelper.Instance.Options.AccessToken);
+            Chat.AccessToken = OllamaHelper.Instance.Options.AccessToken;
             RefreshHeaderState();
         }
 

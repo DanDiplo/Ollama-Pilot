@@ -1,0 +1,215 @@
+using OllamaSharp;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace OllamaPilot
+{
+    public sealed class OllamaSharpService : IOllamaService
+    {
+        public Chat CreateChatSession(string baseUrl, string model, string accessToken, RequestOptions options, Action<ChatResponseStream> streamer)
+        {
+            var session = new OllamaSharpChatSession(baseUrl, model, accessToken, options, streamer);
+            return new Chat(session);
+        }
+
+        public async Task<IReadOnlyList<Model>> ListLocalModelsAsync(string baseUrl, string accessToken, CancellationToken cancellationToken)
+        {
+            using (var client = CreateClient(baseUrl, accessToken, null))
+            {
+                var models = await client.ListLocalModelsAsync(cancellationToken);
+                return models.Select(m => new Model { Name = m.Name }).ToList();
+            }
+        }
+
+        public async Task<ShowModelResponse> ShowModelInformationAsync(string baseUrl, string accessToken, string model, CancellationToken cancellationToken)
+        {
+            using (var client = CreateClient(baseUrl, accessToken, model))
+            {
+                var response = await client.ShowModelAsync(new OllamaSharp.Models.ShowModelRequest { Model = model }, cancellationToken);
+                return new ShowModelResponse
+                {
+                    Parameters = response.Parameters,
+                    Template = response.Template
+                };
+            }
+        }
+
+        public async Task<GenerateCompletionResult> GenerateCompletionAsync(string baseUrl, string accessToken, GenerateCompletionRequest request, CancellationToken cancellationToken)
+        {
+            using (var client = CreateClient(baseUrl, accessToken, request?.Model))
+            {
+                var generateRequest = new OllamaSharp.Models.GenerateRequest
+                {
+                    Model = request != null ? request.Model : null,
+                    Prompt = request != null ? request.Prompt : null,
+                    Suffix = request != null ? request.Suffix : null,
+                    Options = ToPackageRequestOptions(request != null ? request.Options : null),
+                    Raw = request != null ? (bool?)request.Raw : null,
+                    Stream = true
+                };
+
+                var builder = new System.Text.StringBuilder();
+                var enumerator = client.GenerateAsync(generateRequest, cancellationToken).GetAsyncEnumerator(cancellationToken);
+                try
+                {
+                    while (await enumerator.MoveNextAsync())
+                    {
+                        var item = enumerator.Current;
+                        if (item != null && item.Response != null)
+                        {
+                            builder.Append(item.Response);
+                        }
+                    }
+                }
+                finally
+                {
+                    await enumerator.DisposeAsync();
+                }
+
+                return new GenerateCompletionResult { Response = builder.ToString() };
+            }
+        }
+
+        private static OllamaApiClient CreateClient(string baseUrl, string accessToken, string selectedModel)
+        {
+            var client = new OllamaApiClient(baseUrl ?? string.Empty, selectedModel ?? string.Empty);
+            ApplyAuthorizationHeader(client, accessToken);
+            if (!string.IsNullOrWhiteSpace(selectedModel))
+            {
+                client.SelectedModel = selectedModel;
+            }
+
+            return client;
+        }
+
+        private static void ApplyAuthorizationHeader(OllamaApiClient client, string accessToken)
+        {
+            if (client == null)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(accessToken))
+            {
+                client.DefaultRequestHeaders.Remove("Authorization");
+                return;
+            }
+
+            client.DefaultRequestHeaders["Authorization"] = "Bearer " + accessToken.Trim();
+        }
+
+        private static OllamaSharp.Models.RequestOptions ToPackageRequestOptions(RequestOptions options)
+        {
+            if (options == null)
+            {
+                return null;
+            }
+
+            return new OllamaSharp.Models.RequestOptions
+            {
+                NumCtx = options.NumCtx,
+                NumPredict = options.NumPredict,
+                Temperature = options.Temperature,
+                Stop = options.Stop
+            };
+        }
+
+        private static ChatRole ToLocalRole(OllamaSharp.Models.Chat.ChatRole role)
+        {
+            return new ChatRole(role.ToString());
+        }
+
+        private sealed class OllamaSharpChatSession : IChatSession
+        {
+            private readonly OllamaApiClient _client;
+            private readonly OllamaSharp.Chat _chat;
+            private readonly Action<ChatResponseStream> _streamer;
+
+            public OllamaSharpChatSession(string baseUrl, string model, string accessToken, RequestOptions options, Action<ChatResponseStream> streamer)
+            {
+                _client = CreateClient(baseUrl, accessToken, model);
+                _chat = new OllamaSharp.Chat(_client);
+                _streamer = streamer;
+                SelectedModel = model;
+                Options = options;
+                AccessToken = accessToken;
+            }
+
+            public string SelectedModel
+            {
+                get { return _chat.Model; }
+                set
+                {
+                    _chat.Model = value;
+                    _client.SelectedModel = value;
+                }
+            }
+
+            public RequestOptions Options
+            {
+                get { return FromPackageRequestOptions(_chat.Options); }
+                set { _chat.Options = ToPackageRequestOptions(value); }
+            }
+
+            public string AccessToken { get; set; }
+
+            public async Task SendAsync(string message, CancellationToken cancellationToken)
+            {
+                ApplyAuthorizationHeader(_client, AccessToken);
+                _client.SelectedModel = SelectedModel;
+                _chat.Model = SelectedModel;
+
+                var enumerator = _chat.SendAsync(message, cancellationToken).GetAsyncEnumerator(cancellationToken);
+                try
+                {
+                    while (await enumerator.MoveNextAsync())
+                    {
+                        var token = enumerator.Current;
+                        if (_streamer != null)
+                        {
+                            _streamer(new ChatResponseStream
+                            {
+                                Model = SelectedModel,
+                                Message = new Message(ChatRole.Assistant, token),
+                                Done = false
+                            });
+                        }
+                    }
+                }
+                finally
+                {
+                    await enumerator.DisposeAsync();
+                }
+
+                if (_streamer != null)
+                {
+                    _streamer(new ChatResponseStream
+                    {
+                        Model = SelectedModel,
+                        Message = new Message(ChatRole.Assistant, string.Empty),
+                        Done = true
+                    });
+                }
+            }
+
+            private static RequestOptions FromPackageRequestOptions(OllamaSharp.Models.RequestOptions options)
+            {
+                if (options == null)
+                {
+                    return null;
+                }
+
+                return new RequestOptions
+                {
+                    NumCtx = options.NumCtx,
+                    NumPredict = options.NumPredict,
+                    Temperature = options.Temperature,
+                    Stop = options.Stop
+                };
+            }
+        }
+    }
+}
