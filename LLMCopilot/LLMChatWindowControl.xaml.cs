@@ -16,12 +16,22 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Text;
 using System.Text.RegularExpressions;
+using ICSharpCode.AvalonEdit;
+using ICSharpCode.AvalonEdit.Highlighting;
 using Microsoft.VisualStudio.Shell;
+using Chat = OllamaPilot.Chat;
+using ChatResponseStream = OllamaPilot.ChatResponseStream;
+using ChatRole = OllamaPilot.ChatRole;
+using Message = OllamaPilot.Message;
 
 namespace OllamaPilot
 {
     public class MyMessage : INotifyPropertyChanged
     {
+        private static readonly Regex fencedCodeRegex = new Regex(
+            "```(?<language>[^\\r\\n`]*)\\r?\\n(?<code>[\\s\\S]*?)```",
+            RegexOptions.Singleline | RegexOptions.Compiled);
+
         readonly Message _message;
         public string Content
         {
@@ -31,10 +41,13 @@ namespace OllamaPilot
                 if (_message.Content != value)
                 {
                     _message.Content = value;
+                    Segments = ParseSegments(value);
                     OnPropertyChanged();
                 }
             }
         }
+
+        public ObservableCollection<MessageSegment> Segments { get; private set; }
 
         public ChatRole? Role
         {
@@ -45,6 +58,7 @@ namespace OllamaPilot
         public MyMessage(Message message)
         {
             _message = message;
+            Segments = ParseSegments(_message.Content);
         }
 
         public MyMessage(ChatRole? role, string content)
@@ -54,6 +68,58 @@ namespace OllamaPilot
                 Role = role,
                 Content = content
             };
+            Segments = ParseSegments(content);
+        }
+
+        private static ObservableCollection<MessageSegment> ParseSegments(string content)
+        {
+            var segments = new ObservableCollection<MessageSegment>();
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return segments;
+            }
+
+            var currentIndex = 0;
+            var matches = fencedCodeRegex.Matches(content);
+            foreach (Match match in matches)
+            {
+                if (match.Index > currentIndex)
+                {
+                    var markdown = content.Substring(currentIndex, match.Index - currentIndex);
+                    AddMarkdownSegment(segments, markdown);
+                }
+
+                var language = (match.Groups["language"].Value ?? string.Empty).Trim();
+                var code = match.Groups["code"].Value.Trim('\r', '\n');
+                if (!string.IsNullOrWhiteSpace(code))
+                {
+                    segments.Add(new MessageSegment(MessageSegmentType.Code, code, language));
+                }
+
+                currentIndex = match.Index + match.Length;
+            }
+
+            if (currentIndex < content.Length)
+            {
+                AddMarkdownSegment(segments, content.Substring(currentIndex));
+            }
+
+            if (segments.Count == 0)
+            {
+                AddMarkdownSegment(segments, content);
+            }
+
+            return segments;
+        }
+
+        private static void AddMarkdownSegment(ObservableCollection<MessageSegment> segments, string markdown)
+        {
+            if (string.IsNullOrWhiteSpace(markdown))
+            {
+                return;
+            }
+
+            segments.Add(new MessageSegment(MessageSegmentType.Markdown, markdown.Trim(), null));
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -63,6 +129,138 @@ namespace OllamaPilot
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
+    }
+
+    public enum MessageSegmentType
+    {
+        Markdown,
+        Code
+    }
+
+    public sealed class MessageSegment
+    {
+        public MessageSegment(MessageSegmentType type, string content, string language)
+        {
+            Type = type;
+            Content = content;
+            Language = language;
+        }
+
+        public MessageSegmentType Type { get; }
+        public string Content { get; }
+        public string Language { get; }
+        public string LanguageLabel => string.IsNullOrWhiteSpace(Language) ? "code" : Language;
+    }
+
+    public sealed class MessageSegmentTemplateSelector : DataTemplateSelector
+    {
+        public override DataTemplate SelectTemplate(object item, DependencyObject container)
+        {
+            var element = container as FrameworkElement;
+            var segment = item as MessageSegment;
+            if (element == null || segment == null)
+            {
+                return base.SelectTemplate(item, container);
+            }
+
+            var key = segment.Type == MessageSegmentType.Code ? "CodeSegmentTemplate" : "MarkdownSegmentTemplate";
+            return element.TryFindResource(key) as DataTemplate ?? base.SelectTemplate(item, container);
+        }
+    }
+
+    public class CodeBlockViewer : TextEditor
+    {
+        public static readonly DependencyProperty CodeProperty =
+            DependencyProperty.Register(
+                "Code",
+                typeof(string),
+                typeof(CodeBlockViewer),
+                new PropertyMetadata(string.Empty, OnCodeOrLanguageChanged));
+
+        public static readonly DependencyProperty LanguageProperty =
+            DependencyProperty.Register(
+                "Language",
+                typeof(string),
+                typeof(CodeBlockViewer),
+                new PropertyMetadata(string.Empty, OnCodeOrLanguageChanged));
+
+        public CodeBlockViewer()
+        {
+            IsReadOnly = true;
+            ShowLineNumbers = true;
+            WordWrap = false;
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
+            BorderThickness = new Thickness(0);
+            Background = Brushes.Transparent;
+            FontFamily = new FontFamily("Consolas");
+            FontSize = 12;
+        }
+
+        public string Code
+        {
+            get { return (string)GetValue(CodeProperty); }
+            set { SetValue(CodeProperty, value); }
+        }
+
+        public string Language
+        {
+            get { return (string)GetValue(LanguageProperty); }
+            set { SetValue(LanguageProperty, value); }
+        }
+
+        private static void OnCodeOrLanguageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var viewer = d as CodeBlockViewer;
+            if (viewer == null)
+            {
+                return;
+            }
+
+            viewer.Text = viewer.Code ?? string.Empty;
+            viewer.SyntaxHighlighting = HighlightingManager.Instance.GetDefinition(NormalizeLanguage(viewer.Language));
+        }
+
+        private static string NormalizeLanguage(string language)
+        {
+            switch ((language ?? string.Empty).Trim().ToLowerInvariant())
+            {
+                case "csharp":
+                case "cs":
+                    return "C#";
+                case "cpp":
+                case "c++":
+                    return "C++";
+                case "js":
+                case "javascript":
+                    return "JavaScript";
+                case "ts":
+                case "typescript":
+                    return "TypeScript";
+                case "xml":
+                case "xaml":
+                    return "XML";
+                case "html":
+                case "razor":
+                case "cshtml":
+                    return "HTML";
+                case "md":
+                case "markdown":
+                    return "Markdown";
+                case "py":
+                case "python":
+                    return "Python";
+                case "sql":
+                    return "SQL";
+                case "json":
+                    return "JavaScript";
+                case "ps1":
+                case "powershell":
+                    return "PowerShell";
+                default:
+                    return language;
+            }
+        }
     }
 
     /// <summary>

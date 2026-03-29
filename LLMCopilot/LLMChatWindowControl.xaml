@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vsshell="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
              xmlns:md="clr-namespace:MdXaml;assembly=MdXaml"
+             xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
              xmlns:local="clr-namespace:OllamaPilot"
              Background="{DynamicResource {x:Static vsshell:VsBrushes.WindowKey}}"
              Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
@@ -16,6 +17,38 @@
         <local:CapitalizeFirstLetterConverter x:Key="CapitalizeFirstLetterConverter" />
         <local:AssistantMessageVisibilityConverter x:Key="AssistantMessageVisibilityConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <local:MessageSegmentTemplateSelector x:Key="MessageSegmentTemplateSelector" />
+        <DataTemplate x:Key="MarkdownSegmentTemplate">
+            <md:MarkdownScrollViewer MarkdownStyleName="Sasabune"
+                                     Markdown="{Binding Content}"
+                                     Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
+                                     VerticalScrollBarVisibility="Disabled"
+                                     HorizontalScrollBarVisibility="Disabled"
+                                     VerticalAlignment="Stretch"
+                                     HorizontalAlignment="Stretch" />
+        </DataTemplate>
+        <DataTemplate x:Key="CodeSegmentTemplate">
+            <Border Margin="0,4,0,4"
+                    Padding="1"
+                    CornerRadius="6"
+                    BorderThickness="1"
+                    BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarBorderKey}}"
+                    Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}">
+                <Grid>
+                    <TextBlock Text="{Binding LanguageLabel}"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Top"
+                               Margin="0,6,10,0"
+                               FontSize="10"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarTextInactiveKey}}" />
+                    <local:CodeBlockViewer Code="{Binding Content}"
+                                           Language="{Binding Language}"
+                                           Margin="0,18,0,0"
+                                           MinHeight="40" />
+                </Grid>
+            </Border>
+        </DataTemplate>
         <DataTemplate x:Key="MessageTemplate">
             <Border Padding="12"
                     Margin="6"
@@ -34,13 +67,14 @@
                                    FontSize="11"
                                    Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" />
                     </Border>
-                    <md:MarkdownScrollViewer MarkdownStyleName="Sasabune"
-                                             Markdown="{Binding Content}"
-                                             Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
-                                             VerticalScrollBarVisibility="Disabled"
-                                             HorizontalScrollBarVisibility="Disabled"
-                                             VerticalAlignment="Stretch"
-                                             HorizontalAlignment="Stretch" />
+                    <ItemsControl ItemsSource="{Binding Segments}"
+                                  ItemTemplateSelector="{StaticResource MessageSegmentTemplateSelector}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Vertical" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
                     <StackPanel Orientation="Horizontal"
                                 Margin="0,8,0,0"
                                 Visibility="{Binding Role, Converter={StaticResource AssistantMessageVisibilityConverter}}">

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -37,7 +38,8 @@ namespace OllamaPilot
         {
             var package = LLMCopilotProvider.Package;
             Options = (OptionPageGrid)package.GetDialogPage(typeof(OptionPageGrid));
-            TemplateService = new PromptTemplateService(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates"));
+            var assemblyDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            TemplateService = new PromptTemplateService(Path.Combine(assemblyDirectory ?? string.Empty, "Templates"));
 
             stop = new string[]{
                 Options.FimBegin,
