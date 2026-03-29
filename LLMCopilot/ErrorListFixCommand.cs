@@ -40,56 +40,57 @@ namespace OllamaPilot
         private void Execute(object sender, EventArgs e)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+            ThreadHelper.JoinableTaskFactory.Run(() => ExecuteAsync());
+        }
 
-            ThreadHelper.JoinableTaskFactory.Run(async delegate
+        private async Task ExecuteAsync()
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
+
+            var dte = await package.GetServiceAsync(typeof(DTE)) as DTE2;
+            if (dte == null)
             {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
+                VsHelpers.ShowError("Unable to access the Visual Studio error list.");
+                return;
+            }
 
-                var dte = await package.GetServiceAsync(typeof(DTE)) as DTE2;
-                if (dte == null)
-                {
-                    VsHelpers.ShowError("Unable to access the Visual Studio error list.");
-                    return;
-                }
+            var errorInfo = TryGetSelectedErrorInfo(dte) ?? TryGetFallbackErrorInfo(dte);
+            if (errorInfo == null)
+            {
+                VsHelpers.ShowInfo("Select an item in the Error List first.");
+                return;
+            }
 
-                var errorInfo = TryGetSelectedErrorInfo(dte) ?? TryGetFallbackErrorInfo(dte);
-                if (errorInfo == null)
-                {
-                    VsHelpers.ShowInfo("Select an item in the Error List first.");
-                    return;
-                }
+            VsHelpers.OpenFileAndSelectContext(dte, errorInfo.FilePath, errorInfo.Line, errorInfo.Column, 6, 6);
+            var codeContext = VsHelpers.GetFileContext(errorInfo.FilePath, errorInfo.Line, 6, 6);
+            if (string.IsNullOrWhiteSpace(codeContext))
+            {
+                VsHelpers.ShowInfo("Unable to read code around the selected error.");
+                return;
+            }
 
-                VsHelpers.OpenFileAndSelectContext(dte, errorInfo.FilePath, errorInfo.Line, errorInfo.Column, 6, 6);
-                var codeContext = VsHelpers.GetFileContext(errorInfo.FilePath, errorInfo.Line, 6, 6);
-                if (string.IsNullOrWhiteSpace(codeContext))
-                {
-                    VsHelpers.ShowInfo("Unable to read code around the selected error.");
-                    return;
-                }
+            var prompt = OllamaHelper.Instance.GetFixErrorTemplate(
+                codeContext,
+                errorInfo.FilePath,
+                errorInfo.Description,
+                errorInfo.Line,
+                errorInfo.Column);
 
-                var prompt = OllamaHelper.Instance.GetFixErrorTemplate(
-                    codeContext,
-                    errorInfo.FilePath,
-                    errorInfo.Description,
-                    errorInfo.Line,
-                    errorInfo.Column);
+            if (string.IsNullOrWhiteSpace(prompt))
+            {
+                VsHelpers.ShowError("Unable to build the error-fix prompt.");
+                return;
+            }
 
-                if (string.IsNullOrWhiteSpace(prompt))
-                {
-                    VsHelpers.ShowError("Unable to build the error-fix prompt.");
-                    return;
-                }
-
-                try
-                {
-                    VsHelpers.OpenChatWindow();
-                    EventManager.OnCodeCommandExecuted(prompt);
-                }
-                catch (Exception ex)
-                {
-                    LLMErrorHandler.HandleException(ex, "Unable to open the LLM chat window.");
-                }
-            });
+            try
+            {
+                VsHelpers.OpenChatWindow();
+                EventManager.OnCodeCommandExecuted(prompt);
+            }
+            catch (Exception ex)
+            {
+                LLMErrorHandler.HandleException(ex, "Unable to open the LLM chat window.");
+            }
         }
 
         private static ErrorInfo TryGetSelectedErrorInfo(DTE2 dte)

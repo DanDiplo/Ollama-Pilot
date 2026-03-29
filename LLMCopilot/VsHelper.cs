@@ -357,12 +357,12 @@ namespace OllamaPilot
 
         public static Task<bool> InsertTextIntoActiveDocumentAsync(IAsyncServiceProvider serviceProvider, string text)
         {
-            return ApplyTextToActiveDocumentAsync(serviceProvider, text, replaceSelection: false);
+            return ApplyTextToActiveDocumentAsync(serviceProvider, text, replaceSelection: false, formatInsertedText: true);
         }
 
         public static Task<bool> ReplaceSelectionInActiveDocumentAsync(IAsyncServiceProvider serviceProvider, string text)
         {
-            return ApplyTextToActiveDocumentAsync(serviceProvider, text, replaceSelection: true);
+            return ApplyTextToActiveDocumentAsync(serviceProvider, text, replaceSelection: true, formatInsertedText: true);
         }
 
         public static Task<bool> ReplaceActiveDocumentAsync(IAsyncServiceProvider serviceProvider, string text)
@@ -392,7 +392,7 @@ namespace OllamaPilot
             return siblingPath;
         }
 
-        private static async Task<bool> ApplyTextToActiveDocumentAsync(IAsyncServiceProvider serviceProvider, string text, bool replaceSelection, bool replaceAll = false)
+        private static async Task<bool> ApplyTextToActiveDocumentAsync(IAsyncServiceProvider serviceProvider, string text, bool replaceSelection, bool replaceAll = false, bool formatInsertedText = false)
         {
             if (serviceProvider == null || string.IsNullOrWhiteSpace(text))
             {
@@ -413,23 +413,31 @@ namespace OllamaPilot
 
             ITextSnapshot appliedSnapshot;
             int caretPosition;
+            int selectionStart;
+            int selectionLength;
             using (var edit = textView.TextBuffer.CreateEdit())
             {
                 if (replaceSelection)
                 {
                     var selectionSpan = textView.Selection.StreamSelectionSpan.SnapshotSpan;
+                    selectionStart = selectionSpan.Start.Position;
+                    selectionLength = text.Length;
                     caretPosition = selectionSpan.Start.Position + text.Length;
                     edit.Replace(selectionSpan, text);
                 }
                 else if (replaceAll)
                 {
                     var fullSpan = new Span(0, textView.TextSnapshot.Length);
+                    selectionStart = 0;
+                    selectionLength = text.Length;
                     caretPosition = text.Length;
                     edit.Replace(fullSpan, text);
                 }
                 else
                 {
                     var insertionPoint = textView.Caret.Position.BufferPosition.Position;
+                    selectionStart = insertionPoint;
+                    selectionLength = text.Length;
                     caretPosition = insertionPoint + text.Length;
                     edit.Insert(insertionPoint, text);
                 }
@@ -445,8 +453,44 @@ namespace OllamaPilot
             var boundedCaretPosition = Math.Max(0, Math.Min(caretPosition, appliedSnapshot.Length));
             textView.Caret.MoveTo(new SnapshotPoint(appliedSnapshot, boundedCaretPosition));
             textView.Selection.Clear();
+
+            if (formatInsertedText && selectionLength > 0)
+            {
+                var boundedSelectionStart = Math.Max(0, Math.Min(selectionStart, appliedSnapshot.Length));
+                var boundedSelectionLength = Math.Max(0, Math.Min(selectionLength, appliedSnapshot.Length - boundedSelectionStart));
+                if (boundedSelectionLength > 0)
+                {
+                    textView.Selection.Select(
+                        new SnapshotSpan(new SnapshotPoint(appliedSnapshot, boundedSelectionStart), boundedSelectionLength),
+                        false);
+
+                    await TryFormatSelectionAsync(serviceProvider);
+
+                    var currentSnapshot = textView.TextSnapshot;
+                    var updatedSelectionStart = Math.Max(0, Math.Min(boundedSelectionStart, currentSnapshot.Length));
+                    var updatedCaretPosition = Math.Max(0, Math.Min(updatedSelectionStart + boundedSelectionLength, currentSnapshot.Length));
+                    textView.Caret.MoveTo(new SnapshotPoint(currentSnapshot, updatedCaretPosition));
+                    textView.Selection.Clear();
+                }
+            }
+
             textView.ViewScroller.EnsureSpanVisible(new SnapshotSpan(new SnapshotPoint(appliedSnapshot, boundedCaretPosition), 0));
             return true;
+        }
+
+        private static async Task TryFormatSelectionAsync(IAsyncServiceProvider serviceProvider)
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            try
+            {
+                var dte = await serviceProvider.GetServiceAsync(typeof(SDTE)) as DTE2;
+                dte?.ExecuteCommand("Edit.FormatSelection");
+            }
+            catch
+            {
+                // Ignore formatter failures for unsupported file types or invalid intermediate code.
+            }
         }
 
         private static string BuildSiblingFilePath(string activeDocumentPath, string content)

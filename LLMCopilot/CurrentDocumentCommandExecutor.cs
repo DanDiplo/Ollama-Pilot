@@ -1,42 +1,41 @@
 using Microsoft.VisualStudio.Shell;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace OllamaPilot
 {
     internal static class CurrentDocumentCommandExecutor
     {
-        public static void Execute(
+        public static async Task ExecuteAsync(
             AsyncPackage package,
             Func<string, string, string> createPrompt,
             Func<string, string> createVisibleMessage,
             string emptyDocumentMessage)
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
 
-            ThreadHelper.JoinableTaskFactory.Run(async delegate
+            string documentText;
+            string documentPath;
+            try
             {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
+                documentText = await VsHelpers.GetActiveDocumentTextAsync(package);
+                documentPath = await VsHelpers.GetActiveDocumentPathAsync(package);
+            }
+            catch (Exception ex)
+            {
+                LLMErrorHandler.HandleException(ex, "Unable to read the active document.");
+                return;
+            }
 
-                string documentText;
-                string documentPath;
-                try
-                {
-                    documentText = await VsHelpers.GetActiveDocumentTextAsync(package);
-                    documentPath = await VsHelpers.GetActiveDocumentPathAsync(package);
-                }
-                catch (Exception ex)
-                {
-                    LLMErrorHandler.HandleException(ex, "Unable to read the active document.");
-                    return;
-                }
+            if (string.IsNullOrWhiteSpace(documentText))
+            {
+                VsHelpers.ShowInfo(emptyDocumentMessage);
+                return;
+            }
 
-                if (string.IsNullOrWhiteSpace(documentText))
-                {
-                    VsHelpers.ShowInfo(emptyDocumentMessage);
-                    return;
-                }
-
+            try
+            {
                 var promptText = PrepareDocumentForPrompt(documentText);
                 var prompt = createPrompt(promptText, documentPath ?? string.Empty);
                 if (string.IsNullOrWhiteSpace(prompt))
@@ -51,16 +50,14 @@ namespace OllamaPilot
                     visibleMessage += " The file was trimmed to fit the current chat context.";
                 }
 
-                try
-                {
-                    VsHelpers.OpenChatWindow();
-                    EventManager.OnCodeCommandExecuted(visibleMessage, prompt);
-                }
-                catch (Exception ex)
-                {
-                    LLMErrorHandler.HandleException(ex, "Unable to open the LLM chat window.");
-                }
-            });
+                VsHelpers.OpenChatWindow();
+                await System.Threading.Tasks.Task.Yield();
+                EventManager.OnCodeCommandExecuted(visibleMessage, prompt);
+            }
+            catch (Exception ex)
+            {
+                LLMErrorHandler.HandleException(ex, "Unable to send the current document to Ollama Pilot.");
+            }
         }
 
         internal static string PrepareDocumentForPrompt(string documentText)

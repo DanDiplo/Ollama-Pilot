@@ -32,8 +32,8 @@
                     Padding="1"
                     CornerRadius="6"
                     BorderThickness="1"
-                    BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarBorderKey}}"
-                    Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}">
+                    BorderBrush="#D0D7DE"
+                    Background="#F6F8FA">
                 <Grid>
                     <TextBlock Text="{Binding LanguageLabel}"
                                HorizontalAlignment="Right"
@@ -41,7 +41,7 @@
                                Margin="0,6,10,0"
                                FontSize="10"
                                FontWeight="SemiBold"
-                               Foreground="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarTextInactiveKey}}" />
+                               Foreground="#57606A" />
                     <local:CodeBlockViewer Code="{Binding Content}"
                                            Language="{Binding Language}"
                                            Margin="0,18,0,0"

@@ -35,25 +35,28 @@ namespace OllamaPilot
         private void Execute(object sender, EventArgs e)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+            ThreadHelper.JoinableTaskFactory.Run(() => ExecuteAsync());
+        }
 
-            ThreadHelper.JoinableTaskFactory.Run(async delegate
+        private async Task ExecuteAsync()
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
+
+            var changesContext = await GitContextHelper.TryGetChangesContextAsync(this.package);
+            if (changesContext == null)
             {
-                var changesContext = await GitContextHelper.TryGetChangesContextAsync(this.package);
-                if (changesContext == null)
-                {
-                    VsHelpers.ShowInfo("No Git changes were found from the current solution or document context.");
-                    return;
-                }
+                VsHelpers.ShowInfo("No Git changes were found from the current solution or document context.");
+                return;
+            }
 
-                var prompt = OllamaHelper.Instance.GetSummarizeChangesTemplate(
-                    changesContext.RepositoryRoot,
-                    changesContext.StatusText,
-                    changesContext.DiffText);
+            var prompt = OllamaHelper.Instance.GetSummarizeChangesTemplate(
+                changesContext.RepositoryRoot,
+                changesContext.StatusText,
+                changesContext.DiffText);
 
-                var repoName = Path.GetFileName(changesContext.RepositoryRoot);
-                VsHelpers.OpenChatWindow();
-                EventManager.OnCodeCommandExecuted($"Summarize the current Git changes for {repoName}.", prompt);
-            });
+            var repoName = Path.GetFileName(changesContext.RepositoryRoot);
+            VsHelpers.OpenChatWindow();
+            EventManager.OnCodeCommandExecuted($"Summarize the current Git changes for {repoName}.", prompt);
         }
     }
 }

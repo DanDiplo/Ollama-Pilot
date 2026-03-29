@@ -1,28 +1,22 @@
-﻿using OllamaSharp.Models.Chat;
+﻿using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
-using MdXaml;
-using System.Windows.Media;
 using System.Windows.Data;
-using System.Globalization;
-using System;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Text;
-using System.Text.RegularExpressions;
+using System.Windows.Input;
+using System.Windows.Media;
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Highlighting;
 using Microsoft.VisualStudio.Shell;
-using Chat = OllamaPilot.Chat;
-using ChatResponseStream = OllamaPilot.ChatResponseStream;
-using ChatRole = OllamaPilot.ChatRole;
-using Message = OllamaPilot.Message;
 
 namespace OllamaPilot
 {
@@ -43,6 +37,7 @@ namespace OllamaPilot
                     _message.Content = value;
                     Segments = ParseSegments(value);
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(Segments));
                 }
             }
         }
@@ -170,6 +165,10 @@ namespace OllamaPilot
 
     public class CodeBlockViewer : TextEditor
     {
+        private static readonly Brush CodeBackgroundBrush = new SolidColorBrush(Color.FromRgb(246, 248, 250));
+        private static readonly Brush CodeForegroundBrush = new SolidColorBrush(Color.FromRgb(31, 35, 40));
+        private static readonly Brush LineNumberBrush = new SolidColorBrush(Color.FromRgb(101, 109, 118));
+
         public static readonly DependencyProperty CodeProperty =
             DependencyProperty.Register(
                 "Code",
@@ -192,9 +191,12 @@ namespace OllamaPilot
             HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
             BorderThickness = new Thickness(0);
-            Background = Brushes.Transparent;
+            Background = CodeBackgroundBrush;
+            Foreground = CodeForegroundBrush;
             FontFamily = new FontFamily("Consolas");
             FontSize = 12;
+            TextArea.TextView.BackgroundRenderers.Clear();
+            LineNumbersForeground = LineNumberBrush;
         }
 
         public string Code
@@ -285,6 +287,10 @@ namespace OllamaPilot
         private string _lastSubmittedText;
         private string _lastPromptOverride;
         private ChatRole _lastSubmittedRole = ChatRole.User;
+        private GeneratedResponseGuard _activeResponseGuard;
+        private string _activeOriginalSelection;
+        private GeneratedResponseGuard _lastResponseGuard;
+        private string _lastOriginalSelection;
 
         public string StatusText
         {
@@ -412,7 +418,7 @@ namespace OllamaPilot
                 // 将新内容添加到缓存
                 _messageCache.Append(response.Message.Content);
 
-                string[] delimeters = {"\n", ",", "，", ".", "。", ":", "：", ";", "；", "\t"};
+                string[] delimeters = { "\n", ",", "，", ".", "。", ":", "：", ";", "；", "\t" };
 
                 bool containsKeyword = delimeters.Any(keyword => response.Message.Content.Contains(keyword));
                 // 检查是否需要更新消息列表
@@ -460,17 +466,26 @@ namespace OllamaPilot
         [SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "Event handlers require async void.")]
         private async void OnExplainCodeCommandExecuted(object sender, CommandExecutedEventArgs e)
         {
-            await SendChatMessageAsync(e.SelectedText, ChatRole.System, e.PromptOverride);
+            try
+            {
+                await SendChatMessageAsync(e.SelectedText, ChatRole.System, e.PromptOverride, e.ResponseGuard, e.OriginalSelection);
+            }
+            catch (Exception ex)
+            {
+                LLMErrorHandler.HandleException(ex, "Unable to process the command request in the chat window.");
+                UpdateStatus("The command request could not be sent to the chat window.", Colors.OrangeRed);
+            }
         }
 
         private void LLMChatWindowControl_loaded(object sender, RoutedEventArgs e)
         {
             EventManager.CodeCommandExecuted += OnExplainCodeCommandExecuted;
-            
+
             Chat.SelectedModel = OllamaHelper.Instance.Options.ChatModel;
             Chat.Options = OllamaHelper.Instance.ChatRequestOptions;
             Chat.AccessToken = OllamaHelper.Instance.Options.AccessToken;
             RefreshHeaderState();
+            _ = ProcessPendingCodeCommandsAsync();
         }
 
         private void LLMChatWindowControl_Unloaded(object sender, RoutedEventArgs e)
@@ -575,52 +590,69 @@ namespace OllamaPilot
             }
         }
 
-        public async Task SendChatMessageAsync(string text, ChatRole role, string promptOverride = null)
+        public async Task SendChatMessageAsync(
+            string text,
+            ChatRole role,
+            string promptOverride = null,
+            GeneratedResponseGuard responseGuard = GeneratedResponseGuard.None,
+            string originalSelection = null)
         {
-            if (!string.IsNullOrWhiteSpace(text) && !VsHelpers.IsSending)
+            if (string.IsNullOrWhiteSpace(text))
             {
-                VsHelpers.IsSending = true;
-                SendButton.Content = "Answering...";
-                SendButton.IsEnabled = false;
-                CanCancelResponse = true;
-                UpdateStatus($"Asking {OllamaHelper.Instance.Options.ChatModel}...", Colors.DodgerBlue);
-                RememberLastRequest(text, role, promptOverride);
+                return;
+            }
 
+            if (VsHelpers.IsSending)
+            {
+                UpdateStatus("A response is already in progress. Cancel it or wait for it to finish.", Colors.DarkGoldenrod);
+                return;
+            }
+
+            VsHelpers.IsSending = true;
+            SendButton.Content = "Answering...";
+            SendButton.IsEnabled = false;
+            CanCancelResponse = true;
+            UpdateStatus($"Asking {OllamaHelper.Instance.Options.ChatModel}...", Colors.DodgerBlue);
+
+            try
+            {
+                _activeResponseGuard = responseGuard;
+                _activeOriginalSelection = originalSelection;
+                RememberLastRequest(text, role, promptOverride, responseGuard, originalSelection);
                 AddMessage(role, text);
-
                 ScrollToBottom();
 
                 _sendCancellationTokenSource?.Cancel();
                 _sendCancellationTokenSource = new CancellationTokenSource();
                 _sendCancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(60));
-                try
-                {
-                    await Task.Run(async () =>
-                    {
-                        await Chat.SendAsync(promptOverride ?? text, _sendCancellationTokenSource.Token);
-                    });
-                }
-                catch (Exception ex)
-                {
-                    LLMErrorHandler.HandleException(ex, "Unable to get a response from Ollama. Check the configured URL, access token, and model names.");
-                    UpdateStatus("The chat request failed. Check Ollama connectivity and model names.", Colors.OrangeRed);
-                }
 
+                await Task.Run(async () =>
+                {
+                    await Chat.SendAsync(promptOverride ?? text, _sendCancellationTokenSource.Token);
+                });
 
-                // 确保在任何情况下都重置状态
+                ValidateLatestAssistantMessageIfNeeded();
+                UpdateStatus($"Response ready from {OllamaHelper.Instance.Options.ChatModel}.", Colors.SeaGreen);
+            }
+            catch (OperationCanceledException)
+            {
+                UpdateStatus("Canceled the current chat response.", Colors.DarkGoldenrod);
+            }
+            catch (Exception ex)
+            {
+                LLMErrorHandler.HandleException(ex, "Unable to get a response from Ollama. Check the configured URL, access token, and model names.");
+                UpdateStatus("The chat request failed. Check Ollama connectivity and model names.", Colors.OrangeRed);
+            }
+            finally
+            {
                 VsHelpers.IsSending = false;
                 SendButton.Content = "Send";
                 SendButton.IsEnabled = true;
                 _sendCancellationTokenSource = null;
                 CanCancelResponse = false;
-                if (!string.IsNullOrWhiteSpace(text))
-                {
-                    UpdateStatus($"Response ready from {OllamaHelper.Instance.Options.ChatModel}.", Colors.SeaGreen);
-                }
-
+                _activeResponseGuard = GeneratedResponseGuard.None;
+                _activeOriginalSelection = null;
                 ScrollToBottom();
-
-                
             }
         }
 
@@ -634,6 +666,19 @@ namespace OllamaPilot
 
             MessageTextBox.Clear();
             await SendChatMessageAsync(text, ChatRole.User);
+        }
+
+        private async Task ProcessPendingCodeCommandsAsync()
+        {
+            while (EventManager.TryDequeuePendingCodeCommand(out var pendingCommand))
+            {
+                await SendChatMessageAsync(
+                    pendingCommand.SelectedText,
+                    ChatRole.System,
+                    pendingCommand.PromptOverride,
+                    pendingCommand.ResponseGuard,
+                    pendingCommand.OriginalSelection);
+            }
         }
 
         [SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "WPF event handlers require async void.")]
@@ -899,7 +944,7 @@ namespace OllamaPilot
 
             if (!TryExtractFirstCodeBlock(content, out var fencedCode))
             {
-                return content.Trim();
+                return StripMarkdownCodeFences(content);
             }
 
             return fencedCode;
@@ -925,6 +970,35 @@ namespace OllamaPilot
 
             code = fencedCodeMatch.Groups[1].Value.Trim('\r', '\n');
             return !string.IsNullOrWhiteSpace(code);
+        }
+
+        private static string StripMarkdownCodeFences(string content)
+        {
+            var normalized = (content ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return normalized;
+            }
+
+            if (normalized.StartsWith("```", StringComparison.Ordinal))
+            {
+                var firstLineBreak = normalized.IndexOf('\n');
+                if (firstLineBreak >= 0)
+                {
+                    normalized = normalized.Substring(firstLineBreak + 1).TrimStart('\r', '\n');
+                }
+                else
+                {
+                    return string.Empty;
+                }
+            }
+
+            if (normalized.EndsWith("```", StringComparison.Ordinal))
+            {
+                normalized = normalized.Substring(0, normalized.Length - 3).TrimEnd();
+            }
+
+            return normalized.Trim();
         }
 
         private string GetDraftInstructionText()
@@ -1062,15 +1136,138 @@ namespace OllamaPilot
             }
 
             DraftHintText = "Regenerating the most recent request with the same prompt context.";
-            await SendChatMessageAsync(_lastSubmittedText, _lastSubmittedRole, _lastPromptOverride);
+            await SendChatMessageAsync(_lastSubmittedText, _lastSubmittedRole, _lastPromptOverride, _lastResponseGuard, _lastOriginalSelection);
         }
 
-        private void RememberLastRequest(string text, ChatRole role, string promptOverride)
+        private void RememberLastRequest(
+            string text,
+            ChatRole role,
+            string promptOverride,
+            GeneratedResponseGuard responseGuard,
+            string originalSelection)
         {
             _lastSubmittedText = text;
             _lastSubmittedRole = role;
             _lastPromptOverride = promptOverride;
+            _lastResponseGuard = responseGuard;
+            _lastOriginalSelection = originalSelection;
             CanRegenerateLast = !string.IsNullOrWhiteSpace(text);
+        }
+
+        private void ValidateLatestAssistantMessageIfNeeded()
+        {
+            if (_activeResponseGuard != GeneratedResponseGuard.CommentOnly || string.IsNullOrWhiteSpace(_activeOriginalSelection))
+            {
+                return;
+            }
+
+            var lastAssistantMessage = _messages.LastOrDefault(m => m.Role == ChatRole.Assistant);
+            if (lastAssistantMessage == null)
+            {
+                return;
+            }
+
+            var candidateCode = GetEditorInsertionText(lastAssistantMessage.Content);
+            if (LooksLikeInvalidCommentOnlyRewrite(_activeOriginalSelection, candidateCode))
+            {
+                _messages.Remove(lastAssistantMessage);
+                AddMessage(ChatRole.System, "Comment-only response was rejected because it changed the selected snippet structure instead of only adding comments.");
+                UpdateStatus("Rejected an unsafe comment-only response from the model.", Colors.DarkGoldenrod);
+            }
+        }
+
+        private static bool LooksLikeInvalidCommentOnlyRewrite(string originalSelection, string generatedCode)
+        {
+            if (string.IsNullOrWhiteSpace(originalSelection) || string.IsNullOrWhiteSpace(generatedCode))
+            {
+                return true;
+            }
+
+            var originalLines = GetNonEmptyLines(originalSelection);
+            var generatedLines = GetNonEmptyLines(generatedCode);
+            var originalCodeLines = originalLines.Where(line => !IsCommentOnlyLine(line)).ToArray();
+            var generatedCodeLines = generatedLines.Where(line => !IsCommentOnlyLine(line)).ToArray();
+            if (originalLines.Length == 0 || generatedLines.Length == 0)
+            {
+                return true;
+            }
+
+            if (originalCodeLines.Length == 0 || generatedCodeLines.Length == 0)
+            {
+                return true;
+            }
+
+            if (!string.Equals(originalCodeLines[0], generatedCodeLines[0], StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (!string.Equals(originalCodeLines[originalCodeLines.Length - 1], generatedCodeLines[generatedCodeLines.Length - 1], StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (!ContainsAllOriginalCodeLinesInOrder(originalLines, generatedLines))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static string[] GetNonEmptyLines(string text)
+        {
+            return (text ?? string.Empty)
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Select(line => line.TrimEnd())
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .ToArray();
+        }
+
+        private static bool ContainsAllOriginalCodeLinesInOrder(string[] originalLines, string[] generatedLines)
+        {
+            var generatedIndex = 0;
+            foreach (var originalLine in originalLines)
+            {
+                if (IsCommentOnlyLine(originalLine))
+                {
+                    continue;
+                }
+
+                var matched = false;
+                while (generatedIndex < generatedLines.Length)
+                {
+                    var generatedLine = generatedLines[generatedIndex++];
+                    if (IsCommentOnlyLine(generatedLine))
+                    {
+                        continue;
+                    }
+
+                    if (string.Equals(originalLine, generatedLine, StringComparison.Ordinal))
+                    {
+                        matched = true;
+                        break;
+                    }
+                }
+
+                if (!matched)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsCommentOnlyLine(string line)
+        {
+            var trimmed = line?.TrimStart();
+            return !string.IsNullOrWhiteSpace(trimmed)
+                && (trimmed.StartsWith("//", StringComparison.Ordinal)
+                    || trimmed.StartsWith("/*", StringComparison.Ordinal)
+                    || trimmed.StartsWith("*", StringComparison.Ordinal)
+                    || trimmed.StartsWith("///", StringComparison.Ordinal)
+                    || trimmed.StartsWith("'''", StringComparison.Ordinal));
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

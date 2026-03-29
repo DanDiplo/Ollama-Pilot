@@ -34,11 +34,11 @@ namespace OllamaPilot
         private void Execute(object sender, EventArgs e)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            CurrentDocumentCommandExecutor.Execute(
+            ThreadHelper.JoinableTaskFactory.Run(() => CurrentDocumentCommandExecutor.ExecuteAsync(
                 this.package,
                 OllamaHelper.Instance.GetReviewFileTemplate,
                 fileName => $"Review the current file: {fileName}",
-                "Open a code file first.");
+                "Open a code file first."));
         }
     }
 }

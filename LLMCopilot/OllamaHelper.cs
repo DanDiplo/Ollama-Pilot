@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -343,12 +344,43 @@ namespace OllamaPilot
 
     public static class EventManager
     {
-        public static event EventHandler<CommandExecutedEventArgs> CodeCommandExecuted;
+        private static readonly ConcurrentQueue<CommandExecutedEventArgs> pendingCodeCommands = new ConcurrentQueue<CommandExecutedEventArgs>();
+        private static EventHandler<CommandExecutedEventArgs> codeCommandExecuted;
+
+        public static event EventHandler<CommandExecutedEventArgs> CodeCommandExecuted
+        {
+            add
+            {
+                codeCommandExecuted += value;
+            }
+            remove
+            {
+                codeCommandExecuted -= value;
+            }
+        }
+
         public static event EventHandler<CmdEventArgs> CmdEventsHandler;
 
-        public static void OnCodeCommandExecuted(string selectedText, string promptOverride = null)
+        public static void OnCodeCommandExecuted(
+            string selectedText,
+            string promptOverride = null,
+            string originalSelection = null,
+            GeneratedResponseGuard responseGuard = GeneratedResponseGuard.None)
         {
-            CodeCommandExecuted?.Invoke(null, new CommandExecutedEventArgs(selectedText, promptOverride));
+            var args = new CommandExecutedEventArgs(selectedText, promptOverride, originalSelection, responseGuard);
+            var handler = codeCommandExecuted;
+            if (handler == null)
+            {
+                pendingCodeCommands.Enqueue(args);
+                return;
+            }
+
+            handler.Invoke(null, args);
+        }
+
+        public static bool TryDequeuePendingCodeCommand(out CommandExecutedEventArgs args)
+        {
+            return pendingCodeCommands.TryDequeue(out args);
         }
 
         public static void OnCmdEventHandler(CmdEventType cmdType)
@@ -361,12 +393,26 @@ namespace OllamaPilot
     {
         public string SelectedText { get; }
         public string PromptOverride { get; }
+        public string OriginalSelection { get; }
+        public GeneratedResponseGuard ResponseGuard { get; }
 
-        public CommandExecutedEventArgs(string selectedText, string promptOverride = null)
+        public CommandExecutedEventArgs(
+            string selectedText,
+            string promptOverride = null,
+            string originalSelection = null,
+            GeneratedResponseGuard responseGuard = GeneratedResponseGuard.None)
         {
             SelectedText = selectedText;
             PromptOverride = promptOverride;
+            OriginalSelection = originalSelection;
+            ResponseGuard = responseGuard;
         }
+    }
+
+    public enum GeneratedResponseGuard
+    {
+        None,
+        CommentOnly
     }
 
     public enum CmdEventType

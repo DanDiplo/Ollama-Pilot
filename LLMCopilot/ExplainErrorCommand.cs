@@ -36,48 +36,49 @@ namespace OllamaPilot
         private void Execute(object sender, EventArgs e)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+            ThreadHelper.JoinableTaskFactory.Run(() => ExecuteAsync());
+        }
 
-            ThreadHelper.JoinableTaskFactory.Run(async delegate
+        private async Task ExecuteAsync()
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
+
+            var textView = await VsHelpers.GetActiveTextViewAsync(package);
+            if (textView == null)
             {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
+                VsHelpers.ShowInfo("Open a code editor first.");
+                return;
+            }
 
-                var textView = await VsHelpers.GetActiveTextViewAsync(package);
-                if (textView == null)
-                {
-                    VsHelpers.ShowInfo("Open a code editor first.");
-                    return;
-                }
+            var selectedText = VsHelpers.GetSelectedText(textView);
+            var codeContext = !string.IsNullOrWhiteSpace(selectedText)
+                ? selectedText
+                : VsHelpers.GetContextAroundCaret(textView, 6, 6);
 
-                var selectedText = VsHelpers.GetSelectedText(textView);
-                var codeContext = !string.IsNullOrWhiteSpace(selectedText)
-                    ? selectedText
-                    : VsHelpers.GetContextAroundCaret(textView, 6, 6);
+            if (string.IsNullOrWhiteSpace(codeContext))
+            {
+                VsHelpers.ShowInfo("Select code or place the caret on the problem line first.");
+                return;
+            }
 
-                if (string.IsNullOrWhiteSpace(codeContext))
-                {
-                    VsHelpers.ShowInfo("Select code or place the caret on the problem line first.");
-                    return;
-                }
+            var currentLine = VsHelpers.GetCurrentLineText(textView);
+            var fileName = await VsHelpers.GetActiveDocumentFileNameAsync(package) ?? string.Empty;
+            var prompt = OllamaHelper.Instance.GetDiagnoseErrorsTemplate(codeContext, fileName, currentLine);
+            if (string.IsNullOrWhiteSpace(prompt))
+            {
+                VsHelpers.ShowError("Unable to build the diagnostic prompt.");
+                return;
+            }
 
-                var currentLine = VsHelpers.GetCurrentLineText(textView);
-                var fileName = await VsHelpers.GetActiveDocumentFileNameAsync(package) ?? string.Empty;
-                var prompt = OllamaHelper.Instance.GetDiagnoseErrorsTemplate(codeContext, fileName, currentLine);
-                if (string.IsNullOrWhiteSpace(prompt))
-                {
-                    VsHelpers.ShowError("Unable to build the diagnostic prompt.");
-                    return;
-                }
-
-                try
-                {
-                    VsHelpers.OpenChatWindow();
-                    EventManager.OnCodeCommandExecuted(prompt);
-                }
-                catch (Exception ex)
-                {
-                    LLMErrorHandler.HandleException(ex, "Unable to open the LLM chat window.");
-                }
-            });
+            try
+            {
+                VsHelpers.OpenChatWindow();
+                EventManager.OnCodeCommandExecuted(prompt);
+            }
+            catch (Exception ex)
+            {
+                LLMErrorHandler.HandleException(ex, "Unable to open the LLM chat window.");
+            }
         }
     }
 }
