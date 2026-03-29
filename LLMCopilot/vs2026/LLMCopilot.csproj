@@ -45,18 +45,36 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\AddCommentCommand.cs" />
-    <Compile Include="..\CodeCompleteCommand.cs" />
+    <Compile Include="..\AddCommentCommand.cs">
+      <Link>Commands\AddCommentCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\CodeCompleteCommand.cs">
+      <Link>Commands\CodeCompleteCommand.cs</Link>
+    </Compile>
     <Compile Include="..\CurrentDocumentCommandExecutor.cs" />
     <Compile Include="..\DiffPreviewBuilder.cs" />
-    <Compile Include="..\ErrorListFixCommand.cs" />
-    <Compile Include="..\ExplainErrorCommand.cs" />
-    <Compile Include="..\FindBugCommand.cs" />
-    <Compile Include="..\GenerateFileTestsCommand.cs" />
+    <Compile Include="..\ErrorListFixCommand.cs">
+      <Link>Commands\ErrorListFixCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\ExplainErrorCommand.cs">
+      <Link>Commands\ExplainErrorCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\FindBugCommand.cs">
+      <Link>Commands\FindBugCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\GenerateFileTestsCommand.cs">
+      <Link>Commands\GenerateFileTestsCommand.cs</Link>
+    </Compile>
     <Compile Include="..\GitContextHelper.cs" />
-    <Compile Include="..\ReviewFileCommand.cs" />
-    <Compile Include="..\SummarizeChangesCommand.cs" />
-    <Compile Include="..\UnitTestCommand.cs" />
+    <Compile Include="..\ReviewFileCommand.cs">
+      <Link>Commands\ReviewFileCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\SummarizeChangesCommand.cs">
+      <Link>Commands\SummarizeChangesCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\UnitTestCommand.cs">
+      <Link>Commands\UnitTestCommand.cs</Link>
+    </Compile>
     <Compile Include="..\LLMAdornment.cs" />
     <Compile Include="..\LLMErrorHandler.cs" />
     <Compile Include="..\LLMChatWindow.cs" />
@@ -64,36 +82,76 @@
     <Compile Include="..\LLMChatWindowControl.xaml.cs">
       <DependentUpon>LLMChatWindowControl.xaml</DependentUpon>
     </Compile>
-    <Compile Include="..\ExplainCommand.cs" />
+    <Compile Include="..\ExplainCommand.cs">
+      <Link>Commands\ExplainCommand.cs</Link>
+    </Compile>
     <Compile Include="..\OllamaHelper.cs" />
     <Compile Include="..\PromptTemplateService.cs" />
     <Compile Include="..\OllamaSharp\ActionResponseStreamer.cs" />
-    <Compile Include="..\OllamaSharp\Chat.cs" />
-    <Compile Include="..\OllamaSharp\ChatDoneResponseStream.cs" />
-    <Compile Include="..\OllamaSharp\ChatRequest.cs" />
-    <Compile Include="..\OllamaSharp\ChatResponseStream.cs" />
-    <Compile Include="..\OllamaSharp\ChatRole.cs" />
+    <Compile Include="..\OllamaSharp\Chat.cs">
+      <Link>Models\Chat.cs</Link>
+    </Compile>
+    <Compile Include="..\OllamaSharp\ChatDoneResponseStream.cs">
+      <Link>Models\ChatDoneResponseStream.cs</Link>
+    </Compile>
+    <Compile Include="..\OllamaSharp\ChatRequest.cs">
+      <Link>Models\ChatRequest.cs</Link>
+    </Compile>
+    <Compile Include="..\OllamaSharp\ChatResponseStream.cs">
+      <Link>Models\ChatResponseStream.cs</Link>
+    </Compile>
+    <Compile Include="..\OllamaSharp\ChatRole.cs">
+      <Link>Models\ChatRole.cs</Link>
+    </Compile>
     <Compile Include="..\OllamaSharp\ChatRoleConverter.cs" />
-    <Compile Include="..\OllamaSharp\CopyModel.cs" />
-    <Compile Include="..\OllamaSharp\CreateModel.cs" />
-    <Compile Include="..\OllamaSharp\DeleteModel.cs" />
-    <Compile Include="..\OllamaSharp\GenerateCompletion.cs" />
-    <Compile Include="..\OllamaSharp\GenerateEmbedding.cs" />
+    <Compile Include="..\OllamaSharp\CopyModel.cs">
+      <Link>Models\CopyModel.cs</Link>
+    </Compile>
+    <Compile Include="..\OllamaSharp\CreateModel.cs">
+      <Link>Models\CreateModel.cs</Link>
+    </Compile>
+    <Compile Include="..\OllamaSharp\DeleteModel.cs">
+      <Link>Models\DeleteModel.cs</Link>
+    </Compile>
+    <Compile Include="..\OllamaSharp\GenerateCompletion.cs">
+      <Link>Models\GenerateCompletion.cs</Link>
+    </Compile>
+    <Compile Include="..\OllamaSharp\GenerateEmbedding.cs">
+      <Link>Models\GenerateEmbedding.cs</Link>
+    </Compile>
     <Compile Include="..\OllamaSharp\IOllamaApiClient.cs" />
     <Compile Include="..\OllamaSharp\IResponseStreamer.cs" />
-    <Compile Include="..\OllamaSharp\ListModels.cs" />
-    <Compile Include="..\OllamaSharp\Message.cs" />
+    <Compile Include="..\OllamaSharp\ListModels.cs">
+      <Link>Models\ListModels.cs</Link>
+    </Compile>
+    <Compile Include="..\OllamaSharp\Message.cs">
+      <Link>Models\Message.cs</Link>
+    </Compile>
     <Compile Include="..\OllamaSharp\OllamaApiClient.cs" />
-    <Compile Include="..\OllamaSharp\PullModel.cs" />
-    <Compile Include="..\OllamaSharp\PushModel.cs" />
-    <Compile Include="..\OllamaSharp\RequestOptions.cs" />
-    <Compile Include="..\OllamaSharp\ShowModel.cs" />
-    <Compile Include="..\OptimizeCodeCommand.cs" />
-    <Compile Include="..\SettingsCommand.cs" />
+    <Compile Include="..\OllamaSharp\PullModel.cs">
+      <Link>Models\PullModel.cs</Link>
+    </Compile>
+    <Compile Include="..\OllamaSharp\PushModel.cs">
+      <Link>Models\PushModel.cs</Link>
+    </Compile>
+    <Compile Include="..\OllamaSharp\RequestOptions.cs">
+      <Link>Models\RequestOptions.cs</Link>
+    </Compile>
+    <Compile Include="..\OllamaSharp\ShowModel.cs">
+      <Link>Commands\ShowModel.cs</Link>
+    </Compile>
+    <Compile Include="..\OptimizeCodeCommand.cs">
+      <Link>Commands\OptimizeCodeCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\SettingsCommand.cs">
+      <Link>Commands\SettingsCommand.cs</Link>
+    </Compile>
     <Compile Include="..\SettingsWindow.xaml.cs">
       <DependentUpon>SettingsWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="..\TestConnectionCommand.cs" />
+    <Compile Include="..\TestConnectionCommand.cs">
+      <Link>Commands\TestConnectionCommand.cs</Link>
+    </Compile>
     <Compile Include="..\OptionPageGrid.cs">
       <SubType>Component</SubType>
     </Compile>

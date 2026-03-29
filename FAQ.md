@@ -1,25 +1,26 @@
 # FAQ
 
-## `LLMCopilot`是否会将代码发送到其他地方？
+## Does `LLMCopilot` send code to other places?
 
-绝对不会，LLMCopilot仅会与你配置`Ollama`服务器通信，所有的数据都在你的机器和你部署的`Ollama`服务器之间进行传输。数据不会被发送到任何其他地方。
+Absolutely not. `LLMCopilot` only communicates with the `Ollama` server you configure. All data is transferred between your machine and the `Ollama` server you deploy. Data is not sent anywhere else.
 
-## 哪些文件会作为代码自动完成的参考？
+## Which files are used as references for code auto-completion?
 
-目前版本中，仅当前编辑文件会作为代码自动完成的参考。
+In the current version, only the file being edited is used as a reference for code auto-completion.
 
-## 使用的`Context Window`长度是多少，如何修改？
+## What is the length of the `Context Window` used, and how can it be modified?
 
-- 默认的`2K Context Window`用于代码完成，`4K Context Window`用于对话。
-- 你可以在插件的配置页中进行修改。
+- The default `2K Context Window` is used for code completion, while the `4K Context Window` is used for chat.
+- You can make modifications in the setting page of the extension.
 
-## `Settings`设置页中的`Reverse Proxy Access Token`是什么？如何使用？
+## What is the `Reverse Proxy Access Token` in the `Settings` page? How do I use it?
 
-有时你可能想要将`Ollama`服务器暴露在互联网上，但是又希望使用类似`nginx`的反向代理来保护它。这时候你可能需要一个`Access Token`来验证请求是否来自可信任的源。这时你可以设置`Reverse Proxy Access Token`来添加你的`Access Token`。
-当你设置了`Reverse Proxy Access Token`后，`LLMCopilot`会在`Ollama`请求中添加`Authorization: Bearer <your_token>`头部信息。这样你就可以在反向代理服务器上验证请求的合法性了。
-请注意，这个设置只对使用反向代理的用户有效，如果你直接访问`Ollama`服务器，不需要添加此令牌。
+Sometimes you may want to expose the `Ollama` server to the internet but wish to protect it using a reverse proxy like `nginx`. In such cases, you might need an `Access Token` to verify that requests are from a trusted source. You can set the `Reverse Proxy Access Token` to include your `Access Token`.
 
-下面是`chatGPT`提供的一个`nginx`配置示例，用于验证请求的合法性：
+When you set the `Reverse Proxy Access Token`, `LLMCopilot` will add the `Authorization: Bearer <your_token>` header to requests made to `Ollama`. This allows you to verify the legitimacy of requests on the reverse proxy server.
+Please note that this setting is only relevant for users using a reverse proxy. If you access the `Ollama` server directly, you do not need to add this token.
+
+Below is an example `nginx` configuration provided by `chatGPT` to validate requests:
 ```
 http {
     map $http_authorization $token {

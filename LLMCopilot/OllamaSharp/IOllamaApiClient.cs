@@ -30,14 +30,14 @@ namespace OllamaSharp
         /// </param>
         /// <param name="cancellationToken">The token to cancel the operation with</param>
         /// <returns>List of the returned messages including the previous context</returns>
-        Task<IEnumerable<Message>> SendChat(ChatRequest chatRequest, IResponseStreamer<ChatResponseStream> streamer, CancellationToken cancellationToken = default);
+        Task<IEnumerable<Message>> SendChatAsync(ChatRequest chatRequest, IResponseStreamer<ChatResponseStream> streamer, CancellationToken cancellationToken = default);
 
 		/// <summary>
 		/// Sends a request to the /api/copy endpoint to copy a model
 		/// </summary>
 		/// <param name="request">The parameters required to copy a model</param>
 		/// <param name="cancellationToken">The token to cancel the operation with</param>
-		Task CopyModel(CopyModelRequest request, CancellationToken cancellationToken = default);
+		Task CopyModelAsync(CopyModelRequest request, CancellationToken cancellationToken = default);
 
 		/// <summary>
 		/// Sends a request to the /api/create endpoint to create a model
@@ -48,21 +48,21 @@ namespace OllamaSharp
 		/// Can be used to update the user interface while the operation is running.
 		/// </param>
 		/// <param name="cancellationToken">The token to cancel the operation with</param>
-		Task CreateModel(CreateModelRequest request, IResponseStreamer<CreateStatus> streamer, CancellationToken cancellationToken = default);
+		Task CreateModelAsync(CreateModelRequest request, IResponseStreamer<CreateStatus> streamer, CancellationToken cancellationToken = default);
 
 		/// <summary>
 		/// Sends a request to the /api/delete endpoint to delete a model
 		/// </summary>
 		/// <param name="model">The name of the model to delete</param>
 		/// <param name="cancellationToken">The token to cancel the operation with</param>
-		Task DeleteModel(string model, CancellationToken cancellationToken = default);
+		Task DeleteModelAsync(string model, CancellationToken cancellationToken = default);
 
 		/// <summary>
 		/// Sends a request to the /api/embeddings endpoint to generate embeddings
 		/// </summary>
 		/// <param name="request">The parameters to generate embeddings for</param>
 		/// <param name="cancellationToken">The token to cancel the operation with</param>
-		Task<GenerateEmbeddingResponse> GenerateEmbeddings(GenerateEmbeddingRequest request, CancellationToken cancellationToken = default);
+		Task<GenerateEmbeddingResponse> GenerateEmbeddingsAsync(GenerateEmbeddingRequest request, CancellationToken cancellationToken = default);
 
 		/// <summary>
 		/// Sends a request to the /api/generate endpoint to get a completion
@@ -73,13 +73,13 @@ namespace OllamaSharp
 		/// A context object that holds the conversation history.
 		/// Should be reused for further calls to this method to keep a chat going.
 		/// </returns>
-		Task<ConversationContextWithResponse> GetCompletion(GenerateCompletionRequest request, CancellationToken cancellationToken = default);
+		Task<ConversationContextWithResponse> GetCompletionAsync(GenerateCompletionRequest request, CancellationToken cancellationToken = default);
 
 		/// <summary>
 		/// Sends a request to the /api/tags endpoint to get all models that are available locally
 		/// </summary>
 		/// <param name="cancellationToken">The token to cancel the operation with</param>
-		Task<IEnumerable<Model>> ListLocalModels(CancellationToken cancellationToken = default);
+		Task<IEnumerable<Model>> ListLocalModelsAsync(CancellationToken cancellationToken = default);
 
 		/// <summary>
 		/// Sends a request to the /api/pull endpoint to pull a new model
@@ -90,7 +90,7 @@ namespace OllamaSharp
 		/// Can be used to update the user interface while the operation is running.
 		/// </param>
 		/// <param name="cancellationToken">The token to cancel the operation with</param>
-		Task PullModel(PullModelRequest request, IResponseStreamer<PullStatus> streamer, CancellationToken cancellationToken = default);
+		Task PullModelAsync(PullModelRequest request, IResponseStreamer<PullStatus> streamer, CancellationToken cancellationToken = default);
 
 		/// <summary>
 		/// Sends a request to the /api/push endpoint to push a new model
@@ -101,7 +101,7 @@ namespace OllamaSharp
 		/// Can be used to update the user interface while the operation is running.
 		/// </param>
 		/// <param name="cancellationToken">The token to cancel the operation with</param>
-		Task PushModel(PushRequest request, IResponseStreamer<PushStatus> streamer, CancellationToken cancellationToken = default);
+		Task PushModelAsync(PushRequest request, IResponseStreamer<PushStatus> streamer, CancellationToken cancellationToken = default);
 
 		/// <summary>
 		/// Sends a request to the /api/show endpoint to show the information of a model
@@ -109,7 +109,7 @@ namespace OllamaSharp
 		/// <param name="model">The name of the model the get the information for</param>
 		/// <param name="cancellationToken">The token to cancel the operation with</param>
 		/// <returns>The model information</returns>
-		Task<ShowModelResponse> ShowModelInformation(string model, CancellationToken cancellationToken = default);
+		Task<ShowModelResponse> ShowModelInformationAsync(string model, CancellationToken cancellationToken = default);
 
 		/// <summary>
 		/// Sends a request to the /api/generate endpoint to get a completion and streams the returned chunks to a given streamer
@@ -125,6 +125,6 @@ namespace OllamaSharp
 		/// A context object that holds the conversation history.
 		/// Should be reused for further calls to this method to keep a chat going.
 		/// </returns>
-		Task<ConversationContext> StreamCompletion(GenerateCompletionRequest request, IResponseStreamer<GenerateCompletionResponseStream> streamer, CancellationToken cancellationToken = default);
+		Task<ConversationContext> StreamCompletionAsync(GenerateCompletionRequest request, IResponseStreamer<GenerateCompletionResponseStream> streamer, CancellationToken cancellationToken = default);
 	}
 }

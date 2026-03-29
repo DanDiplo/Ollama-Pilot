@@ -4,6 +4,11 @@
     <Platform Name="arm64" />
     <Platform Name="x86" />
   </Configurations>
+  <Folder Name="/Info/">
+    <File Path="../../README.md" />
+    <File Path="../.gitignore" />
+    <File Path="source.extension.vsixmanifest" />
+  </Folder>
   <Project Path="LLMCopilot.csproj">
     <Platform Solution="*|arm64" Project="arm64" />
     <Platform Solution="*|x86" Project="x86" />

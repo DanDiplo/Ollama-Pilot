@@ -120,7 +120,7 @@ namespace LLMCopilot
                 SetStatus("Loading local models...", Brushes.DodgerBlue);
                 var client = new OllamaApiClient(BaseUrlTextBox.Text.Trim());
                 client.SetAuthorizationHeader(AccessTokenTextBox.Text?.Trim());
-                var models = (await client.ListLocalModels()).Select(m => m.Name).OrderBy(n => n).ToList();
+                var models = (await client.ListLocalModelsAsync()).Select(m => m.Name).OrderBy(n => n).ToList();
                 _availableModels = models;
 
                 ModelsListBox.ItemsSource = models;

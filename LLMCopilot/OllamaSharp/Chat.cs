@@ -36,22 +36,22 @@ namespace OllamaSharp.Models.Chat
             Options = options;
         }
 
-        public Task<IEnumerable<Message>> Send(string message, CancellationToken cancellationToken = default(CancellationToken))
+        public Task<IEnumerable<Message>> SendAsync(string message, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return Send(message, null, cancellationToken);
+            return SendAsync(message, null, cancellationToken);
         }
 
-        public Task<IEnumerable<Message>> Send(string message, IEnumerable<string> imagesAsBase64, CancellationToken cancellationToken = default(CancellationToken))
+        public Task<IEnumerable<Message>> SendAsync(string message, IEnumerable<string> imagesAsBase64, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return SendAs(ChatRole.User, message, imagesAsBase64, cancellationToken);
+            return SendAsAsync(ChatRole.User, message, imagesAsBase64, cancellationToken);
         }
 
-        public Task<IEnumerable<Message>> SendAs(ChatRole role, string message, CancellationToken cancellationToken = default(CancellationToken))
+        public Task<IEnumerable<Message>> SendAsAsync(ChatRole role, string message, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return SendAs(role, message, null, cancellationToken);
+            return SendAsAsync(role, message, null, cancellationToken);
         }
 
-        public async Task<IEnumerable<Message>> SendAs(ChatRole role, string message, IEnumerable<string> imagesAsBase64, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<IEnumerable<Message>> SendAsAsync(ChatRole role, string message, IEnumerable<string> imagesAsBase64, CancellationToken cancellationToken = default(CancellationToken))
         {
             _messages.Add(new Message(role, message, imagesAsBase64?.ToArray()));
 
@@ -63,7 +63,7 @@ namespace OllamaSharp.Models.Chat
                 Options = Options
             };
 
-            var answer = await Client.SendChat(request, Streamer, cancellationToken);
+            var answer = await Client.SendChatAsync(request, Streamer, cancellationToken);
             _messages = answer.ToList();
             return _messages;
         }

@@ -807,7 +807,7 @@ namespace LLMCopilot
                 var OldCaretPosition = textView.Caret.Position.BufferPosition;
                 var oldSnapshotVersion = OldCaretPosition.Snapshot.Version.VersionNumber;
                 var stopwatch = Stopwatch.StartNew();
-                var resp = await client.GetCompletion(req, cancellationToken);
+                var resp = await client.GetCompletionAsync(req, cancellationToken);
                 stopwatch.Stop();
 
                 if (requestVersion != Volatile.Read(ref _completionRequestVersion))

@@ -53,7 +53,7 @@ namespace LLMCopilot
                 var client = new OllamaApiClient(options.BaseUrl);
                 client.SetAuthorizationHeader(options.AccessToken);
 
-                var models = (await client.ListLocalModels(cancellationToken)).ToList();
+                var models = (await client.ListLocalModelsAsync(cancellationToken)).ToList();
                 if (models.Count == 0)
                 {
                     return Fail("Connected to Ollama, but no local models were found.");
@@ -73,7 +73,7 @@ namespace LLMCopilot
 
                 if (options.EnableAutoComplete)
                 {
-                    var completeModelInfo = await client.ShowModelInformation(options.CompleteModel, cancellationToken);
+                    var completeModelInfo = await client.ShowModelInformationAsync(options.CompleteModel, cancellationToken);
                     if (!SupportsInsert(completeModelInfo?.Template))
                     {
                         return Fail($"Code Complete Model '{options.CompleteModel}' does not appear to support fill-in-the-middle insert mode.");

@@ -836,8 +836,8 @@ Return a brief explanation followed by exactly one fenced code block with the co
             try
             {
                 var client = OllamaClientFactory.CreateClient();
-                var chatModelInfo = await client.ShowModelInformation(Options.ChatModel);
-                var compModelInfo = await client.ShowModelInformation(Options.CompleteModel);
+                var chatModelInfo = await client.ShowModelInformationAsync(Options.ChatModel);
+                var compModelInfo = await client.ShowModelInformationAsync(Options.CompleteModel);
 
                 Func<string, string, int> GetCtx = (string parameters, string model) =>
                 {

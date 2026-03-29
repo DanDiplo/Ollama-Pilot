@@ -1,43 +1,42 @@
-## 版本修改记录
+## Version Change Log
 
-版本号规则：v`主版本号.次版本号.构建号`
+Versioning rules: v`Major.Minor.Build`
 
-- 主版本号：程序功能重大变动时增加（例如：从1.0.0升级到2.0.0）
-- 次版本号：新增小功能或者优化时增加（例如：从1.0.0升级到1.1.0）
-- 构建号：每次构建时自动增加，一般不涉及功能变化，无需关心
+- Major: Incremented for significant program changes (e.g., from 1.0.0 to 2.0.0)
+- Minor: Incremented for new features or optimizations (e.g., from 1.0.0 to 1.1.0)
+- Build: Automatically incremented with each build, typically does not involve functional changes, and can be ignored.
 
 ### v1.6.x
 
-- 增加上下文长度设置,可以在扩展配置页中进行设置。
-- 现在切换或者关闭对话窗口，将保留聊天历史记录。
-- 增加窗口菜单栏，增加列出模型和清除对话历史的菜单项。
+- Added context length setting, which can be configured in the extension settings page.
+- Now switching or closing the conversation window will retain chat history.
+- Added window menu bar with options to list models and clear conversation history.
 
 ### v1.5.x
 
-- 增加`Generate Unit Test`命令
-- 添加对`vs2017`的支持
-- 现在输入数字时将不会触发`code complete`，避免错误的接受预测
+- Added `Generate Unit Test` command.
+- Added support for `vs2017`.
+- Entering numbers will no longer trigger `code complete` to avoid incorrect prediction acceptance.
 
 ### v1.4.x
 
-- 更好的支持深色主题（Dark Theme）。
-- 增加了使用反向代理时，使用`Access Token`的支持。不需要请留空。
-
+- Improved support for Dark Theme.
+- Added support for using `Access Token` with reverse proxy. Leave blank if not needed.
 
 ### v1.3.x
 
-- 优化了快速连续输入后，有时会连续弹出预测文本框的问题。
+- Optimized the issue where the prediction text box would sometimes appear continuously after rapid consecutive inputs.
 
 ### v1.2.x
 
-- 优化了聊天窗口，现在可以输入换行符，并且复制多行文本到聊天框了。
-- 发送聊天消息的按键改为了`Ctrl+Enter`。
-- 修改接受所有预测的按键为`Alt+Q`。
-- 其他一些小优化。
+- Optimized the chat window to allow input of newline characters and copying multiple lines of text into the chat box.
+- Changed the key to send chat messages to `Ctrl+Enter`.
+- Modified the key to accept all predictions to `Alt+Q`.
+- Other minor optimizations.
 
 ### v1.1.x
 
-- 修复`代码自动补全`功能开启且没有打开聊天窗口，键盘输入时会导致Visual Studio崩溃的问题。
-- 修复连续输入时预测文本框会重叠的问题
-- 优化了代码补全的功能的算法，现在响应会更加迅速。
-- 重新设计了预测文本框，使得行号和文本的区分更加明显。
+- Fixed an issue where enabling the `code auto-completion` feature without opening the chat window would cause Visual Studio to crash during keyboard input.
+- Fixed an issue where the prediction text box would overlap during continuous input.
+- Optimized the code completion algorithm, making the response faster.
+- Redesigned the prediction text box to make the distinction between line numbers and text more apparent.

@@ -212,10 +212,10 @@ namespace LLMCopilot
                 if (caretPosition.CompareTo(adornment.Pos) == 0)
                 {
                     var text = adornment.GetPredictionText();
-                    
+
                     view.TextBuffer.Insert(caretPosition, text);
                 }
-                
+
                 ClearAdornment(view);
             }
         }
@@ -238,7 +238,7 @@ namespace LLMCopilot
                     lines = Math.Min(lines, predictionLines.Length);
 
                     var linesToInsert = string.Join(Environment.NewLine, predictionLines.Take(lines));
-                   
+
                     view.TextBuffer.Insert(caretPosition, linesToInsert);
                 }
 
@@ -398,7 +398,7 @@ namespace LLMCopilot
 
                 return _nextCommandTarget.Exec(ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 LLMErrorHandler.HandleException(e);
             }
@@ -435,7 +435,7 @@ namespace LLMCopilot
                 LLMAdornmentFactory.AcceptPredictionLines(_view, GetDigitFromKey(e.Key));
                 e.Handled = true;
             }
-            else if(e.Key == Key.LeftAlt || e.Key == Key.RightAlt
+            else if (e.Key == Key.LeftAlt || e.Key == Key.RightAlt
                 || e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl
                 || e.Key == Key.LeftShift || e.Key == Key.RightShift
                 || e.Key == Key.System)

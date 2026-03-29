@@ -239,7 +239,7 @@ namespace LLMCopilot
             try
             {
                 var client = OllamaClientFactory.CreateClient();
-                var models = await client.ListLocalModels();
+                var models = await client.ListLocalModelsAsync();
                 var modelNames = string.Join("  \n", models.Select(m => m.Name));
 
                 AddMessage(ChatRole.System, $"Available local models:  \n{modelNames}");
@@ -394,7 +394,7 @@ namespace LLMCopilot
                 {
                     await Task.Run(async () =>
                     {
-                        await Chat.Send(promptOverride ?? text, _sendCancellationTokenSource.Token);
+                        await Chat.SendAsync(promptOverride ?? text, _sendCancellationTokenSource.Token);
                     });
                 }
                 catch (Exception ex)

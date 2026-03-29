@@ -55,12 +55,12 @@ namespace OllamaSharp
             SelectedModel = defaultModel;
         }
 
-        public async Task CreateModel(CreateModelRequest request, IResponseStreamer<CreateStatus> streamer, CancellationToken cancellationToken = default)
+        public async Task CreateModelAsync(CreateModelRequest request, IResponseStreamer<CreateStatus> streamer, CancellationToken cancellationToken = default)
         {
             await StreamPostAsync("api/create", request, streamer, cancellationToken);
         }
 
-        public async Task DeleteModel(string model, CancellationToken cancellationToken = default)
+        public async Task DeleteModelAsync(string model, CancellationToken cancellationToken = default)
         {
             var request = new HttpRequestMessage(HttpMethod.Delete, "api/delete")
             {
@@ -78,50 +78,50 @@ namespace OllamaSharp
             }
         }
 
-        public async Task<IEnumerable<Model>> ListLocalModels(CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<Model>> ListLocalModelsAsync(CancellationToken cancellationToken = default)
         {
             var data = await GetAsync<ListModelsResponse>("api/tags", cancellationToken);
             return data.Models;
         }
 
-        public async Task<ShowModelResponse> ShowModelInformation(string model, CancellationToken cancellationToken = default)
+        public async Task<ShowModelResponse> ShowModelInformationAsync(string model, CancellationToken cancellationToken = default)
         {
             return await PostAsync<ShowModelRequest, ShowModelResponse>("api/show", new ShowModelRequest { Name = model }, cancellationToken);
         }
 
-        public async Task CopyModel(CopyModelRequest request, CancellationToken cancellationToken = default)
+        public async Task CopyModelAsync(CopyModelRequest request, CancellationToken cancellationToken = default)
         {
             await PostAsync("api/copy", request, cancellationToken);
         }
 
-        public async Task PullModel(PullModelRequest request, IResponseStreamer<PullStatus> streamer, CancellationToken cancellationToken = default)
+        public async Task PullModelAsync(PullModelRequest request, IResponseStreamer<PullStatus> streamer, CancellationToken cancellationToken = default)
         {
             await StreamPostAsync("api/pull", request, streamer, cancellationToken);
         }
 
-        public async Task PushModel(PushRequest request, IResponseStreamer<PushStatus> streamer, CancellationToken cancellationToken = default)
+        public async Task PushModelAsync(PushRequest request, IResponseStreamer<PushStatus> streamer, CancellationToken cancellationToken = default)
         {
             await StreamPostAsync("api/push", request, streamer, cancellationToken);
         }
 
-        public async Task<GenerateEmbeddingResponse> GenerateEmbeddings(GenerateEmbeddingRequest request, CancellationToken cancellationToken = default)
+        public async Task<GenerateEmbeddingResponse> GenerateEmbeddingsAsync(GenerateEmbeddingRequest request, CancellationToken cancellationToken = default)
         {
             return await PostAsync<GenerateEmbeddingRequest, GenerateEmbeddingResponse>("api/embeddings", request, cancellationToken);
         }
 
-        public async Task<ConversationContext> StreamCompletion(GenerateCompletionRequest request, IResponseStreamer<GenerateCompletionResponseStream> streamer, CancellationToken cancellationToken = default)
+        public async Task<ConversationContext> StreamCompletionAsync(GenerateCompletionRequest request, IResponseStreamer<GenerateCompletionResponseStream> streamer, CancellationToken cancellationToken = default)
         {
-            return await GenerateCompletion(request, streamer, cancellationToken);
+            return await GenerateCompletionAsync(request, streamer, cancellationToken);
         }
 
-        public async Task<ConversationContextWithResponse> GetCompletion(GenerateCompletionRequest request, CancellationToken cancellationToken = default)
+        public async Task<ConversationContextWithResponse> GetCompletionAsync(GenerateCompletionRequest request, CancellationToken cancellationToken = default)
         {
             var builder = new StringBuilder();
-            var result = await GenerateCompletion(request, new ActionResponseStreamer<GenerateCompletionResponseStream>(status => builder.Append(status.Response)), cancellationToken);
+            var result = await GenerateCompletionAsync(request, new ActionResponseStreamer<GenerateCompletionResponseStream>(status => builder.Append(status.Response)), cancellationToken);
             return new ConversationContextWithResponse(builder.ToString(), result.Context);
         }
 
-        public async Task<IEnumerable<Message>> SendChat(ChatRequest chatRequest, IResponseStreamer<ChatResponseStream> streamer, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<Message>> SendChatAsync(ChatRequest chatRequest, IResponseStreamer<ChatResponseStream> streamer, CancellationToken cancellationToken = default)
         {
             var request = new HttpRequestMessage(HttpMethod.Post, "api/chat")
             {
@@ -140,7 +140,7 @@ namespace OllamaSharp
             }
         }
 
-        private async Task<ConversationContext> GenerateCompletion(GenerateCompletionRequest generateRequest, IResponseStreamer<GenerateCompletionResponseStream> streamer, CancellationToken cancellationToken)
+        private async Task<ConversationContext> GenerateCompletionAsync(GenerateCompletionRequest generateRequest, IResponseStreamer<GenerateCompletionResponseStream> streamer, CancellationToken cancellationToken)
         {
             var request = new HttpRequestMessage(HttpMethod.Post, "api/generate")
             {
