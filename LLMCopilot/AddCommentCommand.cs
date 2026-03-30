@@ -85,7 +85,11 @@ namespace OllamaPilot
         private void Execute(object sender, EventArgs e)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            ThreadHelper.JoinableTaskFactory.Run(() => SelectedCodeCommandExecutor.ExecuteAsync(this.package, OllamaHelper.Instance.GetAddCommentTemplate, GeneratedResponseGuard.CommentOnly));
+            ThreadHelper.JoinableTaskFactory.Run(() => SelectedCodeCommandExecutor.ExecuteAsync(
+                this.package,
+                OllamaHelper.Instance.GetAddCommentTemplate,
+                GeneratedResponseGuard.CommentOnly,
+                AssistantActionCapabilities.SelectionEdit));
         }
 
     }

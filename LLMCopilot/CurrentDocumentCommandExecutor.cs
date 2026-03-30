@@ -5,9 +5,40 @@ using System.Threading.Tasks;
 
 namespace OllamaPilot
 {
+    internal sealed class CurrentDocumentChatRequest
+    {
+        public string Prompt { get; set; }
+        public string VisibleMessage { get; set; }
+    }
+
     internal static class CurrentDocumentCommandExecutor
     {
         public static async Task ExecuteAsync(
+            AsyncPackage package,
+            Func<string, string, string> createPrompt,
+            Func<string, string> createVisibleMessage,
+            string emptyDocumentMessage,
+            AssistantActionCapabilities assistantActions = AssistantActionCapabilities.Discussion)
+        {
+            var request = await TryCreateRequestAsync(package, createPrompt, createVisibleMessage, emptyDocumentMessage);
+            if (request == null)
+            {
+                return;
+            }
+
+            try
+            {
+                VsHelpers.OpenChatWindow();
+                await System.Threading.Tasks.Task.Yield();
+                EventManager.OnCodeCommandExecuted(request.VisibleMessage, request.Prompt, assistantActions: assistantActions);
+            }
+            catch (Exception ex)
+            {
+                LLMErrorHandler.HandleException(ex, "Unable to send the current document to Ollama Pilot.");
+            }
+        }
+
+        public static async Task<CurrentDocumentChatRequest> TryCreateRequestAsync(
             AsyncPackage package,
             Func<string, string, string> createPrompt,
             Func<string, string> createVisibleMessage,
@@ -25,13 +56,13 @@ namespace OllamaPilot
             catch (Exception ex)
             {
                 LLMErrorHandler.HandleException(ex, "Unable to read the active document.");
-                return;
+                return null;
             }
 
             if (string.IsNullOrWhiteSpace(documentText))
             {
                 VsHelpers.ShowInfo(emptyDocumentMessage);
-                return;
+                return null;
             }
 
             try
@@ -41,7 +72,7 @@ namespace OllamaPilot
                 if (string.IsNullOrWhiteSpace(prompt))
                 {
                     VsHelpers.ShowError("Unable to build the prompt for the current document.");
-                    return;
+                    return null;
                 }
 
                 var visibleMessage = createVisibleMessage(Path.GetFileName(documentPath ?? "current file"));
@@ -50,13 +81,16 @@ namespace OllamaPilot
                     visibleMessage += " The file was trimmed to fit the current chat context.";
                 }
 
-                VsHelpers.OpenChatWindow();
-                await System.Threading.Tasks.Task.Yield();
-                EventManager.OnCodeCommandExecuted(visibleMessage, prompt);
+                return new CurrentDocumentChatRequest
+                {
+                    Prompt = prompt,
+                    VisibleMessage = visibleMessage
+                };
             }
             catch (Exception ex)
             {
-                LLMErrorHandler.HandleException(ex, "Unable to send the current document to Ollama Pilot.");
+                LLMErrorHandler.HandleException(ex, "Unable to prepare the current document for Ollama Pilot.");
+                return null;
             }
         }
 

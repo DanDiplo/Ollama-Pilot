@@ -375,9 +375,10 @@ namespace OllamaPilot
             string promptOverride = null,
             string originalSelection = null,
             GeneratedResponseGuard responseGuard = GeneratedResponseGuard.None,
+            AssistantActionCapabilities assistantActions = AssistantActionCapabilities.Discussion,
             bool resetConversation = true)
         {
-            var args = new CommandExecutedEventArgs(selectedText, promptOverride, originalSelection, responseGuard, resetConversation);
+            var args = new CommandExecutedEventArgs(selectedText, promptOverride, originalSelection, responseGuard, assistantActions, resetConversation);
             var handler = codeCommandExecuted;
             if (handler == null)
             {
@@ -405,6 +406,7 @@ namespace OllamaPilot
         public string PromptOverride { get; }
         public string OriginalSelection { get; }
         public GeneratedResponseGuard ResponseGuard { get; }
+        public AssistantActionCapabilities AssistantActions { get; }
         public bool ResetConversation { get; }
 
         public CommandExecutedEventArgs(
@@ -412,12 +414,14 @@ namespace OllamaPilot
             string promptOverride = null,
             string originalSelection = null,
             GeneratedResponseGuard responseGuard = GeneratedResponseGuard.None,
+            AssistantActionCapabilities assistantActions = AssistantActionCapabilities.Discussion,
             bool resetConversation = true)
         {
             SelectedText = selectedText;
             PromptOverride = promptOverride;
             OriginalSelection = originalSelection;
             ResponseGuard = responseGuard;
+            AssistantActions = assistantActions;
             ResetConversation = resetConversation;
         }
     }
@@ -426,6 +430,23 @@ namespace OllamaPilot
     {
         None,
         CommentOnly
+    }
+
+    [Flags]
+    public enum AssistantActionCapabilities
+    {
+        None = 0,
+        UseAsDraft = 1 << 0,
+        CopyCode = 1 << 1,
+        PreviewDiff = 1 << 2,
+        InsertIntoEditor = 1 << 3,
+        ReplaceSelection = 1 << 4,
+        ReplaceFile = 1 << 5,
+        CreateSiblingFile = 1 << 6,
+        Discussion = UseAsDraft,
+        FileGeneration = UseAsDraft | CopyCode | InsertIntoEditor | CreateSiblingFile,
+        FileRewrite = UseAsDraft | CopyCode | PreviewDiff | InsertIntoEditor | ReplaceFile,
+        SelectionEdit = UseAsDraft | CopyCode | PreviewDiff | InsertIntoEditor | ReplaceSelection | ReplaceFile | CreateSiblingFile
     }
 
     public enum CmdEventType

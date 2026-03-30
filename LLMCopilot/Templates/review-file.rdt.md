@@ -8,6 +8,7 @@ You are reviewing the current {{language}} file from {{location}}.
 Focus on correctness issues, maintainability risks, surprising behavior, and missing tests.
 Prioritize the most valuable findings first.
 Be concise, but concrete.
+Do not ask the user to paste or upload the file again. The file contents are already provided below.
 
 ## Current File
 ```{{language}}

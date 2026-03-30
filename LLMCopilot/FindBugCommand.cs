@@ -85,7 +85,10 @@ namespace OllamaPilot
         private void Execute(object sender, EventArgs e)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            ThreadHelper.JoinableTaskFactory.Run(() => SelectedCodeCommandExecutor.ExecuteAsync(this.package, OllamaHelper.Instance.GetFindBugTemplate));
+            ThreadHelper.JoinableTaskFactory.Run(() => SelectedCodeCommandExecutor.ExecuteAsync(
+                this.package,
+                OllamaHelper.Instance.GetFindBugTemplate,
+                assistantActions: AssistantActionCapabilities.Discussion));
         }
 
     }

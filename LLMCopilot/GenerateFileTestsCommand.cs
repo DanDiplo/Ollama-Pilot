@@ -60,7 +60,8 @@ namespace OllamaPilot
                 this.package,
                 OllamaHelper.Instance.GetGenerateFileTestsTemplate,
                 fileName => $"Generate tests for the current file: {fileName}",
-                "Open a code file first."));
+                "Open a code file first.",
+                AssistantActionCapabilities.FileGeneration));
         }
     }
 }

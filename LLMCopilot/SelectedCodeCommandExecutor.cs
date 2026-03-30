@@ -10,7 +10,8 @@ namespace OllamaPilot
         public static async Task ExecuteAsync(
             AsyncPackage package,
             Func<string, string, string> createPrompt,
-            GeneratedResponseGuard responseGuard = GeneratedResponseGuard.None)
+            GeneratedResponseGuard responseGuard = GeneratedResponseGuard.None,
+            AssistantActionCapabilities assistantActions = AssistantActionCapabilities.Discussion)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
 
@@ -50,7 +51,7 @@ namespace OllamaPilot
 
                 VsHelpers.OpenChatWindow();
                 await System.Threading.Tasks.Task.Yield();
-                EventManager.OnCodeCommandExecuted(prompt, null, selectedText, responseGuard);
+                EventManager.OnCodeCommandExecuted(prompt, null, selectedText, responseGuard, assistantActions);
             }
             catch (Exception ex)
             {

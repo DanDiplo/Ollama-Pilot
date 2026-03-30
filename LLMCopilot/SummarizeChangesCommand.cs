@@ -56,7 +56,10 @@ namespace OllamaPilot
 
             var repoName = Path.GetFileName(changesContext.RepositoryRoot);
             VsHelpers.OpenChatWindow();
-            EventManager.OnCodeCommandExecuted($"Summarize the current Git changes for {repoName}.", prompt);
+            EventManager.OnCodeCommandExecuted(
+                $"Summarize the current Git changes for {repoName}.",
+                prompt,
+                assistantActions: AssistantActionCapabilities.Discussion);
         }
     }
 }

@@ -135,33 +135,43 @@ namespace OllamaPilot
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             var textManager = await serviceProvider.GetServiceAsync(typeof(SVsTextManager)) as IVsTextManager;
-            if (textManager == null)
+            if (textManager != null)
             {
-                return null;
-            }
+                textManager.GetActiveView(1, null, out IVsTextView vTextView);
 
-            textManager.GetActiveView(1, null, out IVsTextView vTextView);
-
-            if (vTextView != null)
-            {
-                IVsTextLines textLines;
-                vTextView.GetBuffer(out textLines);
-
-                if (textLines is IPersistFileFormat persistFileFormat)
+                if (vTextView != null)
                 {
-                    persistFileFormat.GetCurFile(out string fullPath, out uint _);
-                    return fullPath;
+                    IVsTextLines textLines;
+                    vTextView.GetBuffer(out textLines);
+
+                    if (textLines is IPersistFileFormat persistFileFormat)
+                    {
+                        persistFileFormat.GetCurFile(out string fullPath, out uint _);
+                        if (!string.IsNullOrWhiteSpace(fullPath))
+                        {
+                            return fullPath;
+                        }
+                    }
                 }
             }
 
-            return null;
+            return await GetOpenDocumentPathAsync(serviceProvider);
         }
 
         public static async Task<string> GetActiveDocumentTextAsync(IAsyncServiceProvider serviceProvider)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             var textView = await GetActiveTextViewAsync(serviceProvider);
-            return textView?.TextSnapshot?.GetText();
+            if (textView != null)
+            {
+                var snapshotText = textView.TextSnapshot?.GetText();
+                if (!string.IsNullOrWhiteSpace(snapshotText))
+                {
+                    return snapshotText;
+                }
+            }
+
+            return await GetOpenDocumentTextAsync(serviceProvider);
         }
 
         public static string GetSelectedText(IWpfTextView textView)
@@ -452,6 +462,8 @@ namespace OllamaPilot
 
             var boundedCaretPosition = Math.Max(0, Math.Min(caretPosition, appliedSnapshot.Length));
             textView.Caret.MoveTo(new SnapshotPoint(appliedSnapshot, boundedCaretPosition));
+            var finalSelectionStart = selectionStart;
+            var finalSelectionLength = selectionLength;
             textView.Selection.Clear();
 
             if (formatInsertedText && selectionLength > 0)
@@ -468,14 +480,101 @@ namespace OllamaPilot
 
                     var currentSnapshot = textView.TextSnapshot;
                     var updatedSelectionStart = Math.Max(0, Math.Min(boundedSelectionStart, currentSnapshot.Length));
-                    var updatedCaretPosition = Math.Max(0, Math.Min(updatedSelectionStart + boundedSelectionLength, currentSnapshot.Length));
+                    var updatedSelectionLength = Math.Max(0, Math.Min(boundedSelectionLength, currentSnapshot.Length - updatedSelectionStart));
+                    var updatedCaretPosition = Math.Max(0, Math.Min(updatedSelectionStart + updatedSelectionLength, currentSnapshot.Length));
+                    finalSelectionStart = updatedSelectionStart;
+                    finalSelectionLength = updatedSelectionLength;
                     textView.Caret.MoveTo(new SnapshotPoint(currentSnapshot, updatedCaretPosition));
-                    textView.Selection.Clear();
                 }
             }
 
-            textView.ViewScroller.EnsureSpanVisible(new SnapshotSpan(new SnapshotPoint(appliedSnapshot, boundedCaretPosition), 0));
+            var finalSnapshot = textView.TextSnapshot;
+            var revealStart = Math.Max(0, Math.Min(finalSelectionStart, finalSnapshot.Length));
+            var revealLength = Math.Max(0, Math.Min(finalSelectionLength, finalSnapshot.Length - revealStart));
+
+            if (replaceSelection && revealLength > 0)
+            {
+                textView.Selection.Select(
+                    new SnapshotSpan(new SnapshotPoint(finalSnapshot, revealStart), revealLength),
+                    false);
+            }
+            else
+            {
+                textView.Selection.Clear();
+            }
+
+            var revealSpan = new SnapshotSpan(
+                new SnapshotPoint(finalSnapshot, replaceSelection ? revealStart : Math.Max(0, Math.Min(boundedCaretPosition, finalSnapshot.Length))),
+                replaceSelection ? revealLength : 0);
+            textView.ViewScroller.EnsureSpanVisible(revealSpan);
+            await ActivateEditorAsync(serviceProvider, textView);
             return true;
+        }
+
+        private static async Task ActivateEditorAsync(IAsyncServiceProvider serviceProvider, IWpfTextView textView)
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            try
+            {
+                var dte = await serviceProvider.GetServiceAsync(typeof(SDTE)) as DTE2;
+                dte?.ActiveDocument?.Activate();
+                dte?.ActiveWindow?.Activate();
+            }
+            catch
+            {
+                // Best effort only.
+            }
+
+            try
+            {
+                textView?.VisualElement?.Focus();
+            }
+            catch
+            {
+                // Best effort only.
+            }
+        }
+
+        private static async Task<string> GetOpenDocumentPathAsync(IAsyncServiceProvider serviceProvider)
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            try
+            {
+                var dte = await serviceProvider.GetServiceAsync(typeof(SDTE)) as DTE2;
+                if (dte?.ActiveDocument != null && !string.IsNullOrWhiteSpace(dte.ActiveDocument.FullName))
+                {
+                    return dte.ActiveDocument.FullName;
+                }
+            }
+            catch
+            {
+                // Fall back to null below.
+            }
+
+            return null;
+        }
+
+        private static async Task<string> GetOpenDocumentTextAsync(IAsyncServiceProvider serviceProvider)
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            try
+            {
+                var dte = await serviceProvider.GetServiceAsync(typeof(SDTE)) as DTE2;
+                if (dte?.ActiveDocument?.Object("TextDocument") is TextDocument textDocument)
+                {
+                    var startPoint = textDocument.StartPoint.CreateEditPoint();
+                    return startPoint.GetText(textDocument.EndPoint);
+                }
+            }
+            catch
+            {
+                // Fall back to null below.
+            }
+
+            return null;
         }
 
         private static async Task TryFormatSelectionAsync(IAsyncServiceProvider serviceProvider)

@@ -73,7 +73,10 @@ namespace OllamaPilot
             try
             {
                 VsHelpers.OpenChatWindow();
-                EventManager.OnCodeCommandExecuted(prompt);
+                EventManager.OnCodeCommandExecuted(
+                    $"Explain the likely error in {fileName}.",
+                    prompt,
+                    assistantActions: AssistantActionCapabilities.Discussion);
             }
             catch (Exception ex)
             {

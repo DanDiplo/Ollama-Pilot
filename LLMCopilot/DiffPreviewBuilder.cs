@@ -58,18 +58,25 @@ namespace OllamaPilot
             return operations;
         }
 
+        // Builds a table containing the lengths of the longest common subsequence
+        // between suffixes of the original and updated line lists.
         private static int[,] BuildLcsTable(IReadOnlyList<string> originalLines, IReadOnlyList<string> updatedLines)
         {
+            // The table dimensions are one larger than the input lists to handle base cases.
             var table = new int[originalLines.Count + 1, updatedLines.Count + 1];
 
+            // Iterate over the original lines in reverse order.
             for (var i = originalLines.Count - 1; i >= 0; i--)
             {
+                // Iterate over the updated lines in reverse order.
                 for (var j = updatedLines.Count - 1; j >= 0; j--)
                 {
+                    // If the current lines match, extend the LCS length from the next diagonal cell.
                     if (string.Equals(originalLines[i], updatedLines[j], StringComparison.Ordinal))
                     {
                         table[i, j] = table[i + 1, j + 1] + 1;
                     }
+                    // Otherwise, take the maximum LCS length from the cell below or to the right.
                     else
                     {
                         table[i, j] = Math.Max(table[i + 1, j], table[i, j + 1]);
@@ -130,7 +137,7 @@ namespace OllamaPilot
             Added
         }
 
-        private struct DiffOperation
+        private readonly struct DiffOperation
         {
             public DiffOperation(DiffKind kind, string line)
             {

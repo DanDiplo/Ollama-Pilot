@@ -77,34 +77,41 @@
                     </ItemsControl>
                     <StackPanel Orientation="Horizontal"
                                 Margin="0,8,0,0"
-                                Visibility="{Binding Role, Converter={StaticResource AssistantMessageVisibilityConverter}}">
+                                Visibility="{Binding HasVisibleActions, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Button Content="Preview Diff"
                                 Click="PreviewDiff_Click"
                                 Tag="{Binding}"
-                                Margin="0,0,8,0" />
+                                Margin="0,0,8,0"
+                                Visibility="{Binding CanPreviewDiff, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         <Button Content="Copy Code"
                                 Click="CopyCode_Click"
                                 Tag="{Binding}"
-                                Margin="0,0,8,0" />
+                                Margin="0,0,8,0"
+                                Visibility="{Binding CanCopyCode, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         <Button Content="Use As Draft"
                                 Click="UseAsDraft_Click"
                                 Tag="{Binding}"
-                                Margin="0,0,8,0" />
+                                Margin="0,0,8,0"
+                                Visibility="{Binding CanUseAsDraft, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         <Button Content="Create Sibling File"
                                 Click="CreateSiblingFile_Click"
                                 Tag="{Binding}"
-                                Margin="0,0,8,0" />
+                                Margin="0,0,8,0"
+                                Visibility="{Binding CanCreateSiblingFile, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         <Button Content="Insert Into Editor"
                                 Click="InsertIntoEditor_Click"
                                 Tag="{Binding}"
-                                Margin="0,0,8,0" />
+                                Margin="0,0,8,0"
+                                Visibility="{Binding CanInsertIntoEditor, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         <Button Content="Replace Selection"
                                 Click="ReplaceSelection_Click"
                                 Tag="{Binding}"
-                                Margin="0,0,8,0" />
+                                Margin="0,0,8,0"
+                                Visibility="{Binding CanReplaceSelection, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         <Button Content="Replace File"
                                 Click="ReplaceFile_Click"
-                                Tag="{Binding}" />
+                                Tag="{Binding}"
+                                Visibility="{Binding CanReplaceFile, Converter={StaticResource BooleanToVisibilityConverter}}" />
                     </StackPanel>
                 </StackPanel>
             </Border>

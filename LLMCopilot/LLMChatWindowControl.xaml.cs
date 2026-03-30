@@ -43,6 +43,7 @@ namespace OllamaPilot
         }
 
         public ObservableCollection<MessageSegment> Segments { get; private set; }
+        public AssistantActionCapabilities AssistantActions { get; }
 
         public ChatRole? Role
         {
@@ -50,20 +51,36 @@ namespace OllamaPilot
             private set { }
         }
 
-        public MyMessage(Message message)
+        public bool HasVisibleActions => Role == ChatRole.Assistant && AssistantActions != AssistantActionCapabilities.None;
+        public bool CanUseAsDraft => HasAction(AssistantActionCapabilities.UseAsDraft);
+        public bool CanCopyCode => HasAction(AssistantActionCapabilities.CopyCode);
+        public bool CanPreviewDiff => HasAction(AssistantActionCapabilities.PreviewDiff);
+        public bool CanInsertIntoEditor => HasAction(AssistantActionCapabilities.InsertIntoEditor);
+        public bool CanReplaceSelection => HasAction(AssistantActionCapabilities.ReplaceSelection);
+        public bool CanReplaceFile => HasAction(AssistantActionCapabilities.ReplaceFile);
+        public bool CanCreateSiblingFile => HasAction(AssistantActionCapabilities.CreateSiblingFile);
+
+        public MyMessage(Message message, AssistantActionCapabilities assistantActions = AssistantActionCapabilities.None)
         {
             _message = message;
+            AssistantActions = assistantActions;
             Segments = ParseSegments(_message.Content);
         }
 
-        public MyMessage(ChatRole? role, string content)
+        public MyMessage(ChatRole? role, string content, AssistantActionCapabilities assistantActions = AssistantActionCapabilities.None)
         {
             _message = new Message
             {
                 Role = role,
                 Content = content
             };
+            AssistantActions = assistantActions;
             Segments = ParseSegments(content);
+        }
+
+        private bool HasAction(AssistantActionCapabilities action)
+        {
+            return Role == ChatRole.Assistant && (AssistantActions & action) == action;
         }
 
         private static ObservableCollection<MessageSegment> ParseSegments(string content)
@@ -291,6 +308,11 @@ namespace OllamaPilot
         private string _activeOriginalSelection;
         private GeneratedResponseGuard _lastResponseGuard;
         private string _lastOriginalSelection;
+        private AssistantActionCapabilities _activeAssistantActions = AssistantActionCapabilities.Discussion;
+        private AssistantActionCapabilities _lastAssistantActions = AssistantActionCapabilities.Discussion;
+        private bool _lastResetConversation;
+        private bool _receivedAssistantContent;
+        private bool _receivedAnyAssistantEvent;
 
         public string StatusText
         {
@@ -413,20 +435,31 @@ namespace OllamaPilot
 
         private void OnChatResponseReceived(ChatResponseStream response)
         {
-            if (response.Message != null && response.Message.Content != null)
+            if (response.Message == null)
             {
-                // 将新内容添加到缓存
+                return;
+            }
+
+            _receivedAnyAssistantEvent = true;
+
+            if (!string.IsNullOrEmpty(response.Message.Content))
+            {
+                _receivedAssistantContent = true;
                 _messageCache.Append(response.Message.Content);
 
                 string[] delimeters = { "\n", ",", "，", ".", "。", ":", "：", ";", "；", "\t" };
 
                 bool containsKeyword = delimeters.Any(keyword => response.Message.Content.Contains(keyword));
-                // 检查是否需要更新消息列表
                 if (_messageCache.Length > 64 || containsKeyword || response.Done)
                 {
                     AppendOrUpdateLastMessage(_messageCache.ToString());
                     _messageCache.Clear(); // 清空缓存
                 }
+            }
+            else if (response.Done && _messageCache.Length > 0)
+            {
+                AppendOrUpdateLastMessage(_messageCache.ToString());
+                _messageCache.Clear();
             }
         }
 
@@ -468,12 +501,14 @@ namespace OllamaPilot
         {
             try
             {
-                if (e.ResetConversation)
-                {
-                    ResetChatSession();
-                }
-
-                await SendChatMessageAsync(e.SelectedText, ChatRole.System, e.PromptOverride, e.ResponseGuard, e.OriginalSelection);
+                await SendChatMessageAsync(
+                    e.SelectedText,
+                    ChatRole.System,
+                    e.PromptOverride,
+                    e.ResponseGuard,
+                    e.OriginalSelection,
+                    e.ResetConversation,
+                    e.AssistantActions);
             }
             catch (Exception ex)
             {
@@ -518,7 +553,7 @@ namespace OllamaPilot
             }
             else
             {
-                _messages.Add(new MyMessage(ChatRole.Assistant, content));
+                _messages.Add(new MyMessage(ChatRole.Assistant, content, _activeAssistantActions));
             }
 
             ScrollToBottom();
@@ -542,19 +577,19 @@ namespace OllamaPilot
             }
         }
 
-        private void AddMessage(ChatRole role, string Content)
+        private void AddMessage(ChatRole role, string Content, AssistantActionCapabilities assistantActions = AssistantActionCapabilities.None)
         {
             if (!Dispatcher.CheckAccess())
             {
                 ThreadHelper.JoinableTaskFactory.Run(async delegate
                 {
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                    AddMessage(role, Content);
+                    AddMessage(role, Content, assistantActions);
                 });
                 return;
             }
 
-            MyMessage userMessage = new MyMessage(role, Content);
+            MyMessage userMessage = new MyMessage(role, Content, assistantActions);
             _messages.Add(userMessage);
         }
 
@@ -600,7 +635,9 @@ namespace OllamaPilot
             ChatRole role,
             string promptOverride = null,
             GeneratedResponseGuard responseGuard = GeneratedResponseGuard.None,
-            string originalSelection = null)
+            string originalSelection = null,
+            bool resetConversation = false,
+            AssistantActionCapabilities assistantActions = AssistantActionCapabilities.Discussion)
         {
             if (string.IsNullOrWhiteSpace(text))
             {
@@ -621,9 +658,18 @@ namespace OllamaPilot
 
             try
             {
+                if (resetConversation)
+                {
+                    ResetChatSession();
+                }
+
                 _activeResponseGuard = responseGuard;
                 _activeOriginalSelection = originalSelection;
-                RememberLastRequest(text, role, promptOverride, responseGuard, originalSelection);
+                _activeAssistantActions = assistantActions;
+                _receivedAssistantContent = false;
+                _receivedAnyAssistantEvent = false;
+                _messageCache.Clear();
+                RememberLastRequest(text, role, promptOverride, responseGuard, originalSelection, resetConversation, assistantActions);
                 AddMessage(role, text);
                 ScrollToBottom();
 
@@ -635,6 +681,16 @@ namespace OllamaPilot
                 {
                     await Chat.SendAsync(promptOverride ?? text, _sendCancellationTokenSource.Token);
                 });
+
+                if (!_receivedAssistantContent)
+                {
+                    var warning = _receivedAnyAssistantEvent
+                        ? "The model finished without returning any visible text."
+                        : "The model did not return any visible output.";
+                    AddMessage(ChatRole.System, $"{warning} Try regenerating, using a stronger model, or narrowing the request.");
+                    UpdateStatus("The model returned no visible output.", Colors.DarkGoldenrod);
+                    return;
+                }
 
                 ValidateLatestAssistantMessageIfNeeded();
                 UpdateStatus($"Response ready from {OllamaHelper.Instance.Options.ChatModel}.", Colors.SeaGreen);
@@ -657,6 +713,10 @@ namespace OllamaPilot
                 CanCancelResponse = false;
                 _activeResponseGuard = GeneratedResponseGuard.None;
                 _activeOriginalSelection = null;
+                _activeAssistantActions = AssistantActionCapabilities.Discussion;
+                _receivedAssistantContent = false;
+                _receivedAnyAssistantEvent = false;
+                _messageCache.Clear();
                 ScrollToBottom();
             }
         }
@@ -682,25 +742,33 @@ namespace OllamaPilot
                     ChatRole.System,
                     pendingCommand.PromptOverride,
                     pendingCommand.ResponseGuard,
-                    pendingCommand.OriginalSelection);
+                    pendingCommand.OriginalSelection,
+                    pendingCommand.ResetConversation,
+                    pendingCommand.AssistantActions);
             }
         }
 
         [SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "WPF event handlers require async void.")]
         private async void ReviewFile_Click(object sender, RoutedEventArgs e)
         {
-            var documentPath = await VsHelpers.GetActiveDocumentPathAsync(LLMCopilotProvider.Package);
-            var documentText = await VsHelpers.GetActiveDocumentTextAsync(LLMCopilotProvider.Package);
-            if (string.IsNullOrWhiteSpace(documentText))
+            var request = await CurrentDocumentCommandExecutor.TryCreateRequestAsync(
+                LLMCopilotProvider.Package,
+                OllamaHelper.Instance.GetReviewFileTemplate,
+                fileName => $"Review the current file: {fileName}",
+                "Open a code file first.");
+
+            if (request == null)
             {
-                UpdateStatus("Open a code file before reviewing it.", Colors.DarkGoldenrod);
                 return;
             }
 
-            var promptText = OllamaHelper.Instance.GetReviewFileTemplate(CurrentDocumentCommandExecutor.PrepareDocumentForPrompt(documentText), documentPath ?? string.Empty);
-            var fileLabel = string.IsNullOrWhiteSpace(documentPath) ? "current file" : System.IO.Path.GetFileName(documentPath);
             DraftHintText = "File review request sent with the active document content.";
-            await SendChatMessageAsync($"Review the current file: {fileLabel}", ChatRole.User, promptText);
+            await SendChatMessageAsync(
+                request.VisibleMessage,
+                ChatRole.User,
+                request.Prompt,
+                resetConversation: true,
+                assistantActions: AssistantActionCapabilities.Discussion);
         }
 
         [SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "WPF event handlers require async void.")]
@@ -717,7 +785,12 @@ namespace OllamaPilot
             var promptText = OllamaHelper.Instance.GetGenerateFileTestsTemplate(CurrentDocumentCommandExecutor.PrepareDocumentForPrompt(documentText), documentPath ?? string.Empty);
             var fileLabel = string.IsNullOrWhiteSpace(documentPath) ? "current file" : System.IO.Path.GetFileName(documentPath);
             DraftHintText = "File test generation request sent with the active document content.";
-            await SendChatMessageAsync($"Generate tests for the current file: {fileLabel}", ChatRole.User, promptText);
+            await SendChatMessageAsync(
+                $"Generate tests for the current file: {fileLabel}",
+                ChatRole.User,
+                promptText,
+                resetConversation: true,
+                assistantActions: AssistantActionCapabilities.FileGeneration);
         }
 
         [SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "WPF event handlers require async void.")]
@@ -736,7 +809,12 @@ namespace OllamaPilot
                 changesContext.StatusText,
                 changesContext.DiffText);
             DraftHintText = "Change summary request sent with the current Git diff.";
-            await SendChatMessageAsync($"Summarize the current Git changes for {repoName}.", ChatRole.User, promptText);
+            await SendChatMessageAsync(
+                $"Summarize the current Git changes for {repoName}.",
+                ChatRole.User,
+                promptText,
+                resetConversation: true,
+                assistantActions: AssistantActionCapabilities.Discussion);
         }
 
         [SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "WPF event handlers require async void.")]
@@ -772,7 +850,12 @@ namespace OllamaPilot
             MessageTextBox.Text = PlaceholderText;
             MessageTextBox.Foreground = new SolidColorBrush(Colors.Gray);
             DraftHintText = "Error diagnosis request sent with current editor context.";
-            await SendChatMessageAsync(visibleMessage, ChatRole.User, prompt);
+            await SendChatMessageAsync(
+                visibleMessage,
+                ChatRole.User,
+                prompt,
+                resetConversation: true,
+                assistantActions: AssistantActionCapabilities.Discussion);
         }
 
         [SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "WPF event handlers require async void.")]
@@ -801,7 +884,13 @@ namespace OllamaPilot
             MessageTextBox.Text = PlaceholderText;
             MessageTextBox.Foreground = new SolidColorBrush(Colors.Gray);
             DraftHintText = "Edit request sent with the active editor selection.";
-            await SendChatMessageAsync(visibleMessage, ChatRole.User, prompt);
+            await SendChatMessageAsync(
+                visibleMessage,
+                ChatRole.User,
+                prompt,
+                originalSelection: selectedText,
+                resetConversation: true,
+                assistantActions: AssistantActionCapabilities.SelectionEdit);
         }
 
 
@@ -865,7 +954,10 @@ namespace OllamaPilot
             if (!inserted)
             {
                 VsHelpers.ShowInfo("Open a code editor before inserting generated content.");
+                return;
             }
+
+            UpdateStatus("Inserted generated content into the active editor.", Colors.SeaGreen);
         }
 
         [SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "WPF event handlers require async void.")]
@@ -887,7 +979,10 @@ namespace OllamaPilot
             if (!replaced)
             {
                 VsHelpers.ShowInfo("Select code in the active editor before replacing it.");
+                return;
             }
+
+            UpdateStatus("Replaced the active selection and switched focus back to the editor.", Colors.SeaGreen);
         }
 
         [SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "WPF event handlers require async void.")]
@@ -1126,7 +1221,8 @@ namespace OllamaPilot
                 return;
             }
 
-            if (TryExtractFirstCodeBlock(message.Content, out var codeBlock))
+            if (message.AssistantActions != AssistantActionCapabilities.Discussion
+                && TryExtractFirstCodeBlock(message.Content, out var codeBlock))
             {
                 draftText = $"Please revise or explain this generated code:{Environment.NewLine}```{Environment.NewLine}{codeBlock}{Environment.NewLine}```";
             }
@@ -1149,7 +1245,14 @@ namespace OllamaPilot
             }
 
             DraftHintText = "Regenerating the most recent request with the same prompt context.";
-            await SendChatMessageAsync(_lastSubmittedText, _lastSubmittedRole, _lastPromptOverride, _lastResponseGuard, _lastOriginalSelection);
+            await SendChatMessageAsync(
+                _lastSubmittedText,
+                _lastSubmittedRole,
+                _lastPromptOverride,
+                _lastResponseGuard,
+                _lastOriginalSelection,
+                _lastResetConversation,
+                _lastAssistantActions);
         }
 
         private void RememberLastRequest(
@@ -1157,13 +1260,17 @@ namespace OllamaPilot
             ChatRole role,
             string promptOverride,
             GeneratedResponseGuard responseGuard,
-            string originalSelection)
+            string originalSelection,
+            bool resetConversation,
+            AssistantActionCapabilities assistantActions)
         {
             _lastSubmittedText = text;
             _lastSubmittedRole = role;
             _lastPromptOverride = promptOverride;
             _lastResponseGuard = responseGuard;
             _lastOriginalSelection = originalSelection;
+            _lastResetConversation = resetConversation;
+            _lastAssistantActions = assistantActions;
             CanRegenerateLast = !string.IsNullOrWhiteSpace(text);
         }
 

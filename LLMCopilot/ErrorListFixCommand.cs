@@ -71,7 +71,8 @@ namespace OllamaPilot
                     VsHelpers.OpenChatWindow();
                     EventManager.OnCodeCommandExecuted(
                         $"Help fix this diagnostic in {errorInfo.ProjectName ?? "the current project"}: {errorInfo.Description}",
-                        diagnosticPrompt);
+                        diagnosticPrompt,
+                        assistantActions: AssistantActionCapabilities.Discussion);
                 }
                 catch (Exception ex)
                 {
@@ -104,7 +105,10 @@ namespace OllamaPilot
             try
             {
                 VsHelpers.OpenChatWindow();
-                EventManager.OnCodeCommandExecuted(prompt);
+                EventManager.OnCodeCommandExecuted(
+                    $"Fix the selected diagnostic in {Path.GetFileName(errorInfo.FilePath)}.",
+                    prompt,
+                    assistantActions: AssistantActionCapabilities.SelectionEdit);
             }
             catch (Exception ex)
             {
