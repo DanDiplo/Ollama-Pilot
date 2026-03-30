@@ -23,8 +23,8 @@ namespace OllamaPilot
     {
         private readonly IWpfTextView _view;
         private readonly IAdornmentLayer _adornmentLayer;
-        private readonly TextEditor _textEditor; // 用于显示预测结果
-        private string _originalPredictionText; // 用于存储原始预测文本
+        private readonly TextEditor _textEditor;
+        private string _originalPredictionText;
         public SnapshotPoint Pos { get; private set; }
 
         public IWpfTextView View
@@ -44,7 +44,6 @@ namespace OllamaPilot
             var fontRenderingSize = defaultTextProperties.FontRenderingEmSize;
             var foregroundBrush = defaultTextProperties.ForegroundBrush as SolidColorBrush;
 
-            // 初始化 TextEditor，但不添加到 _adornmentLayer 中
             _textEditor = new TextEditor
             {
                 IsReadOnly = true,
@@ -54,16 +53,14 @@ namespace OllamaPilot
                 FontSize = fontRenderingSize,
                 Foreground = new SolidColorBrush(Color.FromRgb(212, 212, 212)),
                 WordWrap = true,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Hidden, // 隐藏垂直滚动条
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden, // 隐藏水平滚动条
+                VerticalScrollBarVisibility = ScrollBarVisibility.Hidden,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden,
                 Opacity = 0.96
             };
 
             _textEditor.TextArea.SelectionBrush = new SolidColorBrush(Colors.Transparent);
             _textEditor.MaxWidth = CalculateMaxWidth();
             _textEditor.MaxHeight = fontRenderingSize * 12;
-
-            // 设置不可编辑
             _textEditor.IsHitTestVisible = false;
         }
 
@@ -74,9 +71,8 @@ namespace OllamaPilot
         private double CalculateMaxWidth()
         {
             var defaultTextProperties = _view.FormattedLineSource.DefaultTextProperties;
-            double fontSize = defaultTextProperties.FontRenderingEmSize; // 获取字体大小
+            double fontSize = defaultTextProperties.FontRenderingEmSize;
 
-            // 假设每个字符的平均宽度是字体大小的1倍（根据实际情况调整）
             double averageCharWidth = fontSize;
             return averageCharWidth * 80;
         }
@@ -85,11 +81,9 @@ namespace OllamaPilot
         {
             if (_textEditor != null)
             {
-                // 获取光标所在行
                 var line = position.GetContainingLine();
                 var lineTextViewLine = _view.GetTextViewLineContainingBufferPosition(position);
 
-                // 重新设置位置
                 var caretPosition = _view.Caret.Position.BufferPosition;
                 var caretTop = _view.Caret.ContainingTextViewLine.Top;
                 var caretLeft = _view.Caret.Left;
@@ -97,12 +91,10 @@ namespace OllamaPilot
                 Canvas.SetLeft(_textEditor, caretLeft);
                 Canvas.SetTop(_textEditor, caretTop);
 
-                // 设置 ZIndex 确保其显示在顶部
                 Canvas.SetZIndex(_textEditor, 32766);
 
                 var span = new SnapshotSpan(position, 0);
 
-                // 移除已有的父级
                 if (_textEditor.Parent is Panel parent)
                 {
                     parent.Children.Remove(_textEditor);

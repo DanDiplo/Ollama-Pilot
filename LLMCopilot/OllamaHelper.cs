@@ -280,7 +280,6 @@ namespace OllamaPilot
         {
             if (!nCtx.HasValue)
             {
-                // 如果 nCtx 没有值，则返回一个默认值，例如0
                 return 0;
             }
 
@@ -291,7 +290,6 @@ namespace OllamaPilot
         {
             if (!nCtx.HasValue)
             {
-                // 如果 nCtx 没有值，则返回一个默认值，例如0
                 return 0;
             }
 
@@ -317,16 +315,20 @@ namespace OllamaPilot
 
         public async Task InitModelCtxAsync()
         {
+            // Initialize the context (num_ctx) for the chat model by querying Ollama
             try
             {
+                // Retrieve model information for the chat and completion models
                 var chatModelInfo = await ollamaService.ShowModelInformationAsync(Options.BaseUrl, Options.AccessToken, Options.ChatModel, default(System.Threading.CancellationToken));
                 var compModelInfo = await ollamaService.ShowModelInformationAsync(Options.BaseUrl, Options.AccessToken, Options.CompleteModel, default(System.Threading.CancellationToken));
 
+                // Helper to extract the 'num_ctx' parameter from a model's parameter string
                 Func<string, string, int> GetCtx = (string parameters, string model) =>
                 {
                     int num_ctx = defaultContext;
                     if (!string.IsNullOrEmpty(parameters))
                     {
+                        // Look for a line like "PARAMETER num_ctx 2048" and parse the value
                         var match = Regex.Match(parameters, @"PARAMETER\s+num_ctx\s+(\d+)");
                         if (match.Success && match.Groups.Count > 1)
                         {
@@ -336,14 +338,17 @@ namespace OllamaPilot
                     return num_ctx;
                 };
 
+                // Set the context for the chat request options
                 int chatCtx = GetCtx(chatModelInfo.Parameters, Options.ChatModel);
                 ChatRequestOptions.NumCtx = chatCtx;
 
+                // The following lines are commented out because the completion model context is not yet used
                 //int CompCtx = GetCtx(compModelInfo.Parameters, Options.CompleteModel);
                 //CompRequestOptions.NumCtx = CompCtx;
             }
             catch (Exception ex)
             {
+                // Handle any errors that occur while initializing the model settings
                 LLMErrorHandler.HandleException(ex, "Unable to initialize Ollama model settings. Check that Ollama is reachable and the configured models exist.");
             }
 

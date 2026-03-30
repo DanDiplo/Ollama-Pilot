@@ -49,7 +49,7 @@ namespace OllamaPilot
 
         public static void HandleException(Exception exception, string userMessage = null)
         {
-            var message = $"发生异常: {FormatException(exception)}\n";
+            var message = $"An error occurred: {FormatException(exception)}\n";
             var shortMessage = userMessage ?? "Ollama Pilot hit an unexpected error. Check the log file in Documents for details.";
 
             if (serviceProvider != null)

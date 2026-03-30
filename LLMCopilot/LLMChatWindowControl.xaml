@@ -18,9 +18,115 @@
         <local:AssistantMessageVisibilityConverter x:Key="AssistantMessageVisibilityConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <local:MessageSegmentTemplateSelector x:Key="MessageSegmentTemplateSelector" />
+        <Style x:Key="SurfaceBorderStyle"
+               TargetType="Border">
+            <Setter Property="BorderThickness"
+                    Value="1" />
+            <Setter Property="BorderBrush"
+                    Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarBorderKey}}" />
+            <Setter Property="Background"
+                    Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarGradientBeginKey}}" />
+        </Style>
+        <Style x:Key="RoleBadgeStyle"
+               TargetType="Border">
+            <Setter Property="Background"
+                    Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}" />
+            <Setter Property="CornerRadius"
+                    Value="999" />
+            <Setter Property="Padding"
+                    Value="8,3" />
+        </Style>
+        <Style x:Key="HeaderChipStyle"
+               TargetType="Border">
+            <Setter Property="Background"
+                    Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}" />
+            <Setter Property="CornerRadius"
+                    Value="999" />
+            <Setter Property="Padding"
+                    Value="10,5" />
+            <Setter Property="Margin"
+                    Value="0,0,8,0" />
+        </Style>
+        <Style x:Key="VsToolButtonStyle"
+               TargetType="Button">
+            <Setter Property="Padding"
+                    Value="10,5" />
+            <Setter Property="Margin"
+                    Value="0,0,8,8" />
+            <Setter Property="MinHeight"
+                    Value="28" />
+            <Setter Property="Background"
+                    Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarGradientBeginKey}}" />
+            <Setter Property="Foreground"
+                    Value="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" />
+            <Setter Property="BorderBrush"
+                    Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarBorderKey}}" />
+            <Setter Property="BorderThickness"
+                    Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver"
+                                     Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="Background"
+                                        Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed"
+                                     Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="Background"
+                                        Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandShelfHighlightGradientBeginKey}}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled"
+                                     Value="False">
+                                <Setter Property="Opacity"
+                                        Value="0.55" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="FlatActionButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource VsToolButtonStyle}">
+            <Setter Property="Padding"
+                    Value="8,4" />
+            <Setter Property="Margin"
+                    Value="0,0,8,8" />
+            <Setter Property="FontSize"
+                    Value="11" />
+        </Style>
+        <Style x:Key="EditorTextBoxStyle"
+               TargetType="TextBox">
+            <Setter Property="Padding"
+                    Value="10,8" />
+            <Setter Property="BorderThickness"
+                    Value="1" />
+            <Setter Property="BorderBrush"
+                    Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarBorderKey}}" />
+            <Setter Property="Background"
+                    Value="{DynamicResource {x:Static vsshell:VsBrushes.WindowKey}}" />
+            <Setter Property="Foreground"
+                    Value="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" />
+        </Style>
         <DataTemplate x:Key="MarkdownSegmentTemplate">
             <md:MarkdownScrollViewer MarkdownStyleName="Sasabune"
                                      Markdown="{Binding Content}"
+                                     Background="Transparent"
                                      Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
                                      VerticalScrollBarVisibility="Disabled"
                                      HorizontalScrollBarVisibility="Disabled"
@@ -50,17 +156,13 @@
             </Border>
         </DataTemplate>
         <DataTemplate x:Key="MessageTemplate">
-            <Border Padding="12"
+            <Border Style="{StaticResource SurfaceBorderStyle}"
+                    Padding="12"
                     Margin="6"
-                    CornerRadius="10"
-                    BorderThickness="1"
-                    BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarBorderKey}}"
-                    Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarGradientBeginKey}}">
+                    CornerRadius="10">
                 <StackPanel>
-                    <Border Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}"
-                            CornerRadius="999"
+                    <Border Style="{StaticResource RoleBadgeStyle}"
                             HorizontalAlignment="Left"
-                            Padding="8,3"
                             Margin="0,0,0,8">
                         <TextBlock Text="{Binding Role, Converter={StaticResource CapitalizeFirstLetterConverter}}"
                                    FontWeight="SemiBold"
@@ -96,36 +198,37 @@
                                 Margin="0,8,0,0"
                                 Visibility="{Binding HasVisibleActions, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Button Content="Preview Diff"
+                                Style="{StaticResource FlatActionButtonStyle}"
                                 Click="PreviewDiff_Click"
                                 Tag="{Binding}"
-                                Margin="0,0,8,0"
                                 Visibility="{Binding CanPreviewDiff, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         <Button Content="Copy Code"
+                                Style="{StaticResource FlatActionButtonStyle}"
                                 Click="CopyCode_Click"
                                 Tag="{Binding}"
-                                Margin="0,0,8,0"
                                 Visibility="{Binding CanCopyCode, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         <Button Content="Use As Draft"
+                                Style="{StaticResource FlatActionButtonStyle}"
                                 Click="UseAsDraft_Click"
                                 Tag="{Binding}"
-                                Margin="0,0,8,0"
                                 Visibility="{Binding CanUseAsDraft, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         <Button Content="Create Sibling File"
+                                Style="{StaticResource FlatActionButtonStyle}"
                                 Click="CreateSiblingFile_Click"
                                 Tag="{Binding}"
-                                Margin="0,0,8,0"
                                 Visibility="{Binding CanCreateSiblingFile, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         <Button Content="Insert Into Editor"
+                                Style="{StaticResource FlatActionButtonStyle}"
                                 Click="InsertIntoEditor_Click"
                                 Tag="{Binding}"
-                                Margin="0,0,8,0"
                                 Visibility="{Binding CanInsertIntoEditor, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         <Button Content="Replace Selection"
+                                Style="{StaticResource FlatActionButtonStyle}"
                                 Click="ReplaceSelection_Click"
                                 Tag="{Binding}"
-                                Margin="0,0,8,0"
                                 Visibility="{Binding CanReplaceSelection, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         <Button Content="Replace File"
+                                Style="{StaticResource FlatActionButtonStyle}"
                                 Click="ReplaceFile_Click"
                                 Tag="{Binding}"
                                 Visibility="{Binding CanReplaceFile, Converter={StaticResource BooleanToVisibilityConverter}}" />
@@ -211,11 +314,10 @@
         </Menu>
 
         <Border Grid.Row="1"
+                Style="{StaticResource SurfaceBorderStyle}"
                 Margin="8,8,8,4"
                 Padding="14"
                 CornerRadius="12"
-                BorderThickness="1"
-                BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarBorderKey}}"
                 Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandShelfHighlightGradientBeginKey}}">
             <Grid>
                 <Grid.RowDefinitions>
@@ -243,13 +345,16 @@
                             Orientation="Horizontal"
                             VerticalAlignment="Top">
                     <Button Content="Test Connection"
+                            Style="{StaticResource VsToolButtonStyle}"
                             Click="TestConnection_Click"
                             Margin="0,0,8,0" />
                     <Button Content="Regenerate Last"
+                            Style="{StaticResource VsToolButtonStyle}"
                             Click="RegenerateLast_Click"
                             Margin="0,0,8,0"
                             IsEnabled="{Binding CanRegenerateLast}" />
                     <Button Content="Cancel Response"
+                            Style="{StaticResource VsToolButtonStyle}"
                             Click="CancelResponse_Click"
                             IsEnabled="{Binding CanCancelResponse}" />
                 </StackPanel>
@@ -257,33 +362,23 @@
                 <WrapPanel Grid.Row="1"
                            Grid.ColumnSpan="2"
                            Margin="0,12,0,0">
-                    <Border Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}"
-                            CornerRadius="999"
-                            Padding="10,5"
-                            Margin="0,0,8,0">
+                    <Border Style="{StaticResource HeaderChipStyle}">
                         <TextBlock Text="{Binding ChatModelBadge}"
                                    FontSize="11"
                                    FontWeight="SemiBold" />
                     </Border>
-                    <Border Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}"
-                            CornerRadius="999"
-                            Padding="10,5"
-                            Margin="0,0,8,0">
+                    <Border Style="{StaticResource HeaderChipStyle}">
                         <TextBlock Text="{Binding CompletionModelBadge}"
                                    FontSize="11"
                                    FontWeight="SemiBold" />
                     </Border>
-                    <Border Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}"
-                            CornerRadius="999"
-                            Padding="10,5"
-                            Margin="0,0,8,0">
+                    <Border Style="{StaticResource HeaderChipStyle}">
                         <TextBlock Text="{Binding AutoCompleteBadge}"
                                    FontSize="11"
                                    FontWeight="SemiBold" />
                     </Border>
-                    <Border Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}"
-                            CornerRadius="999"
-                            Padding="10,5">
+                    <Border Style="{StaticResource HeaderChipStyle}"
+                            Margin="0,0,0,8">
                         <TextBlock Text="{Binding ThinkingBadge}"
                                    FontSize="11"
                                    FontWeight="SemiBold" />
@@ -308,12 +403,10 @@
             </ItemsControl>
         </ScrollViewer>
         <Border Grid.Row="3"
+                Style="{StaticResource SurfaceBorderStyle}"
                 Margin="8,4,8,8"
                 Padding="10"
-                CornerRadius="12"
-                BorderThickness="1"
-                BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarBorderKey}}"
-                Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarGradientBeginKey}}">
+                CornerRadius="12">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -323,32 +416,41 @@
                 <WrapPanel Grid.Row="0"
                            Margin="0,0,0,8">
                     <Button Content="Review File"
+                            Style="{StaticResource VsToolButtonStyle}"
                             Click="ReviewFile_Click"
-                            Margin="0,0,8,0" />
+                            Margin="0,0,8,8" />
                     <Button Content="Test File"
+                            Style="{StaticResource VsToolButtonStyle}"
                             Click="GenerateTestsForFile_Click"
-                            Margin="0,0,8,0" />
+                            Margin="0,0,8,8" />
                     <Button Content="Summarize Changes"
+                            Style="{StaticResource VsToolButtonStyle}"
                             Click="SummarizeChanges_Click"
-                            Margin="0,0,8,0" />
+                            Margin="0,0,8,8" />
                     <Button Content="Explain Error"
+                            Style="{StaticResource VsToolButtonStyle}"
                             Click="ExplainError_Click"
-                            Margin="0,0,8,0" />
+                            Margin="0,0,8,8" />
                     <Button Content="Edit Selection"
+                            Style="{StaticResource VsToolButtonStyle}"
                             Click="EditSelection_Click"
-                            Margin="0,0,8,0" />
+                            Margin="0,0,8,8" />
                     <Button Content="Insert Selection"
+                            Style="{StaticResource VsToolButtonStyle}"
                             Click="InsertSelectionIntoPrompt_Click"
-                            Margin="0,0,8,0" />
+                            Margin="0,0,8,8" />
                     <Button Content="Clear Draft"
+                            Style="{StaticResource VsToolButtonStyle}"
                             Click="ClearDraft_Click"
-                            Margin="0,0,8,0" />
+                            Margin="0,0,8,8" />
                     <TextBlock Text="Ctrl+Enter sends"
+                               Margin="0,0,0,8"
                                VerticalAlignment="Center"
                                Foreground="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarTextInactiveKey}}" />
                 </WrapPanel>
 
                 <TextBox x:Name="MessageTextBox"
+                         Style="{StaticResource EditorTextBoxStyle}"
                          Grid.Row="1"
                          MinWidth="200"
                          MinHeight="82"
@@ -359,7 +461,6 @@
                          GotFocus="MessageTextBox_GotFocus"
                          LostFocus="MessageTextBox_LostFocus"
                          VerticalScrollBarVisibility="Auto"
-                         Foreground="Gray"
                          Text="Ask Ollama for an explanation, refactor, test, or paste selected code into the prompt." />
 
                 <DockPanel Grid.Row="2"
@@ -368,6 +469,7 @@
                                VerticalAlignment="Center"
                                Foreground="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarTextInactiveKey}}" />
                     <Button x:Name="SendButton"
+                            Style="{StaticResource VsToolButtonStyle}"
                             Content="Send"
                             Click="SendButton_Click"
                             DockPanel.Dock="Right"

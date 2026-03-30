@@ -5,6 +5,7 @@
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/Info/">
+    <File Path="../../AGENTS.md" />
     <File Path="../../README.md" />
     <File Path="../.gitignore" />
     <File Path="source.extension.vsixmanifest" />
