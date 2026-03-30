@@ -11,9 +11,9 @@ Be concise, but concrete.
 Do not ask the user to paste or upload the file again. The file contents are already provided below.
 
 ## Current File
-```{{language}}
+\`\`\`{{language}}
 {{selectedText}}
-```
+\`\`\`
 
 ## Task
 Respond with:

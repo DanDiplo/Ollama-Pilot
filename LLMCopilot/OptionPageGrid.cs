@@ -18,6 +18,14 @@ namespace OllamaPilot
         Aggressive,
     }
 
+    public enum ThinkingDepth
+    {
+        Off,
+        Low,
+        Medium,
+        High,
+    }
+
     public class OptionPageGrid : DialogPage
     {
         private string baseUrl = "http://localhost:11434";
@@ -32,6 +40,7 @@ namespace OllamaPilot
         private int chat_ctx_size = 4096;
         private int complete_ctx_size = 2048;
         private AutoCompleteTriggerMode autoCompleteTriggerMode = AutoCompleteTriggerMode.Smart;
+        private ThinkingDepth thinkingDepth = ThinkingDepth.Medium;
         private int autoCompleteDelayMs = 350;
         private int autoCompleteMinPrefixLength = 3;
 
@@ -162,6 +171,15 @@ namespace OllamaPilot
             {
                 chat_ctx_size = value;
             }
+        }
+
+        [Category("LLMCopilot")]
+        [DisplayName("Thinking Depth")]
+        [Description("Controls reasoning depth for thinking-capable chat models such as GPT-OSS.")]
+        public ThinkingDepth ChatThinkingDepth
+        {
+            get { return thinkingDepth; }
+            set { thinkingDepth = value; }
         }
 
         [Category("LLMCopilot")]

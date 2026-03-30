@@ -28,6 +28,7 @@ namespace OllamaPilot
         {
             LanguageComboBox.ItemsSource = Enum.GetValues(typeof(ResponseLanguage));
             TriggerModeComboBox.ItemsSource = Enum.GetValues(typeof(AutoCompleteTriggerMode));
+            ThinkingDepthComboBox.ItemsSource = Enum.GetValues(typeof(ThinkingDepth));
         }
 
         private void LoadFromOptions()
@@ -37,6 +38,7 @@ namespace OllamaPilot
             ChatModelComboBox.Text = _options.ChatModel;
             CompleteModelComboBox.Text = _options.CompleteModel;
             ChatCtxTextBox.Text = _options.ChatCtxSize.ToString();
+            ThinkingDepthComboBox.SelectedItem = _options.ChatThinkingDepth;
             CompleteCtxTextBox.Text = _options.CompleteCtxSize.ToString();
             EnableAutoCompleteCheckBox.IsChecked = _options.EnableAutoComplete;
             TriggerModeComboBox.SelectedItem = _options.AutoCompleteTriggerMode;
@@ -189,6 +191,9 @@ namespace OllamaPilot
             _options.ChatModel = ChatModelComboBox.Text?.Trim();
             _options.CompleteModel = CompleteModelComboBox.Text?.Trim();
             _options.ChatCtxSize = ParsePositiveInt(ChatCtxTextBox.Text, "Chat Context Length");
+            _options.ChatThinkingDepth = ThinkingDepthComboBox.SelectedItem is ThinkingDepth thinkingDepth
+                ? thinkingDepth
+                : ThinkingDepth.Medium;
             _options.CompleteCtxSize = ParsePositiveInt(CompleteCtxTextBox.Text, "Complete Context Length");
             _options.EnableAutoComplete = EnableAutoCompleteCheckBox.IsChecked == true;
             _options.AutoCompleteTriggerMode = TriggerModeComboBox.SelectedItem is AutoCompleteTriggerMode triggerMode

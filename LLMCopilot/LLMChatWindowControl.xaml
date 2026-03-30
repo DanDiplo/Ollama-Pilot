@@ -75,6 +75,23 @@
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>
+                    <Expander Header="Thinking"
+                              Margin="0,8,0,0"
+                              Visibility="{Binding HasThinking, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Border Margin="0,6,0,0"
+                                Padding="10"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarBorderKey}}"
+                                Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandShelfHighlightGradientBeginKey}}">
+                            <ScrollViewer MaxHeight="180"
+                                          VerticalScrollBarVisibility="Auto">
+                                <TextBlock Text="{Binding Thinking}"
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" />
+                            </ScrollViewer>
+                        </Border>
+                    </Expander>
                     <StackPanel Orientation="Horizontal"
                                 Margin="0,8,0,0"
                                 Visibility="{Binding HasVisibleActions, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -258,8 +275,16 @@
                     </Border>
                     <Border Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}"
                             CornerRadius="999"
-                            Padding="10,5">
+                            Padding="10,5"
+                            Margin="0,0,8,0">
                         <TextBlock Text="{Binding AutoCompleteBadge}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold" />
+                    </Border>
+                    <Border Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}"
+                            CornerRadius="999"
+                            Padding="10,5">
+                        <TextBlock Text="{Binding ThinkingBadge}"
                                    FontSize="11"
                                    FontWeight="SemiBold" />
                     </Border>

@@ -11,9 +11,9 @@ Draft a concise commit title, summarize the changes, and call out any obvious ri
 {{statusText}}
 
 ## Diff
-```diff
+\`\`\`diff
 {{selectedText}}
-```
+\`\`\`
 
 ## Task
 Respond with:

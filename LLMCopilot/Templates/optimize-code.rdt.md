@@ -25,6 +25,8 @@ Provide potential improvement suggestions where possible.
 Consider that the code might be perfect and no improvements are possible.
 Include code snippets (using Markdown) and examples where appropriate.
 The code snippets must contain valid {{language}} code.
+Always provide a visible response.
+If the code is already fine, say that explicitly and briefly explain why.
 
 ## Readability and Performance Improvements
 

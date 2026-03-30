@@ -38,12 +38,26 @@ namespace OllamaPilot
                     Segments = ParseSegments(value);
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(Segments));
+                    OnPropertyChanged(nameof(HasVisibleActions));
                 }
             }
         }
 
         public ObservableCollection<MessageSegment> Segments { get; private set; }
         public AssistantActionCapabilities AssistantActions { get; }
+        public string Thinking
+        {
+            get => _message.Thinking;
+            set
+            {
+                if (_message.Thinking != value)
+                {
+                    _message.Thinking = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(HasThinking));
+                }
+            }
+        }
 
         public ChatRole? Role
         {
@@ -51,7 +65,11 @@ namespace OllamaPilot
             private set { }
         }
 
-        public bool HasVisibleActions => Role == ChatRole.Assistant && AssistantActions != AssistantActionCapabilities.None;
+        public bool HasThinking => !string.IsNullOrWhiteSpace(Thinking);
+        public bool HasVisibleActions =>
+            Role == ChatRole.Assistant
+            && AssistantActions != AssistantActionCapabilities.None
+            && !string.IsNullOrWhiteSpace(Content);
         public bool CanUseAsDraft => HasAction(AssistantActionCapabilities.UseAsDraft);
         public bool CanCopyCode => HasAction(AssistantActionCapabilities.CopyCode);
         public bool CanPreviewDiff => HasAction(AssistantActionCapabilities.PreviewDiff);
@@ -162,6 +180,11 @@ namespace OllamaPilot
         public string Content { get; }
         public string Language { get; }
         public string LanguageLabel => string.IsNullOrWhiteSpace(Language) ? "code" : Language;
+
+        public override string ToString()
+        {
+            return Content ?? string.Empty;
+        }
     }
 
     public sealed class MessageSegmentTemplateSelector : DataTemplateSelector
@@ -176,7 +199,22 @@ namespace OllamaPilot
             }
 
             var key = segment.Type == MessageSegmentType.Code ? "CodeSegmentTemplate" : "MarkdownSegmentTemplate";
-            return element.TryFindResource(key) as DataTemplate ?? base.SelectTemplate(item, container);
+            var template = element.TryFindResource(key) as DataTemplate;
+            if (template != null)
+            {
+                return template;
+            }
+
+            if (Application.Current != null)
+            {
+                template = Application.Current.TryFindResource(key) as DataTemplate;
+                if (template != null)
+                {
+                    return template;
+                }
+            }
+
+            return base.SelectTemplate(item, container);
         }
     }
 
@@ -292,12 +330,14 @@ namespace OllamaPilot
         public ObservableCollection<MyMessage> Messages => _messages;
         private Chat Chat { get; set; }
         private readonly StringBuilder _messageCache = new StringBuilder(); // 用于缓存数据
+        private readonly StringBuilder _thinkingCache = new StringBuilder();
         private CancellationTokenSource _sendCancellationTokenSource;
         private string _statusText = "Ready to connect to your local Ollama server.";
         private Brush _statusBrush = new SolidColorBrush(Colors.Gray);
         private string _chatModelBadge;
         private string _completionModelBadge;
         private string _autoCompleteBadge;
+        private string _thinkingBadge;
         private string _draftHintText = "Tip: Insert selection to give the model exact code context.";
         private bool _canCancelResponse;
         private bool _canRegenerateLast;
@@ -313,6 +353,7 @@ namespace OllamaPilot
         private bool _lastResetConversation;
         private bool _receivedAssistantContent;
         private bool _receivedAnyAssistantEvent;
+        private bool _receivedAssistantThinking;
 
         public string StatusText
         {
@@ -379,6 +420,19 @@ namespace OllamaPilot
             }
         }
 
+        public string ThinkingBadge
+        {
+            get => _thinkingBadge;
+            private set
+            {
+                if (_thinkingBadge != value)
+                {
+                    _thinkingBadge = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public string DraftHintText
         {
             get => _draftHintText;
@@ -433,6 +487,12 @@ namespace OllamaPilot
             RefreshHeaderState();
         }
 
+        private void Options_SettingsChanged(object sender, EventArgs e)
+        {
+            ResetChatSession();
+            RefreshHeaderState();
+        }
+
         private void OnChatResponseReceived(ChatResponseStream response)
         {
             if (response.Message == null)
@@ -441,6 +501,20 @@ namespace OllamaPilot
             }
 
             _receivedAnyAssistantEvent = true;
+
+            if (!string.IsNullOrEmpty(response.Message.Thinking))
+            {
+                _receivedAssistantThinking = true;
+                _thinkingCache.Append(response.Message.Thinking);
+
+                string[] thinkingDelimiters = { "\n", ",", "，", ".", "。", ":", "：", ";", "；", "\t" };
+                bool containsThinkingDelimiter = thinkingDelimiters.Any(delimiter => response.Message.Thinking.Contains(delimiter));
+                if (_thinkingCache.Length > 64 || containsThinkingDelimiter || response.Done)
+                {
+                    AppendOrUpdateLastThinking(_thinkingCache.ToString());
+                    _thinkingCache.Clear();
+                }
+            }
 
             if (!string.IsNullOrEmpty(response.Message.Content))
             {
@@ -460,6 +534,12 @@ namespace OllamaPilot
             {
                 AppendOrUpdateLastMessage(_messageCache.ToString());
                 _messageCache.Clear();
+            }
+
+            if (response.Done && _thinkingCache.Length > 0)
+            {
+                AppendOrUpdateLastThinking(_thinkingCache.ToString());
+                _thinkingCache.Clear();
             }
         }
 
@@ -520,6 +600,7 @@ namespace OllamaPilot
         private void LLMChatWindowControl_loaded(object sender, RoutedEventArgs e)
         {
             EventManager.CodeCommandExecuted += OnExplainCodeCommandExecuted;
+            OllamaHelper.Instance.Options.SettingsChanged += Options_SettingsChanged;
 
             Chat.SelectedModel = OllamaHelper.Instance.Options.ChatModel;
             Chat.Options = OllamaHelper.Instance.ChatRequestOptions;
@@ -531,6 +612,7 @@ namespace OllamaPilot
         private void LLMChatWindowControl_Unloaded(object sender, RoutedEventArgs e)
         {
             EventManager.CodeCommandExecuted -= OnExplainCodeCommandExecuted;
+            OllamaHelper.Instance.Options.SettingsChanged -= Options_SettingsChanged;
             _sendCancellationTokenSource?.Cancel();
         }
 
@@ -554,6 +636,35 @@ namespace OllamaPilot
             else
             {
                 _messages.Add(new MyMessage(ChatRole.Assistant, content, _activeAssistantActions));
+            }
+
+            ScrollToBottom();
+        }
+
+        private void AppendOrUpdateLastThinking(string thinking)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                ThreadHelper.JoinableTaskFactory.Run(async delegate
+                {
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                    AppendOrUpdateLastThinking(thinking);
+                });
+                return;
+            }
+
+            if (_messages.Any() && _messages.Last().Role == ChatRole.Assistant)
+            {
+                var lastMessage = _messages.Last();
+                lastMessage.Thinking = string.Concat(lastMessage.Thinking ?? string.Empty, thinking);
+            }
+            else
+            {
+                var assistantMessage = new MyMessage(ChatRole.Assistant, string.Empty, _activeAssistantActions)
+                {
+                    Thinking = thinking
+                };
+                _messages.Add(assistantMessage);
             }
 
             ScrollToBottom();
@@ -668,7 +779,9 @@ namespace OllamaPilot
                 _activeAssistantActions = assistantActions;
                 _receivedAssistantContent = false;
                 _receivedAnyAssistantEvent = false;
+                _receivedAssistantThinking = false;
                 _messageCache.Clear();
+                _thinkingCache.Clear();
                 RememberLastRequest(text, role, promptOverride, responseGuard, originalSelection, resetConversation, assistantActions);
                 AddMessage(role, text);
                 ScrollToBottom();
@@ -682,13 +795,25 @@ namespace OllamaPilot
                     await Chat.SendAsync(promptOverride ?? text, _sendCancellationTokenSource.Token);
                 });
 
+                if (!_receivedAssistantContent && _receivedAssistantThinking && TryPromoteThinkingOnlyResponse())
+                {
+                    _receivedAssistantContent = true;
+                    UpdateStatus($"Response ready from {OllamaHelper.Instance.Options.ChatModel} (promoted from thinking).", Colors.SeaGreen);
+                }
+
                 if (!_receivedAssistantContent)
                 {
-                    var warning = _receivedAnyAssistantEvent
-                        ? "The model finished without returning any visible text."
-                        : "The model did not return any visible output.";
+                    var warning = _receivedAssistantThinking
+                        ? "The model returned thinking but no final answer."
+                        : _receivedAnyAssistantEvent
+                            ? "The model finished without returning any visible text."
+                            : "The model did not return any visible output.";
                     AddMessage(ChatRole.System, $"{warning} Try regenerating, using a stronger model, or narrowing the request.");
-                    UpdateStatus("The model returned no visible output.", Colors.DarkGoldenrod);
+                    UpdateStatus(
+                        _receivedAssistantThinking
+                            ? "The model returned thinking but no final answer."
+                            : "The model returned no visible output.",
+                        Colors.DarkGoldenrod);
                     return;
                 }
 
@@ -716,9 +841,34 @@ namespace OllamaPilot
                 _activeAssistantActions = AssistantActionCapabilities.Discussion;
                 _receivedAssistantContent = false;
                 _receivedAnyAssistantEvent = false;
+                _receivedAssistantThinking = false;
                 _messageCache.Clear();
+                _thinkingCache.Clear();
                 ScrollToBottom();
             }
+        }
+
+        private bool TryPromoteThinkingOnlyResponse()
+        {
+            var lastAssistantMessage = _messages.LastOrDefault(m =>
+                m.Role == ChatRole.Assistant
+                && string.IsNullOrWhiteSpace(m.Content)
+                && !string.IsNullOrWhiteSpace(m.Thinking));
+
+            if (lastAssistantMessage == null)
+            {
+                return false;
+            }
+
+            var promotedContent = lastAssistantMessage.Thinking.Trim();
+            if (string.IsNullOrWhiteSpace(promotedContent))
+            {
+                return false;
+            }
+
+            lastAssistantMessage.Content = promotedContent;
+            lastAssistantMessage.Thinking = null;
+            return true;
         }
 
         private async Task SendMessageAsync()
@@ -1123,6 +1273,7 @@ namespace OllamaPilot
                 ? $"Autocomplete: {options.AutoCompleteTriggerMode} ({options.AutoCompleteDelayMs} ms)"
                 : "Autocomplete: Off";
             AutoCompleteBadge = autoCompleteMode;
+            ThinkingBadge = $"Thinking: {options.ChatThinkingDepth}";
         }
 
         private void ResetChatSession()

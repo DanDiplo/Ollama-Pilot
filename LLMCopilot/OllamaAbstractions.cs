@@ -163,6 +163,11 @@ namespace OllamaPilot
         public string Content { get; set; }
 
         /// <summary>
+        /// Optional thinking text emitted by reasoning-capable models.
+        /// </summary>
+        public string Thinking { get; set; }
+
+        /// <summary>
         /// An array of images associated with the message. This can be used for visual prompts in language generation tasks.
         /// </summary>
         public string[] Images { get; set; }
@@ -234,7 +239,7 @@ namespace OllamaPilot
         /// <param name="options">The request options for generating responses during the chat session.</param>
         /// <param name="streamer">An action delegate that will be called to handle each chat response as it is received.</param>
         /// <returns>A task representing the asynchronous operation that completes when the chat session is created and started streaming.</returns>
-        Chat CreateChatSession(string baseUrl, string model, string accessToken, RequestOptions options, Action<ChatResponseStream> streamer);
+        Chat CreateChatSession(string baseUrl, string model, string accessToken, RequestOptions options, ThinkingDepth thinkingDepth, Action<ChatResponseStream> streamer);
 
         /// <summary>
         /// Lists all local models available on the system.

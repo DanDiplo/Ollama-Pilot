@@ -493,6 +493,7 @@ namespace OllamaPilot
                 options.ChatModel,
                 options.AccessToken,
                 OllamaHelper.Instance.ChatRequestOptions,
+                options.ChatThinkingDepth,
                 streamer);
         }
     }

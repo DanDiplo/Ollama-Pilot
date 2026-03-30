@@ -10,9 +10,9 @@ Return exactly one fenced code block containing the test code only.
 Do not include explanation outside the code block.
 
 ## Current File
-```{{language}}
+\`\`\`{{language}}
 {{selectedText}}
-```
+\`\`\`
 
 ## Task
 Generate a useful starting test file that covers:

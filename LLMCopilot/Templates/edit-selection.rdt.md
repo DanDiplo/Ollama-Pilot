@@ -15,9 +15,9 @@ Do not include explanations, bullets, or commentary outside the code block.
 {{instructions}}
 
 ## Selected Code
-```{{language}}
+\`\`\`{{language}}
 {{selectedText}}
-```
+\`\`\`
 
 ## Response
 ```

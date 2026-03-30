@@ -7,11 +7,7 @@ namespace OllamaPilot
 {
     internal static class SelectedCodeCommandExecutor
     {
-        public static async Task ExecuteAsync(
-            AsyncPackage package,
-            Func<string, string, string> createPrompt,
-            GeneratedResponseGuard responseGuard = GeneratedResponseGuard.None,
-            AssistantActionCapabilities assistantActions = AssistantActionCapabilities.Discussion)
+        public static async Task ExecuteAsync(AsyncPackage package, Func<string, string, string> createPrompt, GeneratedResponseGuard responseGuard = GeneratedResponseGuard.None, AssistantActionCapabilities assistantActions = AssistantActionCapabilities.Discussion)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
 

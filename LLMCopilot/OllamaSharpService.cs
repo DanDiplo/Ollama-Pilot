@@ -9,9 +9,9 @@ namespace OllamaPilot
 {
     public sealed class OllamaSharpService : IOllamaService
     {
-        public Chat CreateChatSession(string baseUrl, string model, string accessToken, RequestOptions options, Action<ChatResponseStream> streamer)
+        public Chat CreateChatSession(string baseUrl, string model, string accessToken, RequestOptions options, ThinkingDepth thinkingDepth, Action<ChatResponseStream> streamer)
         {
-            var session = new OllamaSharpChatSession(baseUrl, model, accessToken, options, streamer);
+            var session = new OllamaSharpChatSession(baseUrl, model, accessToken, options, thinkingDepth, streamer);
             return new Chat(session);
         }
 
@@ -127,15 +127,19 @@ namespace OllamaPilot
             private readonly OllamaApiClient _client;
             private readonly OllamaSharp.Chat _chat;
             private readonly Action<ChatResponseStream> _streamer;
+            private readonly ThinkingDepth _thinkingDepth;
 
-            public OllamaSharpChatSession(string baseUrl, string model, string accessToken, RequestOptions options, Action<ChatResponseStream> streamer)
+            public OllamaSharpChatSession(string baseUrl, string model, string accessToken, RequestOptions options, ThinkingDepth thinkingDepth, Action<ChatResponseStream> streamer)
             {
                 _client = CreateClient(baseUrl, accessToken, model);
                 _chat = new OllamaSharp.Chat(_client);
                 _streamer = streamer;
+                _thinkingDepth = thinkingDepth;
                 SelectedModel = model;
                 Options = options;
                 AccessToken = accessToken;
+                _chat.Think = ToPackageThinkingDepth(_thinkingDepth);
+                _chat.OnThink += Chat_OnThink;
             }
 
             public string SelectedModel
@@ -161,6 +165,7 @@ namespace OllamaPilot
                 ApplyAuthorizationHeader(_client, AccessToken);
                 _client.SelectedModel = SelectedModel;
                 _chat.Model = SelectedModel;
+                _chat.Think = ToPackageThinkingDepth(_thinkingDepth);
 
                 var enumerator = _chat.SendAsync(message, cancellationToken).GetAsyncEnumerator(cancellationToken);
                 try
@@ -195,6 +200,25 @@ namespace OllamaPilot
                 }
             }
 
+            private void Chat_OnThink(object sender, string thinkingToken)
+            {
+                if (_streamer == null || string.IsNullOrEmpty(thinkingToken))
+                {
+                    return;
+                }
+
+                _streamer(new ChatResponseStream
+                {
+                    Model = SelectedModel,
+                    Message = new Message
+                    {
+                        Role = ChatRole.Assistant,
+                        Thinking = thinkingToken
+                    },
+                    Done = false
+                });
+            }
+
             private static RequestOptions FromPackageRequestOptions(OllamaSharp.Models.RequestOptions options)
             {
                 if (options == null)
@@ -209,6 +233,21 @@ namespace OllamaPilot
                     Temperature = options.Temperature,
                     Stop = options.Stop
                 };
+            }
+        }
+
+        private static OllamaSharp.Models.Chat.ThinkValue? ToPackageThinkingDepth(ThinkingDepth thinkingDepth)
+        {
+            switch (thinkingDepth)
+            {
+                case ThinkingDepth.Low:
+                    return "low";
+                case ThinkingDepth.Medium:
+                    return "medium";
+                case ThinkingDepth.High:
+                    return "high";
+                default:
+                    return false;
             }
         }
     }

@@ -14,9 +14,9 @@ Then return exactly one fenced code block containing only the corrected code.
 {{diagnosticText}}
 
 ## Relevant Code
-```{{language}}
+\`\`\`{{language}}
 {{selectedText}}
-```
+\`\`\`
 
 ## Response
 ```

@@ -161,7 +161,11 @@
                             <TextBlock Text="Chat Context Length"
                                        FontWeight="SemiBold" />
                             <TextBox x:Name="ChatCtxTextBox"
-                                     Margin="0,6,0,0" />
+                                     Margin="0,6,0,12" />
+                            <TextBlock Text="Thinking Depth"
+                                       FontWeight="SemiBold" />
+                            <ComboBox x:Name="ThinkingDepthComboBox"
+                                      Margin="0,6,0,0" />
                         </StackPanel>
 
                         <StackPanel Grid.Column="1"
