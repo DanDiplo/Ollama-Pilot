@@ -761,7 +761,7 @@ namespace OllamaPilot
                 return;
             }
 
-            VsHelpers.IsSending = true;
+            VsHelpers.SetSendingState(true);
             SendButton.Content = "Answering...";
             SendButton.IsEnabled = false;
             CanCancelResponse = true;
@@ -831,7 +831,7 @@ namespace OllamaPilot
             }
             finally
             {
-                VsHelpers.IsSending = false;
+                VsHelpers.SetSendingState(false);
                 SendButton.Content = "Send";
                 SendButton.IsEnabled = true;
                 _sendCancellationTokenSource = null;

@@ -28,6 +28,7 @@ namespace OllamaPilot
 
             try
             {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
                 VsHelpers.OpenChatWindow();
                 await System.Threading.Tasks.Task.Yield();
                 EventManager.OnCodeCommandExecuted(request.VisibleMessage, request.Prompt, assistantActions: assistantActions);

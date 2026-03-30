@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -19,149 +18,66 @@ using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.TextManager.Interop;
 using IAsyncServiceProvider = Microsoft.VisualStudio.Shell.IAsyncServiceProvider;
 using Task = System.Threading.Tasks.Task;
-using Thread = System.Threading.Thread;
 
 namespace OllamaPilot
 {
     public static class VsHelpers
     {
         private static readonly IOllamaService ollamaService = new OllamaSharpService();
-        public static bool IsSending { get; set; } = false;
-        private static readonly Thread _completionThread;
-        private static readonly BlockingCollection<Func<CancellationToken, Task>> _taskQueue = new BlockingCollection<Func<CancellationToken, Task>>();
+        private static int _isSending;
+        public static bool IsSending => Volatile.Read(ref _isSending) == 1;
         private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
-        private static readonly object _lock = new object();
         private static int _completionRequestVersion;
-
-        static VsHelpers()
-        {
-            _completionThread = new Thread(Run)
-            {
-                IsBackground = true
-            };
-            _completionThread.Start();
-        }
-
-        [SuppressMessage("Usage", "VSTHRD002:Avoid problematic synchronous waits", Justification = "Completion work is processed on a dedicated background thread and does not marshal back to the UI thread from this wait site.")]
-        private static void Run()
-        {
-            foreach (var task in _taskQueue.GetConsumingEnumerable())
-            {
-                try
-                {
-                    var cts = new CancellationTokenSource();
-                    lock (_lock)
-                    {
-                        _cancellationTokenSource.Cancel();
-                        _cancellationTokenSource = cts;
-                    }
-                    task(cts.Token).GetAwaiter().GetResult();
-                }
-                catch (OperationCanceledException)
-                {
-                    // Task was canceled, continue with next task
-                }
-            }
-        }
-
-        /// <summary>
-        /// Enqueues a new task to be executed, canceling any previously enqueued tasks.
-        /// </summary>
-        /// <param name="task">The task to enqueue, which takes a CancellationToken and returns a Task.</param>
-        public static void EnqueueTask(Func<CancellationToken, Task> task)
-        {
-            // Cancel the current cancellation token source
-            var previousCancellationTokenSource = Interlocked.Exchange(ref _cancellationTokenSource, new CancellationTokenSource());
-
-            // Cancel all previously enqueued tasks
-            previousCancellationTokenSource?.Cancel();
-
-            // Clear the task queue of any remaining tasks
-            while (_taskQueue.TryTake(out _))
-            {
-                // Handle any cleanup if necessary
-            }
-
-            // Add the new task to the queue
-            _taskQueue.Add(task);
-        }
 
         public static void CancelPendingCompletion()
         {
-            lock (_lock)
-            {
-                Interlocked.Increment(ref _completionRequestVersion);
-                _cancellationTokenSource.Cancel();
+            Interlocked.Increment(ref _completionRequestVersion);
+            ReplaceCompletionCancellationToken(cancelPrevious: true);
+        }
 
-                while (_taskQueue.Count > 0)
-                {
-                    _taskQueue.Take();
-                }
-            }
+        public static void SetSendingState(bool isSending)
+        {
+            Interlocked.Exchange(ref _isSending, isSending ? 1 : 0);
         }
 
         public static async Task<IWpfTextView> GetActiveTextViewAsync(IAsyncServiceProvider serviceProvider)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            var textManager = await serviceProvider.GetServiceAsync(typeof(SVsTextManager)) as IVsTextManager;
-            if (textManager == null)
-            {
-                return null;
-            }
-
-            textManager.GetActiveView(1, null, out IVsTextView vTextView);
-            if (vTextView == null)
-            {
-                return null;
-            }
-
-            IVsUserData userData = vTextView as IVsUserData;
-            if (userData == null)
-                return null;
-
-            Guid guidViewHost = DefGuidList.guidIWpfTextViewHost;
-            userData.GetData(ref guidViewHost, out object holder);
-            IWpfTextViewHost viewHost = (IWpfTextViewHost)holder;
-            return viewHost?.TextView;
+            return await GetActiveTextViewOnUiThreadAsync(serviceProvider);
         }
 
+        /// <summary>
+        /// Retrieves the file name of the currently active document.
+        /// Returns null if no active document or its path is empty.
+        /// </summary>
         public static async Task<string> GetActiveDocumentFileNameAsync(IAsyncServiceProvider serviceProvider)
         {
+            // Asynchronously obtain the full path of the active document.
             var fullPath = await GetActiveDocumentPathAsync(serviceProvider);
+            // Return the file name if the path is valid; otherwise, return null.
             return string.IsNullOrWhiteSpace(fullPath) ? null : Path.GetFileName(fullPath);
         }
 
         public static async Task<string> GetActiveDocumentPathAsync(IAsyncServiceProvider serviceProvider)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            var textManager = await serviceProvider.GetServiceAsync(typeof(SVsTextManager)) as IVsTextManager;
+            var textManager = await GetTextManagerAsync(serviceProvider);
             if (textManager != null)
             {
-                textManager.GetActiveView(1, null, out IVsTextView vTextView);
-
-                if (vTextView != null)
+                var fullPath = TryGetActiveDocumentPathFromTextManager(textManager);
+                if (!string.IsNullOrWhiteSpace(fullPath))
                 {
-                    IVsTextLines textLines;
-                    vTextView.GetBuffer(out textLines);
-
-                    if (textLines is IPersistFileFormat persistFileFormat)
-                    {
-                        persistFileFormat.GetCurFile(out string fullPath, out uint _);
-                        if (!string.IsNullOrWhiteSpace(fullPath))
-                        {
-                            return fullPath;
-                        }
-                    }
+                    return fullPath;
                 }
             }
 
-            return await GetOpenDocumentPathAsync(serviceProvider);
+            return await GetOpenDocumentPathOnUiThreadAsync(serviceProvider);
         }
 
         public static async Task<string> GetActiveDocumentTextAsync(IAsyncServiceProvider serviceProvider)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            var textView = await GetActiveTextViewAsync(serviceProvider);
+            var textView = await GetActiveTextViewOnUiThreadAsync(serviceProvider);
             if (textView != null)
             {
                 var snapshotText = textView.TextSnapshot?.GetText();
@@ -171,7 +87,7 @@ namespace OllamaPilot
                 }
             }
 
-            return await GetOpenDocumentTextAsync(serviceProvider);
+            return await GetOpenDocumentTextOnUiThreadAsync(serviceProvider);
         }
 
         public static string GetSelectedText(IWpfTextView textView)
@@ -237,7 +153,19 @@ namespace OllamaPilot
                 return string.Empty;
             }
 
-            var allLines = File.ReadAllLines(filePath);
+            string[] allLines;
+            try
+            {
+                allLines = File.ReadLines(filePath).ToArray();
+            }
+            catch (IOException)
+            {
+                return string.Empty;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return string.Empty;
+            }
 
             if (allLines.Length == 0)
             {
@@ -349,17 +277,26 @@ namespace OllamaPilot
         public static async Task<IVsTextLines> GetActiveTextLinesAsync(IAsyncServiceProvider serviceProvider)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            var textManager = await serviceProvider.GetServiceAsync(typeof(SVsTextManager)) as IVsTextManager;
+            var textManager = await GetTextManagerAsync(serviceProvider);
             if (textManager == null)
             {
                 return null;
             }
 
-            textManager.GetActiveView(1, null, out IVsTextView vTextView);
+            IVsTextView vTextView;
+            if (ErrorHandler.Failed(textManager.GetActiveView(1, null, out vTextView)))
+            {
+                return null;
+            }
+
             if (vTextView != null)
             {
                 IVsTextLines textLines;
-                vTextView.GetBuffer(out textLines);
+                if (ErrorHandler.Failed(vTextView.GetBuffer(out textLines)))
+                {
+                    return null;
+                }
+
                 return textLines;
             }
             return null;
@@ -395,7 +332,7 @@ namespace OllamaPilot
             }
 
             var siblingPath = BuildSiblingFilePath(activeDocumentPath, text);
-            File.WriteAllText(siblingPath, text, Encoding.UTF8);
+            await Task.Run(() => File.WriteAllText(siblingPath, text, Encoding.UTF8));
 
             var dte = await serviceProvider.GetServiceAsync(typeof(SDTE)) as DTE2;
             dte?.ItemOperations.OpenFile(siblingPath);
@@ -421,6 +358,7 @@ namespace OllamaPilot
                 return false;
             }
 
+            var originalSnapshot = textView.TextSnapshot;
             ITextSnapshot appliedSnapshot;
             int caretPosition;
             int selectionStart;
@@ -464,6 +402,7 @@ namespace OllamaPilot
             textView.Caret.MoveTo(new SnapshotPoint(appliedSnapshot, boundedCaretPosition));
             var finalSelectionStart = selectionStart;
             var finalSelectionLength = selectionLength;
+            var trackingSelectionSpan = CreateTrackingSpan(originalSnapshot, selectionStart, selectionLength);
             textView.Selection.Clear();
 
             if (formatInsertedText && selectionLength > 0)
@@ -479,8 +418,9 @@ namespace OllamaPilot
                     await TryFormatSelectionAsync(serviceProvider);
 
                     var currentSnapshot = textView.TextSnapshot;
-                    var updatedSelectionStart = Math.Max(0, Math.Min(boundedSelectionStart, currentSnapshot.Length));
-                    var updatedSelectionLength = Math.Max(0, Math.Min(boundedSelectionLength, currentSnapshot.Length - updatedSelectionStart));
+                    var updatedSelectionSpan = GetTrackedSelectionSpan(currentSnapshot, trackingSelectionSpan, boundedSelectionStart, boundedSelectionLength);
+                    var updatedSelectionStart = updatedSelectionSpan.Start.Position;
+                    var updatedSelectionLength = updatedSelectionSpan.Length;
                     var updatedCaretPosition = Math.Max(0, Math.Min(updatedSelectionStart + updatedSelectionLength, currentSnapshot.Length));
                     finalSelectionStart = updatedSelectionStart;
                     finalSelectionLength = updatedSelectionLength;
@@ -521,57 +461,67 @@ namespace OllamaPilot
                 dte?.ActiveDocument?.Activate();
                 dte?.ActiveWindow?.Activate();
             }
-            catch
+            catch (Exception ex)
             {
-                // Best effort only.
+                LLMErrorHandler.WriteLog($"ActivateEditorAsync window activation failed: {ex}");
             }
 
             try
             {
                 textView?.VisualElement?.Focus();
             }
-            catch
+            catch (Exception ex)
             {
-                // Best effort only.
+                LLMErrorHandler.WriteLog($"ActivateEditorAsync focus failed: {ex}");
             }
         }
 
-        private static async Task<string> GetOpenDocumentPathAsync(IAsyncServiceProvider serviceProvider)
+        private static async Task<string> GetOpenDocumentPathOnUiThreadAsync(IAsyncServiceProvider serviceProvider)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
             try
             {
                 var dte = await serviceProvider.GetServiceAsync(typeof(SDTE)) as DTE2;
+                if (dte == null)
+                {
+                    return null;
+                }
+
                 if (dte?.ActiveDocument != null && !string.IsNullOrWhiteSpace(dte.ActiveDocument.FullName))
                 {
                     return dte.ActiveDocument.FullName;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Fall back to null below.
+                LLMErrorHandler.WriteLog($"GetOpenDocumentPathAsync fallback failed: {ex}");
             }
 
             return null;
         }
 
-        private static async Task<string> GetOpenDocumentTextAsync(IAsyncServiceProvider serviceProvider)
+        private static async Task<string> GetOpenDocumentTextOnUiThreadAsync(IAsyncServiceProvider serviceProvider)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
             try
             {
                 var dte = await serviceProvider.GetServiceAsync(typeof(SDTE)) as DTE2;
+                if (dte == null)
+                {
+                    return null;
+                }
+
                 if (dte?.ActiveDocument?.Object("TextDocument") is TextDocument textDocument)
                 {
                     var startPoint = textDocument.StartPoint.CreateEditPoint();
                     return startPoint.GetText(textDocument.EndPoint);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Fall back to null below.
+                LLMErrorHandler.WriteLog($"GetOpenDocumentTextAsync fallback failed: {ex}");
             }
 
             return null;
@@ -586,9 +536,9 @@ namespace OllamaPilot
                 var dte = await serviceProvider.GetServiceAsync(typeof(SDTE)) as DTE2;
                 dte?.ExecuteCommand("Edit.FormatSelection");
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore formatter failures for unsupported file types or invalid intermediate code.
+                LLMErrorHandler.WriteLog($"TryFormatSelectionAsync failed: {ex}");
             }
         }
 
@@ -664,15 +614,31 @@ namespace OllamaPilot
                 || Regex.IsMatch(content, @"\bpytest\b|\bassert\b", RegexOptions.IgnoreCase);
         }
 
-        public static string RemoveCommonSuffixPrefix(string A, string B)
+        public static string RemoveCommonSuffixPrefix(string a, string b)
         {
-            B = B.TrimStart();
-            int minLen = Math.Min(A.Length, B.Length);
+            if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b))
+            {
+                return a;
+            }
+
+            b = b.TrimStart();
+            int minLen = Math.Min(a.Length, b.Length);
 
             int commonLength = 0;
             for (int i = 1; i <= minLen; i++)
             {
-                if (A.Substring(A.Length - i) == B.Substring(0, i))
+                bool isMatch = true;
+                int start = a.Length - i;
+                for (int j = 0; j < i; j++)
+                {
+                    if (a[start + j] != b[j])
+                    {
+                        isMatch = false;
+                        break;
+                    }
+                }
+
+                if (isMatch)
                 {
                     commonLength = i;
                 }
@@ -680,10 +646,10 @@ namespace OllamaPilot
 
             if (commonLength > 0)
             {
-                return A.Substring(0, A.Length - commonLength);
+                return a.Substring(0, a.Length - commonLength);
             }
 
-            return A;
+            return a;
         }
 
         public static string GetPrefixLines(IWpfTextView textView, int n)
@@ -701,7 +667,7 @@ namespace OllamaPilot
 
             var startLineIndex = Math.Max(0, currentLine.LineNumber - (n - 1));
 
-            var sb = new System.Text.StringBuilder();
+            var sb = new StringBuilder();
 
             for (int i = startLineIndex; i < currentLine.LineNumber; i++)
             {
@@ -731,7 +697,7 @@ namespace OllamaPilot
 
             var endLineIndex = Math.Min(snapshot.LineCount - 1, currentLine.LineNumber + (n - 1));
 
-            var sb = new System.Text.StringBuilder();
+            var sb = new StringBuilder();
 
             // Append the current line from caret position to the end
             sb.AppendLine(currentLineText);
@@ -748,8 +714,13 @@ namespace OllamaPilot
 
         public static string GetSourceCodeType(string fileName)
         {
-            var extension = System.IO.Path.GetExtension(fileName).ToLower();
-            switch (extension)
+            var extension = Path.GetExtension(fileName ?? string.Empty);
+            if (string.IsNullOrEmpty(extension))
+            {
+                return "plaintext";
+            }
+
+            switch (extension.ToLowerInvariant())
             {
                 case ".py":
                     return "python";
@@ -867,12 +838,33 @@ namespace OllamaPilot
 
         private static bool IsBracketEnding(string line)
         {
-            char[] bracketEnding = { ')', ']', '}', ';' };
-            return line.Trim().Any(c => bracketEnding.Contains(c));
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                return false;
+            }
+
+            var trimmed = line.TrimEnd();
+            var last = trimmed[trimmed.Length - 1];
+            return last == ')' || last == ']' || last == '}' || last == ';';
         }
 
         private static int ComputeDistance(string str1, string str2)
         {
+            if (string.Equals(str1, str2, StringComparison.Ordinal))
+            {
+                return 0;
+            }
+
+            if (Math.Abs(str1.Length - str2.Length) > 3)
+            {
+                return int.MaxValue;
+            }
+
+            if (str1.Length > 300 || str2.Length > 300)
+            {
+                return int.MaxValue;
+            }
+
             int[,] dp = new int[str1.Length + 1, str2.Length + 1];
 
             for (int i = 0; i <= str1.Length; i++)
@@ -901,33 +893,63 @@ namespace OllamaPilot
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
+            if (LLMCopilotProvider.Package == null)
+            {
+                ShowError("Unable to open the chat window.");
+                return;
+            }
+
             // Get the instance number 0 of this tool window. This window is single instance so this instance
             // is actually the only one.
             // The last flag is set to true so that if the tool window does not exists it will be created.
             ToolWindowPane window = LLMCopilotProvider.Package.FindToolWindow(typeof(LLMChatWindow), 0, true);
             if ((null == window) || (null == window.Frame))
             {
-                throw new NotSupportedException("Cannot create tool window");
+                LLMErrorHandler.WriteLog("OpenChatWindow could not create or locate the chat tool window.");
+                ShowError("Unable to open the chat window.");
+                return;
             }
 
-            IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
-            Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
+            var windowFrame = window.Frame as IVsWindowFrame;
+            if (windowFrame == null)
+            {
+                LLMErrorHandler.WriteLog("OpenChatWindow could not cast the tool window frame.");
+                ShowError("Unable to open the chat window.");
+                return;
+            }
+
+            var hr = windowFrame.Show();
+            if (ErrorHandler.Failed(hr))
+            {
+                LLMErrorHandler.WriteLog($"OpenChatWindow failed with HRESULT 0x{hr:X8}.");
+                ShowError("Unable to open the chat window.");
+            }
         }
 
+        [SuppressMessage("Usage", "VSSDK007:Await/join tasks created from ThreadHelper.JoinableTaskFactory.RunAsync", Justification = "Autocomplete scheduling is intentionally fire-and-forget and self-observing.")]
+        [SuppressMessage("Usage", "VSTHRD110:Observe result of async calls", Justification = "Autocomplete scheduling is intentionally fire-and-forget and self-observing.")]
         public static void CodeCompleteCommand()
         {
             var requestVersion = Interlocked.Increment(ref _completionRequestVersion);
-            EnqueueTask(async (cancellationToken) =>
+            var cancellationToken = ReplaceCompletionCancellationToken(cancelPrevious: true).Token;
+            var scheduledCompletion = ThreadHelper.JoinableTaskFactory.RunAsync(async delegate
             {
-                var delayMs = Math.Max(0, OllamaHelper.Instance.Options.AutoCompleteDelayMs);
-                await Task.Delay(delayMs, cancellationToken);
-                await CodeCompleteCommandAsync(requestVersion, cancellationToken);
+                try
+                {
+                    var delayMs = Math.Max(0, OllamaHelper.Instance.Options.AutoCompleteDelayMs);
+                    await Task.Delay(delayMs, cancellationToken);
+                    await CodeCompleteCommandAsync(requestVersion, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                }
             });
+            _ = scheduledCompletion.Task;
         }
 
         public static async Task CodeCompleteCommandAsync(int requestVersion, CancellationToken cancellationToken)
         {
-            IsSending = true;
+            SetSendingState(true);
 
             try
             {
@@ -938,13 +960,13 @@ namespace OllamaPilot
 
                 await LLMCopilotProvider.EnsurePackageLoadedAsync();
 
-                var Package = LLMCopilotProvider.Package;
+                var package = LLMCopilotProvider.Package;
 
                 RequestOptions reqOps = OllamaHelper.Instance.CompRequestOptions;
                 int nPrefixLines = OllamaHelper.EstimatePrefixLinesByCtx(reqOps.NumCtx);
                 int nSuffixLines = OllamaHelper.EstimateSuffixLinesByCtx(reqOps.NumCtx);
 
-                var textView = await VsHelpers.GetActiveTextViewAsync(Package);
+                var textView = await VsHelpers.GetActiveTextViewAsync(package);
                 if (textView == null)
                 {
                     return;
@@ -955,16 +977,16 @@ namespace OllamaPilot
                     return;
                 }
 
-                string PrefixCode = VsHelpers.GetPrefixLines(textView, nPrefixLines);
-                string SuffixCode = VsHelpers.GetSuffixLines(textView, nSuffixLines);
-                if (string.IsNullOrWhiteSpace(PrefixCode) || string.IsNullOrWhiteSpace(PrefixCode.Trim()))
+                string prefixCode = VsHelpers.GetPrefixLines(textView, nPrefixLines);
+                string suffixCode = VsHelpers.GetSuffixLines(textView, nSuffixLines);
+                if (string.IsNullOrWhiteSpace(prefixCode) || string.IsNullOrWhiteSpace(prefixCode.Trim()))
                 {
                     return;
                 }
 
                 var options = OllamaHelper.Instance.Options;
 
-                string template = $"{options.FimBegin}{PrefixCode}{options.FimHole}{SuffixCode}{options.FimEnd}";
+                string template = $"{options.FimBegin}{prefixCode}{options.FimHole}{suffixCode}{options.FimEnd}";
 
                 GenerateCompletionRequest req = new GenerateCompletionRequest
                 {
@@ -974,8 +996,8 @@ namespace OllamaPilot
                     Raw = true
                 };
 
-                var OldCaretPosition = textView.Caret.Position.BufferPosition;
-                var oldSnapshotVersion = OldCaretPosition.Snapshot.Version.VersionNumber;
+                var oldCaretPosition = textView.Caret.Position.BufferPosition;
+                var oldSnapshotVersion = oldCaretPosition.Snapshot.Version.VersionNumber;
                 var stopwatch = Stopwatch.StartNew();
                 var resp = await ollamaService.GenerateCompletionAsync(options.BaseUrl, options.AccessToken, req, cancellationToken);
                 stopwatch.Stop();
@@ -985,16 +1007,16 @@ namespace OllamaPilot
                     return;
                 }
 
-                var NewCaretPosition = textView.Caret.Position.BufferPosition;
-                if (NewCaretPosition.CompareTo(OldCaretPosition) != 0
-                    || NewCaretPosition.Snapshot.Version.VersionNumber != oldSnapshotVersion)
+                var newCaretPosition = textView.Caret.Position.BufferPosition;
+                if (newCaretPosition.CompareTo(oldCaretPosition) != 0
+                    || newCaretPosition.Snapshot.Version.VersionNumber != oldSnapshotVersion)
                 {
                     return;
                 }
 
                 var comp_text = resp.Response;
-                comp_text = StopAtSimilarLine(comp_text, SuffixCode);
-                comp_text = RemoveCommonSuffixPrefix(comp_text, SuffixCode);
+                comp_text = StopAtSimilarLine(comp_text, suffixCode);
+                comp_text = RemoveCommonSuffixPrefix(comp_text, suffixCode);
                 comp_text = comp_text?.TrimEnd();
                 if (string.IsNullOrWhiteSpace(comp_text))
                 {
@@ -1021,8 +1043,128 @@ namespace OllamaPilot
             }
             finally
             {
-                IsSending = false;
+                SetSendingState(false);
             }
+        }
+
+        private static CancellationTokenSource ReplaceCompletionCancellationToken(bool cancelPrevious)
+        {
+            var newCancellationTokenSource = new CancellationTokenSource();
+            var previousCancellationTokenSource = Interlocked.Exchange(ref _cancellationTokenSource, newCancellationTokenSource);
+            if (previousCancellationTokenSource != null)
+            {
+                if (cancelPrevious)
+                {
+                    previousCancellationTokenSource.Cancel();
+                }
+
+                previousCancellationTokenSource.Dispose();
+            }
+
+            return newCancellationTokenSource;
+        }
+
+        private static async Task<IVsTextManager> GetTextManagerAsync(IAsyncServiceProvider serviceProvider)
+        {
+            return await serviceProvider.GetServiceAsync(typeof(SVsTextManager)) as IVsTextManager;
+        }
+
+        private static async Task<IWpfTextView> GetActiveTextViewOnUiThreadAsync(IAsyncServiceProvider serviceProvider)
+        {
+            var textManager = await GetTextManagerAsync(serviceProvider);
+            if (textManager == null)
+            {
+                return null;
+            }
+
+            IVsTextView vTextView;
+            if (ErrorHandler.Failed(textManager.GetActiveView(1, null, out vTextView)))
+            {
+                return null;
+            }
+
+            if (vTextView == null)
+            {
+                return null;
+            }
+
+            var userData = vTextView as IVsUserData;
+            if (userData == null)
+            {
+                return null;
+            }
+
+            var guidViewHost = DefGuidList.guidIWpfTextViewHost;
+            object holder;
+            var hr = userData.GetData(ref guidViewHost, out holder);
+            if (ErrorHandler.Failed(hr))
+            {
+                return null;
+            }
+
+            var viewHost = holder as IWpfTextViewHost;
+            return viewHost?.TextView;
+        }
+
+        private static string TryGetActiveDocumentPathFromTextManager(IVsTextManager textManager)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            IVsTextView vTextView;
+            if (ErrorHandler.Failed(textManager.GetActiveView(1, null, out vTextView)))
+            {
+                return null;
+            }
+
+            if (vTextView == null)
+            {
+                return null;
+            }
+
+            IVsTextLines textLines;
+            if (ErrorHandler.Failed(vTextView.GetBuffer(out textLines)))
+            {
+                return null;
+            }
+
+            var persistFileFormat = textLines as IPersistFileFormat;
+            if (persistFileFormat == null)
+            {
+                return null;
+            }
+
+            string fullPath;
+            uint formatIndex;
+            if (ErrorHandler.Failed(persistFileFormat.GetCurFile(out fullPath, out formatIndex)))
+            {
+                return null;
+            }
+
+            return string.IsNullOrWhiteSpace(fullPath) ? null : fullPath;
+        }
+
+        private static ITrackingSpan CreateTrackingSpan(ITextSnapshot snapshot, int start, int length)
+        {
+            if (snapshot == null || snapshot.Length == 0)
+            {
+                return null;
+            }
+
+            var boundedStart = Math.Max(0, Math.Min(start, snapshot.Length));
+            var boundedLength = Math.Max(0, Math.Min(length, snapshot.Length - boundedStart));
+            return snapshot.CreateTrackingSpan(new Span(boundedStart, boundedLength), SpanTrackingMode.EdgeInclusive);
+        }
+
+        private static SnapshotSpan GetTrackedSelectionSpan(ITextSnapshot snapshot, ITrackingSpan trackingSpan, int fallbackStart, int fallbackLength)
+        {
+            if (trackingSpan != null)
+            {
+                return trackingSpan.GetSpan(snapshot);
+            }
+
+            var boundedStart = Math.Max(0, Math.Min(fallbackStart, snapshot.Length));
+            var boundedLength = Math.Max(0, Math.Min(fallbackLength, snapshot.Length - boundedStart));
+            return new SnapshotSpan(new SnapshotPoint(snapshot, boundedStart), boundedLength);
         }
 
         public static void ShowInfo(string message)
@@ -1035,9 +1177,11 @@ namespace OllamaPilot
             ShowMessage(message, OLEMSGICON.OLEMSGICON_WARNING);
         }
 
+        [SuppressMessage("Usage", "VSSDK007:Await/join tasks created from ThreadHelper.JoinableTaskFactory.RunAsync", Justification = "Message boxes are intentionally posted back to the UI thread without blocking the caller.")]
+        [SuppressMessage("Usage", "VSTHRD110:Observe result of async calls", Justification = "Message boxes are intentionally posted back to the UI thread without blocking the caller.")]
         private static void ShowMessage(string message, OLEMSGICON icon)
         {
-            ThreadHelper.JoinableTaskFactory.Run(async delegate
+            var notificationTask = ThreadHelper.JoinableTaskFactory.RunAsync(async delegate
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                 if (LLMCopilotProvider.Package == null)
@@ -1048,11 +1192,12 @@ namespace OllamaPilot
                 VsShellUtilities.ShowMessageBox(
                     LLMCopilotProvider.Package,
                     message,
-                    "LLMCopilot",
+                    "Ollama Pilot",
                     icon,
                     OLEMSGBUTTON.OLEMSGBUTTON_OK,
                     OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
             });
+            _ = notificationTask.Task;
         }
     }
 }
