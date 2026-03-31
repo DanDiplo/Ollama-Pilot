@@ -28,7 +28,6 @@ namespace OllamaPilot.Services.VisualStudio
 {
     public static class VsHelpers
     {
-        private static readonly IOllamaService ollamaService = new OllamaSharpService();
         private static int _isSending;
         public static bool IsSending => Volatile.Read(ref _isSending) == 1;
         private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
@@ -1004,7 +1003,7 @@ namespace OllamaPilot.Services.VisualStudio
                 var oldCaretPosition = textView.Caret.Position.BufferPosition;
                 var oldSnapshotVersion = oldCaretPosition.Snapshot.Version.VersionNumber;
                 var stopwatch = Stopwatch.StartNew();
-                var resp = await ollamaService.GenerateCompletionAsync(options.BaseUrl, options.AccessToken, req, cancellationToken);
+                var resp = await OllamaHelper.OllamaService.GenerateCompletionAsync(options.BaseUrl, options.AccessToken, req, cancellationToken);
                 stopwatch.Stop();
 
                 if (requestVersion != Volatile.Read(ref _completionRequestVersion))

@@ -24,6 +24,7 @@ namespace OllamaPilot.Services.Ollama
         private static readonly IOllamaService ollamaService = new OllamaSharpService();
 
         public static OllamaHelper Instance { get { return lazy.Value; } }
+        internal static IOllamaService OllamaService => ollamaService;
 
         private static readonly int defaultContext = 4096;
         private static readonly int defaultCodeLineLength = 80;

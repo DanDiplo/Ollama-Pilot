@@ -35,22 +35,20 @@ namespace OllamaPilot.Commands
 
         private void Execute(object sender, EventArgs e)
         {
-            // Ensure this method runs on the UI thread.
             ThreadHelper.ThrowIfNotOnUIThread();
+            _ = ThreadHelper.JoinableTaskFactory.RunAsync(() => ExecuteAsync());
+        }
 
-            // Retrieve the option page where user settings are stored.
+        private async Task ExecuteAsync()
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
             var options = (OptionPageGrid)package.GetDialogPage(typeof(OptionPageGrid));
 
-            // Validate the current settings and capture the result.
-            var result = OllamaSettingsValidator.Validate(options);
-
-            // Pick the appropriate icon based on validation success.
+            var result = await OllamaSettingsValidator.ValidateAsync(options, package.DisposalToken);
             var icon = result.Success ? OLEMSGICON.OLEMSGICON_INFO : OLEMSGICON.OLEMSGICON_WARNING;
-
-            // Pick the appropriate title based on validation success.
             var title = result.Success ? "Ollama Pilot Connection OK" : "Ollama Pilot Connection Failed";
 
-            // Show a message box to inform the user of the validation outcome.
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
             VsShellUtilities.ShowMessageBox(
                 package,
                 result.Message,

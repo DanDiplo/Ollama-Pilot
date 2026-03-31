@@ -54,7 +54,7 @@ namespace OllamaPilot.Infrastructure
 
             if (serviceProvider != null)
             {
-                ThreadHelper.JoinableTaskFactory.Run(async delegate
+                _ = ThreadHelper.JoinableTaskFactory.RunAsync(async delegate
                 {
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                     VsShellUtilities.ShowMessageBox(

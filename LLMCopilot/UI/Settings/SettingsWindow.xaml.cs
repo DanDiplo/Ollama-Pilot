@@ -19,7 +19,6 @@ namespace OllamaPilot.UI.Settings
 {
     public partial class SettingsWindow : Window
     {
-        private static readonly IOllamaService ollamaService = new OllamaSharpService();
         private readonly OptionPageGrid _options;
         private IReadOnlyList<string> _availableModels = Array.Empty<string>();
 
@@ -141,7 +140,7 @@ namespace OllamaPilot.UI.Settings
             try
             {
                 SetStatus("Loading local models...", Brushes.DodgerBlue);
-                var models = (await ollamaService.ListLocalModelsAsync(
+                var models = (await OllamaHelper.OllamaService.ListLocalModelsAsync(
                     BaseUrlTextBox.Text.Trim(),
                     AccessTokenTextBox.Text?.Trim(),
                     default(System.Threading.CancellationToken)))
@@ -468,7 +467,7 @@ namespace OllamaPilot.UI.Settings
                 return null;
             }
 
-            var modelInfo = await ollamaService.ShowModelInformationAsync(
+            var modelInfo = await OllamaHelper.OllamaService.ShowModelInformationAsync(
                 baseUrl,
                 accessToken,
                 modelName,

@@ -16,6 +16,7 @@ using System.ComponentModel.Composition;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -118,33 +119,24 @@ namespace OllamaPilot.Services.VisualStudio
         /// <param name="statusText">Optional status text to show as a tooltip.</param>
         public void UpdatePrediction(string prediction, string statusText = null)
         {
-            // Store the original prediction text
             _originalPredictionText = prediction;
 
             if (_textEditor != null)
             {
-                // Run an asynchronous task on the main thread
-                ThreadHelper.JoinableTaskFactory.Run(async delegate
-                {
-                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
-                    // Update the TextEditor's text and tooltip
-                    _textEditor.Text = SplitLines(prediction.TrimStart());
-                    _textEditor.ToolTip = statusText;
-
-                    // Get the current caret position in the text view
-                    var caretPosition = _view.Caret.Position.BufferPosition;
-
-                    // Update the position of the adornment
-                    Pos = caretPosition;
-
-                    // Create and display the adornment visuals at the caret position
-                    CreateVisuals(caretPosition);
-
-                    // Refocus the text view element
-                    _view.VisualElement.Focus();
-                });
+                _ = ThreadHelper.JoinableTaskFactory.RunAsync(() => UpdatePredictionAsync(prediction, statusText));
             }
+        }
+
+        private async Task UpdatePredictionAsync(string prediction, string statusText)
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            _textEditor.Text = SplitLines(prediction.TrimStart());
+            _textEditor.ToolTip = statusText;
+
+            var caretPosition = _view.Caret.Position.BufferPosition;
+            Pos = caretPosition;
+            CreateVisuals(caretPosition);
+            _view.VisualElement.Focus();
         }
 
         private string SplitLines(string text)
