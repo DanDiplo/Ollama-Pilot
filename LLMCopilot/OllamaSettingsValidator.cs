@@ -39,6 +39,11 @@ namespace OllamaPilot
                 return Fail("Context lengths must be greater than zero.");
             }
 
+            if (options.ChatMaxOutputTokens <= 0)
+            {
+                return Fail("Chat max output tokens must be greater than zero.");
+            }
+
             if (options.AutoCompleteDelayMs < 0)
             {
                 return Fail("Auto Complete Delay (ms) must be zero or greater.");

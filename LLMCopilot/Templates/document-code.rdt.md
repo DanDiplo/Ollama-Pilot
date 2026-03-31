@@ -67,6 +67,7 @@ Do not refactor, simplify, optimize, rename, reorder, wrap, unwrap, or reformat 
 Preserve behavior, control flow, APIs, identifiers, existing statements, and existing code structure exactly as provided.
 Do not add or remove using/import statements, namespace declarations, class declarations, helper methods, parameters, attributes, or surrounding boilerplate.
 If the input is only a method or fragment, return only that same method or fragment with comments added.
+If the selected snippet is currently undocumented, add at least one meaningful comment.
 For csharp snippets, XML documentation comments (///) immediately above an existing method, property, class, constructor, or enum declaration are allowed when they fit naturally.
 If you add XML documentation comments, do not make any other code changes.
 Otherwise, the first non-empty line of code in your answer must match the first non-empty line of the input snippet.
@@ -77,7 +78,7 @@ Do not narrate every statement or restate obvious code.
 Only add comments that explain intent, purpose, side effects, invariants, or non-obvious behavior.
 Do not mention APIs, types, methods, variables, threads, or behaviors that are not literally present in the code.
 Do not describe the code as using a different API than the one shown.
-If the code is already self-explanatory, add at most a brief summary comment.
+If the code is already self-explanatory but undocumented, add a brief summary comment rather than returning it unchanged.
 For csharp member declarations, prefer concise XML documentation comments over inline comments when that better matches normal C# style.
 Return exactly one fenced code block containing the commented snippet and nothing else.
 
@@ -102,6 +103,7 @@ Do not refactor, simplify, optimize, rename, reorder, wrap, unwrap, or reformat 
 Preserve behavior, control flow, APIs, identifiers, existing statements, and existing code structure exactly as provided.
 Do not add or remove using/import statements, namespace declarations, class declarations, helper methods, parameters, attributes, or surrounding boilerplate.
 If the input is only a method or fragment, return only that same method or fragment with comments added.
+If the selected snippet is currently undocumented, add at least one meaningful comment.
 For csharp snippets, XML documentation comments (///) immediately above an existing method, property, class, constructor, or enum declaration are allowed when they fit naturally.
 If you add XML documentation comments, do not make any other code changes.
 Otherwise, the first non-empty line of code in your answer must match the first non-empty line of the input snippet.
@@ -112,7 +114,7 @@ Do not narrate every statement or restate obvious code.
 Only add comments that explain intent, purpose, side effects, invariants, or non-obvious behavior.
 Do not mention APIs, types, methods, variables, threads, or behaviors that are not literally present in the code.
 Do not describe the code as using a different API than the one shown.
-If the code is already self-explanatory, add at most a brief summary comment.
+If the code is already self-explanatory but undocumented, add a brief summary comment rather than returning it unchanged.
 For csharp member declarations, prefer concise XML documentation comments over inline comments when that better matches normal C# style.
 Return exactly one fenced code block containing the commented snippet and nothing else.
 

@@ -166,6 +166,10 @@
                                        FontWeight="SemiBold" />
                             <TextBox x:Name="ChatCtxTextBox"
                                      Margin="0,6,0,12" />
+                            <TextBlock Text="Chat Max Output Tokens"
+                                       FontWeight="SemiBold" />
+                            <TextBox x:Name="ChatMaxOutputTextBox"
+                                     Margin="0,6,0,12" />
                             <TextBlock Text="Thinking Depth"
                                        FontWeight="SemiBold" />
                             <ComboBox x:Name="ThinkingDepthComboBox"

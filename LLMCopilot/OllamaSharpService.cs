@@ -15,6 +15,13 @@ namespace OllamaPilot
             return new Chat(session);
         }
 
+        /// <summary>
+        /// Retrieves a list of local models from the specified service.
+        /// </summary>
+        /// <param name="baseUrl">The base URL of the service.</param>
+        /// <param name="accessToken">The access token for authentication.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+        /// <returns>An async task containing the list of local models.</returns>
         public async Task<IReadOnlyList<Model>> ListLocalModelsAsync(string baseUrl, string accessToken, CancellationToken cancellationToken)
         {
             using (var client = CreateClient(baseUrl, accessToken, null))
@@ -37,6 +44,14 @@ namespace OllamaPilot
             }
         }
 
+        /// <summary>
+        /// Asynchronously generates a completion by streaming responses from the Ollama API.
+        /// </summary>
+        /// <param name="baseUrl">The base URL of the Ollama server.</param>
+        /// <param name="accessToken">The access token for authentication.</param>
+        /// <param name="request">The request containing model, prompt, and options.</param>
+        /// <param name="cancellationToken">A token to monitor cancellation.</param>
+        /// <returns>A task representing the asynchronous operation, containing the generated completion result.</returns>
         public async Task<GenerateCompletionResult> GenerateCompletionAsync(string baseUrl, string accessToken, GenerateCompletionRequest request, CancellationToken cancellationToken)
         {
             using (var client = CreateClient(baseUrl, accessToken, request?.Model))
@@ -73,6 +88,13 @@ namespace OllamaPilot
             }
         }
 
+        /// <summary>
+        /// Creates and configures a new Ollama API client instance with the provided settings.
+        /// </summary>
+        /// <param name="baseUrl">The base URL for the Ollama API server.</param>
+        /// <param name="accessToken">The access token for authorization headers.</param>
+        /// <param name="selectedModel">The model name to use for API requests.</param>
+        /// <returns>A configured <see cref="OllamaApiClient"/> instance ready for use.</returns>
         private static OllamaApiClient CreateClient(string baseUrl, string accessToken, string selectedModel)
         {
             var client = new OllamaApiClient(baseUrl ?? string.Empty, selectedModel ?? string.Empty);

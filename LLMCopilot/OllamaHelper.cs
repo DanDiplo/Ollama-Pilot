@@ -68,7 +68,7 @@ namespace OllamaPilot
             ChatRequestOptions = new RequestOptions
             {
                 NumCtx = Options.ChatCtxSize,
-                NumPredict = 1024,
+                NumPredict = Options.ChatMaxOutputTokens,
                 Temperature = 0.7f
             };
 
@@ -309,6 +309,7 @@ namespace OllamaPilot
             CompRequestOptions.Stop = stop;
             CompRequestOptions.NumCtx = Options.CompleteCtxSize;
             ChatRequestOptions.NumCtx = Options.ChatCtxSize;
+            ChatRequestOptions.NumPredict = Options.ChatMaxOutputTokens;
 
             //Task.Run(async () => await this.InitModelCtxAsync());
         }

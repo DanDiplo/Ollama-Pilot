@@ -38,6 +38,7 @@ namespace OllamaPilot
         private ResponseLanguage language = ResponseLanguage.English;
         private string access_token = string.Empty;
         private int chat_ctx_size = 4096;
+        private int chatMaxOutputTokens = 2048;
         private int complete_ctx_size = 2048;
         private AutoCompleteTriggerMode autoCompleteTriggerMode = AutoCompleteTriggerMode.Smart;
         private ThinkingDepth thinkingDepth = ThinkingDepth.Medium;
@@ -171,6 +172,15 @@ namespace OllamaPilot
             {
                 chat_ctx_size = value;
             }
+        }
+
+        [Category("LLMCopilot")]
+        [DisplayName("Chat max output tokens")]
+        [Description("Maximum number of tokens to generate for chat responses.")]
+        public int ChatMaxOutputTokens
+        {
+            get { return chatMaxOutputTokens; }
+            set { chatMaxOutputTokens = value; }
         }
 
         [Category("LLMCopilot")]

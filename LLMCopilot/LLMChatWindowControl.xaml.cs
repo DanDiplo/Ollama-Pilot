@@ -14,6 +14,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Highlighting;
 using Microsoft.VisualStudio.Shell;
@@ -331,6 +332,12 @@ namespace OllamaPilot
         private Chat Chat { get; set; }
         private readonly StringBuilder _messageCache = new StringBuilder(); // 用于缓存数据
         private readonly StringBuilder _thinkingCache = new StringBuilder();
+        private readonly StringBuilder _pendingUiMessageContent = new StringBuilder();
+        private readonly StringBuilder _pendingUiThinkingContent = new StringBuilder();
+        private readonly object _pendingUiLock = new object();
+        private readonly DispatcherTimer _streamUpdateTimer;
+        private DateTime _lastContentFlushUtc = DateTime.MinValue;
+        private DateTime _lastThinkingFlushUtc = DateTime.MinValue;
         private CancellationTokenSource _sendCancellationTokenSource;
         private string _statusText = "Ready to connect to your local Ollama server.";
         private Brush _statusBrush = new SolidColorBrush(Colors.Gray);
@@ -481,6 +488,11 @@ namespace OllamaPilot
             this.DataContext = this;
             MessagesScrollViewer.PreviewMouseWheel += MessagesScrollViewer_PreviewMouseWheel;
             //this.MessageItemsControl.ItemsSource = _messages;
+            _streamUpdateTimer = new DispatcherTimer(DispatcherPriority.Background, Dispatcher)
+            {
+                Interval = TimeSpan.FromMilliseconds(250)
+            };
+            _streamUpdateTimer.Tick += StreamUpdateTimer_Tick;
             Chat = OllamaClientFactory.CreateChat(OnChatResponseReceived);
             this.Unloaded += LLMChatWindowControl_Unloaded;
             this.Loaded += LLMChatWindowControl_loaded;
@@ -509,10 +521,15 @@ namespace OllamaPilot
 
                 string[] thinkingDelimiters = { "\n", ",", "，", ".", "。", ":", "：", ";", "；", "\t" };
                 bool containsThinkingDelimiter = thinkingDelimiters.Any(delimiter => response.Message.Thinking.Contains(delimiter));
-                if (_thinkingCache.Length > 64 || containsThinkingDelimiter || response.Done)
+                var shouldFlushThinking = _thinkingCache.Length > 192
+                    || containsThinkingDelimiter
+                    || response.Done
+                    || (DateTime.UtcNow - _lastThinkingFlushUtc).TotalMilliseconds >= 180;
+                if (shouldFlushThinking)
                 {
-                    AppendOrUpdateLastThinking(_thinkingCache.ToString());
+                    QueueAssistantThinking(_thinkingCache.ToString(), response.Done);
                     _thinkingCache.Clear();
+                    _lastThinkingFlushUtc = DateTime.UtcNow;
                 }
             }
 
@@ -524,22 +541,29 @@ namespace OllamaPilot
                 string[] delimeters = { "\n", ",", "，", ".", "。", ":", "：", ";", "；", "\t" };
 
                 bool containsKeyword = delimeters.Any(keyword => response.Message.Content.Contains(keyword));
-                if (_messageCache.Length > 64 || containsKeyword || response.Done)
+                var shouldFlushContent = _messageCache.Length > 192
+                    || containsKeyword
+                    || response.Done
+                    || (DateTime.UtcNow - _lastContentFlushUtc).TotalMilliseconds >= 180;
+                if (shouldFlushContent)
                 {
-                    AppendOrUpdateLastMessage(_messageCache.ToString());
+                    QueueAssistantContent(_messageCache.ToString(), response.Done);
                     _messageCache.Clear(); // 清空缓存
+                    _lastContentFlushUtc = DateTime.UtcNow;
                 }
             }
             else if (response.Done && _messageCache.Length > 0)
             {
-                AppendOrUpdateLastMessage(_messageCache.ToString());
+                QueueAssistantContent(_messageCache.ToString(), forceFlush: true);
                 _messageCache.Clear();
+                _lastContentFlushUtc = DateTime.UtcNow;
             }
 
             if (response.Done && _thinkingCache.Length > 0)
             {
-                AppendOrUpdateLastThinking(_thinkingCache.ToString());
+                QueueAssistantThinking(_thinkingCache.ToString(), forceFlush: true);
                 _thinkingCache.Clear();
+                _lastThinkingFlushUtc = DateTime.UtcNow;
             }
         }
 
@@ -614,57 +638,119 @@ namespace OllamaPilot
             EventManager.CodeCommandExecuted -= OnExplainCodeCommandExecuted;
             OllamaHelper.Instance.Options.SettingsChanged -= Options_SettingsChanged;
             _sendCancellationTokenSource?.Cancel();
+            _streamUpdateTimer.Stop();
         }
 
-        private void AppendOrUpdateLastMessage(string content)
+        private void QueueAssistantContent(string content, bool forceFlush = false)
         {
-            if (!Dispatcher.CheckAccess())
+            if (string.IsNullOrEmpty(content))
             {
-                ThreadHelper.JoinableTaskFactory.Run(async delegate
-                {
-                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                    AppendOrUpdateLastMessage(content);
-                });
                 return;
             }
 
-            if (_messages.Any() && _messages.Last().Role == ChatRole.Assistant)
+            lock (_pendingUiLock)
             {
-                var lastMessage = _messages.Last();
-                lastMessage.Content += content;
-            }
-            else
-            {
-                _messages.Add(new MyMessage(ChatRole.Assistant, content, _activeAssistantActions));
+                _pendingUiMessageContent.Append(content);
             }
 
-            ScrollToBottom();
+            ScheduleUiFlush(forceFlush);
         }
 
-        private void AppendOrUpdateLastThinking(string thinking)
+        private void QueueAssistantThinking(string thinking, bool forceFlush = false)
         {
-            if (!Dispatcher.CheckAccess())
+            if (string.IsNullOrEmpty(thinking))
             {
-                ThreadHelper.JoinableTaskFactory.Run(async delegate
-                {
-                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                    AppendOrUpdateLastThinking(thinking);
-                });
                 return;
             }
 
+            lock (_pendingUiLock)
+            {
+                _pendingUiThinkingContent.Append(thinking);
+            }
+
+            ScheduleUiFlush(forceFlush);
+        }
+
+        private void SetDraftText(string text)
+        {
+            MessageTextBox.Text = text ?? string.Empty;
+            MessageTextBox.ClearValue(TextBox.ForegroundProperty);
+        }
+
+        private void SetDraftPlaceholder()
+        {
+            MessageTextBox.Text = PlaceholderText;
+            MessageTextBox.Foreground = new SolidColorBrush(Colors.Gray);
+        }
+
+        private void ScheduleUiFlush(bool forceFlush)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                _ = Dispatcher.BeginInvoke(new Action(() => ScheduleUiFlush(forceFlush)), DispatcherPriority.Background);
+                return;
+            }
+
+            if (forceFlush)
+            {
+                FlushPendingUiUpdates();
+                return;
+            }
+
+            if (!_streamUpdateTimer.IsEnabled)
+            {
+                _streamUpdateTimer.Start();
+            }
+        }
+
+        private void StreamUpdateTimer_Tick(object sender, EventArgs e)
+        {
+            FlushPendingUiUpdates();
+        }
+
+        private void FlushPendingUiUpdates()
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                _ = Dispatcher.BeginInvoke(new Action(FlushPendingUiUpdates), DispatcherPriority.Background);
+                return;
+            }
+
+            string content;
+            string thinking;
+            lock (_pendingUiLock)
+            {
+                content = _pendingUiMessageContent.ToString();
+                thinking = _pendingUiThinkingContent.ToString();
+                _pendingUiMessageContent.Clear();
+                _pendingUiThinkingContent.Clear();
+            }
+
+            if (string.IsNullOrEmpty(content) && string.IsNullOrEmpty(thinking))
+            {
+                _streamUpdateTimer.Stop();
+                return;
+            }
+
+            MyMessage assistantMessage;
             if (_messages.Any() && _messages.Last().Role == ChatRole.Assistant)
             {
-                var lastMessage = _messages.Last();
-                lastMessage.Thinking = string.Concat(lastMessage.Thinking ?? string.Empty, thinking);
+                assistantMessage = _messages.Last();
             }
             else
             {
-                var assistantMessage = new MyMessage(ChatRole.Assistant, string.Empty, _activeAssistantActions)
-                {
-                    Thinking = thinking
-                };
+                assistantMessage = new MyMessage(ChatRole.Assistant, string.Empty, _activeAssistantActions);
                 _messages.Add(assistantMessage);
+            }
+
+            if (!string.IsNullOrEmpty(thinking))
+            {
+                assistantMessage.Thinking = string.Concat(assistantMessage.Thinking ?? string.Empty, thinking);
+            }
+
+            if (!string.IsNullOrEmpty(content))
+            {
+                assistantMessage.Content += content;
             }
 
             ScrollToBottom();
@@ -728,7 +814,7 @@ namespace OllamaPilot
             if (MessageTextBox.Text == PlaceholderText)
             {
                 MessageTextBox.Text = "";
-                MessageTextBox.Foreground = new SolidColorBrush(Colors.Black);
+                MessageTextBox.ClearValue(TextBox.ForegroundProperty);
             }
         }
 
@@ -795,6 +881,8 @@ namespace OllamaPilot
                     await Chat.SendAsync(promptOverride ?? text, _sendCancellationTokenSource.Token);
                 });
 
+                await Dispatcher.InvokeAsync(FlushPendingUiUpdates, DispatcherPriority.Background);
+
                 if (!_receivedAssistantContent && _receivedAssistantThinking && TryPromoteThinkingOnlyResponse())
                 {
                     _receivedAssistantContent = true;
@@ -844,6 +932,7 @@ namespace OllamaPilot
                 _receivedAssistantThinking = false;
                 _messageCache.Clear();
                 _thinkingCache.Clear();
+                FlushPendingUiUpdates();
                 ScrollToBottom();
             }
         }
@@ -1341,8 +1430,7 @@ namespace OllamaPilot
 
             var fileName = await VsHelpers.GetActiveDocumentFileNameAsync(LLMCopilotProvider.Package) ?? "current file";
             var snippet = $"Please work on this code from {fileName}:{Environment.NewLine}```{Environment.NewLine}{selectedText}{Environment.NewLine}```{Environment.NewLine}{Environment.NewLine}";
-            MessageTextBox.Text = string.Concat(snippet, MessageTextBox.Text ?? string.Empty);
-            MessageTextBox.Foreground = new SolidColorBrush(Colors.Black);
+            SetDraftText(string.Concat(snippet, MessageTextBox.Text ?? string.Empty));
             MessageTextBox.Focus();
             MessageTextBox.CaretIndex = MessageTextBox.Text.Length;
             DraftHintText = "Selected code was inserted into the prompt.";
@@ -1351,8 +1439,7 @@ namespace OllamaPilot
 
         private void ClearDraft_Click(object sender, RoutedEventArgs e)
         {
-            MessageTextBox.Text = PlaceholderText;
-            MessageTextBox.Foreground = new SolidColorBrush(Colors.Gray);
+            SetDraftPlaceholder();
             DraftHintText = "Tip: Insert selection to give the model exact code context.";
             UpdateStatus("Draft cleared.", Colors.Gray);
         }
@@ -1395,8 +1482,7 @@ namespace OllamaPilot
                 draftText = $"Please revise or explain this generated code:{Environment.NewLine}```{Environment.NewLine}{codeBlock}{Environment.NewLine}```";
             }
 
-            MessageTextBox.Text = draftText;
-            MessageTextBox.Foreground = new SolidColorBrush(Colors.Black);
+            SetDraftText(draftText);
             MessageTextBox.Focus();
             MessageTextBox.Select(MessageTextBox.Text.Length, 0);
             DraftHintText = "Assistant output was copied into the draft for follow-up.";

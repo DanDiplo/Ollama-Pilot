@@ -77,6 +77,10 @@ namespace OllamaPilot
             return averageCharWidth * 80;
         }
 
+        /// <summary>
+        /// Positions and attaches a text editor adornment to the view at the specified snapshot point.
+        /// </summary>
+        /// <param name="position">The snapshot point where the visual should be anchored.</param>
         private void CreateVisuals(SnapshotPoint position)
         {
             if (_textEditor != null)

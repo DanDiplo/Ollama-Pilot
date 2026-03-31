@@ -43,6 +43,7 @@ namespace OllamaPilot
             ChatModelComboBox.Text = _options.ChatModel;
             CompleteModelComboBox.Text = _options.CompleteModel;
             ChatCtxTextBox.Text = _options.ChatCtxSize.ToString();
+            ChatMaxOutputTextBox.Text = _options.ChatMaxOutputTokens.ToString();
             ThinkingDepthComboBox.SelectedItem = _options.ChatThinkingDepth;
             CompleteCtxTextBox.Text = _options.CompleteCtxSize.ToString();
             EnableAutoCompleteCheckBox.IsChecked = _options.EnableAutoComplete;
@@ -207,6 +208,7 @@ namespace OllamaPilot
             _options.ChatModel = ChatModelComboBox.Text?.Trim();
             _options.CompleteModel = CompleteModelComboBox.Text?.Trim();
             _options.ChatCtxSize = ParsePositiveInt(ChatCtxTextBox.Text, "Chat Context Length");
+            _options.ChatMaxOutputTokens = ParsePositiveInt(ChatMaxOutputTextBox.Text, "Chat Max Output Tokens");
             _options.ChatThinkingDepth = ThinkingDepthComboBox.SelectedItem is ThinkingDepth thinkingDepth
                 ? thinkingDepth
                 : ThinkingDepth.Medium;
@@ -245,6 +247,11 @@ namespace OllamaPilot
             return parsed;
         }
 
+        private static int RecommendChatMaxOutputTokens(int chatContext)
+        {
+            return Math.Max(1024, Math.Min(8192, chatContext / 4));
+        }
+
         private void SetStatus(string message, Brush brush)
         {
             StatusTextBlock.Text = message;
@@ -254,6 +261,7 @@ namespace OllamaPilot
         private void ApplyPreset(string statusMessage, int chatCtx, int completeCtx, int delayMs, int minPrefixLength, AutoCompleteTriggerMode triggerMode)
         {
             ChatCtxTextBox.Text = chatCtx.ToString();
+            ChatMaxOutputTextBox.Text = RecommendChatMaxOutputTokens(chatCtx).ToString();
             CompleteCtxTextBox.Text = completeCtx.ToString();
             EnableAutoCompleteCheckBox.IsChecked = true;
             TriggerModeComboBox.SelectedItem = triggerMode;
@@ -314,6 +322,7 @@ namespace OllamaPilot
                 if (chatSuggestion.HasValue)
                 {
                     ChatCtxTextBox.Text = chatSuggestion.Value.ToString();
+                    ChatMaxOutputTextBox.Text = RecommendChatMaxOutputTokens(chatSuggestion.Value).ToString();
                 }
 
                 if (completionSuggestion.HasValue)
