@@ -17,6 +17,14 @@ The extension currently:
 - `FAQ.md`: end-user FAQ
 - `Images/`: shared repo images
 - `LLMCopilot/`: extension source
+- `LLMCopilot/Commands/`: VS command handlers
+- `LLMCopilot/Commands/Executors/`: shared command request builders/executors
+- `LLMCopilot/UI/Chat/`: chat tool window UI
+- `LLMCopilot/UI/Settings/`: settings UI and options page
+- `LLMCopilot/Services/Ollama/`: Ollama adapter, options, validation
+- `LLMCopilot/Services/VisualStudio/`: VS/editor/git helpers and adornment logic
+- `LLMCopilot/Infrastructure/`: prompt rendering, logging, shims
+- `LLMCopilot/Package/`: package registration and VSCT assets
 - `LLMCopilot/vs2026/OllamaPilot.csproj`: VSIX project
 - `LLMCopilot/vs2026/source.extension.vsixmanifest`: VSIX metadata
 - `LLMCopilot/Templates/*.rdt.md`: prompt templates copied into the VSIX
@@ -26,18 +34,18 @@ The extension currently:
 ### Visual Studio integration
 
 The extension is built around these areas:
-- `LLMCopilotPackage.cs`: package registration, option page, tool window, command registration
-- `LLMChatWindow*.cs` and `LLMChatWindowControl.xaml*`: chat tool window and reply actions
-- `LLMAdornment.cs`: inline completion / editor adornment behavior
-- `VsHelper.cs`: editor, document, formatting, and DTE/VS utility code
-- command files such as `ExplainCommand.cs`, `AddCommentCommand.cs`, `ReviewFileCommand.cs`, `ErrorListFixCommand.cs`
+- `Package/LLMCopilotPackage.cs`: package registration, option page, tool window, command registration
+- `UI/Chat/LLMChatWindow*.cs` and `UI/Chat/LLMChatWindowControl.xaml*`: chat tool window and reply actions
+- `Services/VisualStudio/LLMAdornment.cs`: inline completion / editor adornment behavior
+- `Services/VisualStudio/VsHelper.cs`: editor, document, formatting, and DTE/VS utility code
+- command files under `Commands/` such as `ExplainCommand.cs`, `AddCommentCommand.cs`, `ReviewFileCommand.cs`, `ErrorListFixCommand.cs`
 
 ### Ollama integration
 
 The extension should talk to Ollama through the local abstraction layer, not directly from UI/command code:
-- `OllamaAbstractions.cs`
-- `OllamaSharpService.cs`
-- `OllamaHelper.cs`
+- `Services/Ollama/OllamaAbstractions.cs`
+- `Services/Ollama/OllamaSharpService.cs`
+- `Services/Ollama/OllamaHelper.cs`
 
 Keep Ollama-specific package API changes inside the adapter when possible.
 

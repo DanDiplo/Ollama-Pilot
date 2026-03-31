@@ -45,71 +45,106 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\AddCommentCommand.cs">
+    <Compile Include="..\Commands\AddCommentCommand.cs">
       <Link>Commands\AddCommentCommand.cs</Link>
     </Compile>
-    <Compile Include="..\CodeCompleteCommand.cs">
+    <Compile Include="..\Commands\CodeCompleteCommand.cs">
       <Link>Commands\CodeCompleteCommand.cs</Link>
     </Compile>
-    <Compile Include="..\CurrentDocumentCommandExecutor.cs" />
-    <Compile Include="..\DiffPreviewBuilder.cs" />
-    <Compile Include="..\ErrorListFixCommand.cs">
+    <Compile Include="..\Commands\ErrorListFixCommand.cs">
       <Link>Commands\ErrorListFixCommand.cs</Link>
     </Compile>
-    <Compile Include="..\ExplainErrorCommand.cs">
-      <Link>Commands\ExplainErrorCommand.cs</Link>
+    <Compile Include="..\Commands\Executors\CurrentDocumentCommandExecutor.cs">
+      <Link>Commands\Executors\CurrentDocumentCommandExecutor.cs</Link>
     </Compile>
-    <Compile Include="..\FindBugCommand.cs">
-      <Link>Commands\FindBugCommand.cs</Link>
+    <Compile Include="..\Commands\Executors\SelectedCodeCommandExecutor.cs">
+      <Link>Commands\Executors\SelectedCodeCommandExecutor.cs</Link>
     </Compile>
-    <Compile Include="..\GenerateFileTestsCommand.cs">
-      <Link>Commands\GenerateFileTestsCommand.cs</Link>
-    </Compile>
-    <Compile Include="..\GitContextHelper.cs" />
-    <Compile Include="..\ReviewFileCommand.cs">
-      <Link>Commands\ReviewFileCommand.cs</Link>
-    </Compile>
-    <Compile Include="..\SummarizeChangesCommand.cs">
-      <Link>Commands\SummarizeChangesCommand.cs</Link>
-    </Compile>
-    <Compile Include="..\UnitTestCommand.cs">
-      <Link>Commands\UnitTestCommand.cs</Link>
-    </Compile>
-    <Compile Include="..\LLMAdornment.cs" />
-    <Compile Include="..\LLMErrorHandler.cs" />
-    <Compile Include="..\LLMChatWindow.cs" />
-    <Compile Include="..\LLMChatWindowCommand.cs" />
-    <Compile Include="..\LLMChatWindowControl.xaml.cs">
-      <DependentUpon>LLMChatWindowControl.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="..\ExplainCommand.cs">
+    <Compile Include="..\Commands\ExplainCommand.cs">
       <Link>Commands\ExplainCommand.cs</Link>
     </Compile>
-    <Compile Include="..\OllamaAbstractions.cs" />
-    <Compile Include="..\OllamaHelper.cs" />
-    <Compile Include="..\OllamaLegacyNamespaceShim.cs" />
-    <Compile Include="..\OllamaSharpService.cs" />
-    <Compile Include="..\PromptTemplateService.cs" />
-    <Compile Include="..\OptimizeCodeCommand.cs">
+    <Compile Include="..\Commands\ExplainErrorCommand.cs">
+      <Link>Commands\ExplainErrorCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\Commands\FindBugCommand.cs">
+      <Link>Commands\FindBugCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\Commands\GenerateFileTestsCommand.cs">
+      <Link>Commands\GenerateFileTestsCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\Commands\OptimizeCodeCommand.cs">
       <Link>Commands\OptimizeCodeCommand.cs</Link>
     </Compile>
-    <Compile Include="..\SettingsCommand.cs">
+    <Compile Include="..\Commands\ReviewFileCommand.cs">
+      <Link>Commands\ReviewFileCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\Commands\SettingsCommand.cs">
       <Link>Commands\SettingsCommand.cs</Link>
     </Compile>
-    <Compile Include="..\SettingsWindow.xaml.cs">
-      <DependentUpon>SettingsWindow.xaml</DependentUpon>
+    <Compile Include="..\Commands\SummarizeChangesCommand.cs">
+      <Link>Commands\SummarizeChangesCommand.cs</Link>
     </Compile>
-    <Compile Include="..\TestConnectionCommand.cs">
+    <Compile Include="..\Commands\TestConnectionCommand.cs">
       <Link>Commands\TestConnectionCommand.cs</Link>
     </Compile>
-    <Compile Include="..\OptionPageGrid.cs">
-      <SubType>Component</SubType>
+    <Compile Include="..\Commands\UnitTestCommand.cs">
+      <Link>Commands\UnitTestCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\Infrastructure\LLMErrorHandler.cs">
+      <Link>Infrastructure\LLMErrorHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\Infrastructure\OllamaLegacyNamespaceShim.cs">
+      <Link>Infrastructure\OllamaLegacyNamespaceShim.cs</Link>
+    </Compile>
+    <Compile Include="..\Infrastructure\PromptTemplateService.cs">
+      <Link>Infrastructure\PromptTemplateService.cs</Link>
+    </Compile>
+    <Compile Include="..\Package\LLMCopilotPackage.cs">
+      <Link>Package\LLMCopilotPackage.cs</Link>
     </Compile>
     <Compile Include="..\Properties\AssemblyInfo.cs" />
-    <Compile Include="..\SelectedCodeCommandExecutor.cs" />
-    <Compile Include="..\OllamaSettingsValidator.cs" />
-    <Compile Include="..\LLMCopilotPackage.cs" />
-    <Compile Include="..\VsHelper.cs" />
+    <Compile Include="..\Services\Ollama\OllamaAbstractions.cs">
+      <Link>Services\Ollama\OllamaAbstractions.cs</Link>
+    </Compile>
+    <Compile Include="..\Services\Ollama\OllamaHelper.cs">
+      <Link>Services\Ollama\OllamaHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\Services\Ollama\OllamaSettingsValidator.cs">
+      <Link>Services\Ollama\OllamaSettingsValidator.cs</Link>
+    </Compile>
+    <Compile Include="..\Services\Ollama\OllamaSharpService.cs">
+      <Link>Services\Ollama\OllamaSharpService.cs</Link>
+    </Compile>
+    <Compile Include="..\Services\VisualStudio\DiffPreviewBuilder.cs">
+      <Link>Services\VisualStudio\DiffPreviewBuilder.cs</Link>
+    </Compile>
+    <Compile Include="..\Services\VisualStudio\GitContextHelper.cs">
+      <Link>Services\VisualStudio\GitContextHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\Services\VisualStudio\LLMAdornment.cs">
+      <Link>Services\VisualStudio\LLMAdornment.cs</Link>
+    </Compile>
+    <Compile Include="..\Services\VisualStudio\VsHelper.cs">
+      <Link>Services\VisualStudio\VsHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\UI\Chat\LLMChatWindow.cs">
+      <Link>UI\Chat\LLMChatWindow.cs</Link>
+    </Compile>
+    <Compile Include="..\UI\Chat\LLMChatWindowCommand.cs">
+      <Link>UI\Chat\LLMChatWindowCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\UI\Chat\LLMChatWindowControl.xaml.cs">
+      <Link>UI\Chat\LLMChatWindowControl.xaml.cs</Link>
+      <DependentUpon>LLMChatWindowControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\UI\Settings\OptionPageGrid.cs">
+      <Link>UI\Settings\OptionPageGrid.cs</Link>
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="..\UI\Settings\SettingsWindow.xaml.cs">
+      <Link>UI\Settings\SettingsWindow.xaml.cs</Link>
+      <DependentUpon>SettingsWindow.xaml</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <None Include="source.extension.vsixmanifest">
@@ -143,17 +178,20 @@
     <PackageReference Include="OllamaSharp" Version="5.4.16" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="..\LLMChatWindowControl.xaml">
+    <Page Include="..\UI\Chat\LLMChatWindowControl.xaml">
+      <Link>UI\Chat\LLMChatWindowControl.xaml</Link>
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="..\SettingsWindow.xaml">
+    <Page Include="..\UI\Settings\SettingsWindow.xaml">
+      <Link>UI\Settings\SettingsWindow.xaml</Link>
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <VSCTCompile Include="..\LLMCopilotPackage.vsct">
+    <VSCTCompile Include="..\Package\LLMCopilotPackage.vsct">
+      <Link>Package\LLMCopilotPackage.vsct</Link>
       <ResourceName>Menus.ctmenu</ResourceName>
     </VSCTCompile>
   </ItemGroup>
