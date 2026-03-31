@@ -490,7 +490,7 @@ namespace OllamaPilot
     {
         private static readonly IOllamaService ollamaService = new OllamaSharpService();
 
-        public static Chat CreateChat(Action<ChatResponseStream> streamer)
+        public static Chat CreateChat(Action<ChatResponseStream> streamer, ThinkingDepth? thinkingDepthOverride = null)
         {
             var options = OllamaHelper.Instance.Options;
             return ollamaService.CreateChatSession(
@@ -498,7 +498,7 @@ namespace OllamaPilot
                 options.ChatModel,
                 options.AccessToken,
                 OllamaHelper.Instance.ChatRequestOptions,
-                options.ChatThinkingDepth,
+                thinkingDepthOverride ?? options.ChatThinkingDepth,
                 streamer);
         }
     }

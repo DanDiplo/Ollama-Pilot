@@ -11,6 +11,12 @@ namespace OllamaPilot
         public string VisibleMessage { get; set; }
     }
 
+    internal enum DocumentPromptProfile
+    {
+        Default,
+        Review
+    }
+
     internal static class CurrentDocumentCommandExecutor
     {
         public static async Task ExecuteAsync(
@@ -18,9 +24,10 @@ namespace OllamaPilot
             Func<string, string, string> createPrompt,
             Func<string, string> createVisibleMessage,
             string emptyDocumentMessage,
+            DocumentPromptProfile promptProfile = DocumentPromptProfile.Default,
             AssistantActionCapabilities assistantActions = AssistantActionCapabilities.Discussion)
         {
-            var request = await TryCreateRequestAsync(package, createPrompt, createVisibleMessage, emptyDocumentMessage);
+            var request = await TryCreateRequestAsync(package, createPrompt, createVisibleMessage, emptyDocumentMessage, promptProfile);
             if (request == null)
             {
                 return;
@@ -43,7 +50,8 @@ namespace OllamaPilot
             AsyncPackage package,
             Func<string, string, string> createPrompt,
             Func<string, string> createVisibleMessage,
-            string emptyDocumentMessage)
+            string emptyDocumentMessage,
+            DocumentPromptProfile promptProfile = DocumentPromptProfile.Default)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
 
@@ -68,7 +76,7 @@ namespace OllamaPilot
 
             try
             {
-                var promptText = PrepareDocumentForPrompt(documentText);
+                var promptText = PrepareDocumentForPrompt(documentText, promptProfile);
                 var prompt = createPrompt(promptText, documentPath ?? string.Empty);
                 if (string.IsNullOrWhiteSpace(prompt))
                 {
@@ -95,7 +103,7 @@ namespace OllamaPilot
             }
         }
 
-        internal static string PrepareDocumentForPrompt(string documentText)
+        internal static string PrepareDocumentForPrompt(string documentText, DocumentPromptProfile promptProfile = DocumentPromptProfile.Default)
         {
             if (string.IsNullOrWhiteSpace(documentText))
             {
@@ -103,14 +111,17 @@ namespace OllamaPilot
             }
 
             var chatCtx = Math.Max(1024, OllamaHelper.Instance.Options.ChatCtxSize);
-            var maxChars = Math.Max(3000, (int)(OllamaHelper.EstimateCharsByTokens(chatCtx) * 0.65));
+            var usageFraction = promptProfile == DocumentPromptProfile.Review ? 0.45 : 0.65;
+            var minimumChars = promptProfile == DocumentPromptProfile.Review ? 2200 : 3000;
+            var maxChars = Math.Max(minimumChars, (int)(OllamaHelper.EstimateCharsByTokens(chatCtx) * usageFraction));
             if (documentText.Length <= maxChars)
             {
                 return documentText;
             }
 
-            var headLength = Math.Max(1000, maxChars / 2);
-            var tailLength = Math.Max(1000, maxChars - headLength);
+            var headFraction = promptProfile == DocumentPromptProfile.Review ? 0.35 : 0.5;
+            var headLength = Math.Max(800, (int)(maxChars * headFraction));
+            var tailLength = Math.Max(800, maxChars - headLength);
             if (headLength + tailLength >= documentText.Length)
             {
                 return documentText;

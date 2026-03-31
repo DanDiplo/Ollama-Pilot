@@ -31,46 +31,7 @@ namespace OllamaPilot
                 return null;
             }
 
-            string repoRoot = null;
-            foreach (var startingDirectory in startingDirectories)
-            {
-                repoRoot = RunGit(startingDirectory, "rev-parse --show-toplevel")?.Trim();
-                if (!string.IsNullOrWhiteSpace(repoRoot))
-                {
-                    break;
-                }
-            }
-
-            if (string.IsNullOrWhiteSpace(repoRoot))
-            {
-                LLMErrorHandler.WriteLog($"GitContextHelper: unable to resolve a git repository root from {string.Join(", ", startingDirectories)}.");
-                return null;
-            }
-
-            var status = RunGit(repoRoot, "status --short");
-            var stagedDiff = RunGit(repoRoot, "diff --cached --no-color");
-            var unstagedDiff = RunGit(repoRoot, "diff --no-color");
-            var untrackedFiles = RunGit(repoRoot, "ls-files --others --exclude-standard");
-            var diff = BuildChangesSummary(status, stagedDiff, unstagedDiff, untrackedFiles);
-
-            if (string.IsNullOrWhiteSpace(status) && string.IsNullOrWhiteSpace(diff))
-            {
-                LLMErrorHandler.WriteLog($"GitContextHelper: repository '{repoRoot}' appears clean.");
-                return null;
-            }
-
-            if (string.IsNullOrWhiteSpace(diff))
-            {
-                LLMErrorHandler.WriteLog($"GitContextHelper: repository '{repoRoot}' has status output but no diff body. Status: {status}");
-                diff = "No textual diff was produced. Use the Git status section to summarize the working changes.";
-            }
-
-            return new GitChangesContext
-            {
-                RepositoryRoot = repoRoot.Trim(),
-                StatusText = status?.Trim(),
-                DiffText = TrimForPrompt(diff)
-            };
+            return await Task.Run(() => BuildChangesContext(startingDirectories));
         }
 
         private static async Task<IReadOnlyList<string>> GetStartingDirectoriesAsync(AsyncPackage package)
@@ -103,7 +64,62 @@ namespace OllamaPilot
                 .ToArray();
         }
 
-        private static string RunGit(string workingDirectory, string arguments)
+        private static GitChangesContext BuildChangesContext(IReadOnlyList<string> startingDirectories)
+        {
+            var repoRoot = ResolveRepositoryRoot(startingDirectories);
+            if (string.IsNullOrWhiteSpace(repoRoot))
+            {
+                LLMErrorHandler.WriteLog($"GitContextHelper: unable to resolve a git repository root from {string.Join(", ", startingDirectories)}.");
+                return null;
+            }
+
+            var status = RunGit(repoRoot, "status --short");
+            var stagedDiff = RunGit(repoRoot, "diff --cached --no-color");
+            var unstagedDiff = RunGit(repoRoot, "diff --no-color");
+            var untrackedFiles = RunGit(repoRoot, "ls-files --others --exclude-standard");
+
+            var statusText = status.IsSuccess ? status.Output : null;
+            var diff = BuildChangesSummary(
+                statusText,
+                stagedDiff.IsSuccess ? stagedDiff.Output : null,
+                unstagedDiff.IsSuccess ? unstagedDiff.Output : null,
+                untrackedFiles.IsSuccess ? untrackedFiles.Output : null);
+
+            if (string.IsNullOrWhiteSpace(statusText) && string.IsNullOrWhiteSpace(diff))
+            {
+                LLMErrorHandler.WriteLog($"GitContextHelper: repository '{repoRoot}' appears clean.");
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(diff))
+            {
+                LLMErrorHandler.WriteLog($"GitContextHelper: repository '{repoRoot}' has status output but no diff body. Status: {statusText}");
+                diff = "No textual diff was produced. Use the Git status section to summarize the working changes.";
+            }
+
+            return new GitChangesContext
+            {
+                RepositoryRoot = repoRoot.Trim(),
+                StatusText = statusText?.Trim(),
+                DiffText = TrimForPrompt(diff)
+            };
+        }
+
+        private static string ResolveRepositoryRoot(IReadOnlyList<string> startingDirectories)
+        {
+            foreach (var startingDirectory in startingDirectories)
+            {
+                var result = RunGit(startingDirectory, "rev-parse --show-toplevel");
+                if (result.IsSuccess && !string.IsNullOrWhiteSpace(result.Output))
+                {
+                    return result.Output.Trim();
+                }
+            }
+
+            return null;
+        }
+
+        private static GitCommandResult RunGit(string workingDirectory, string arguments)
         {
             try
             {
@@ -122,18 +138,27 @@ namespace OllamaPilot
                 {
                     if (process == null)
                     {
-                        return null;
+                        LLMErrorHandler.WriteLog($"GitContextHelper: failed to start git process for '{arguments}' in '{workingDirectory}'.");
+                        return GitCommandResult.Failure("Unable to start git.");
                     }
 
                     var output = process.StandardOutput.ReadToEnd();
                     var error = process.StandardError.ReadToEnd();
                     process.WaitForExit(5000);
-                    return process.ExitCode == 0 ? output : error;
+                    if (process.ExitCode != 0)
+                    {
+                        LLMErrorHandler.WriteLog(
+                            $"GitContextHelper: git {arguments} failed in '{workingDirectory}' with exit code {process.ExitCode}. {error?.Trim()}");
+                        return GitCommandResult.Failure(error);
+                    }
+
+                    return GitCommandResult.Success(output);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                return null;
+                LLMErrorHandler.WriteLog($"GitContextHelper: exception running git {arguments} in '{workingDirectory}'. {ex.Message}");
+                return GitCommandResult.Failure(ex.Message);
             }
         }
 
@@ -144,7 +169,7 @@ namespace OllamaPilot
                 return diffText;
             }
 
-            var chatCtx = Math.Max(1024, OllamaHelper.Instance.Options.ChatCtxSize);
+            var chatCtx = Math.Max(1024, OllamaHelper.Instance != null ? OllamaHelper.Instance.Options.ChatCtxSize : 4096);
             var maxChars = Math.Max(4000, (int)(OllamaHelper.EstimateCharsByTokens(chatCtx) * 0.6));
             if (diffText.Length <= maxChars)
             {
@@ -237,6 +262,30 @@ namespace OllamaPilot
             builder.AppendLine(title);
             builder.AppendLine(new string('=', title.Length));
             builder.AppendLine(content.Trim());
+        }
+
+        private sealed class GitCommandResult
+        {
+            public bool IsSuccess { get; private set; }
+            public string Output { get; private set; }
+
+            public static GitCommandResult Success(string output)
+            {
+                return new GitCommandResult
+                {
+                    IsSuccess = true,
+                    Output = output
+                };
+            }
+
+            public static GitCommandResult Failure(string output)
+            {
+                return new GitCommandResult
+                {
+                    IsSuccess = false,
+                    Output = output
+                };
+            }
         }
     }
 }

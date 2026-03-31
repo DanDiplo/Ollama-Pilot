@@ -77,9 +77,10 @@ namespace OllamaPilot
                         return Fail($"Code Complete Model '{options.CompleteModel}' does not appear to support fill-in-the-middle insert mode.");
                     }
 
-                    if (!TokensMatchTemplate(options, completeModelInfo.Template))
+                    var tokenValidation = ValidateFimTokens(options, completeModelInfo.Template);
+                    if (!tokenValidation.Success)
                     {
-                        return Fail("The configured FIM tokens do not match the selected completion model template.");
+                        return tokenValidation;
                     }
                 }
 
@@ -113,6 +114,62 @@ namespace OllamaPilot
             return template.Contains(options.FimBegin ?? string.Empty)
                 && template.Contains(options.FimEnd ?? string.Empty)
                 && template.Contains(options.FimHole ?? string.Empty);
+        }
+
+        internal static bool TryGetSuggestedFimTokens(string modelName, out string fimBegin, out string fimHole, out string fimEnd)
+        {
+            fimBegin = null;
+            fimHole = null;
+            fimEnd = null;
+
+            if (string.IsNullOrWhiteSpace(modelName))
+            {
+                return false;
+            }
+
+            if (modelName.IndexOf("qwen", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                fimBegin = "<|fim_prefix|>";
+                fimHole = "<|fim_middle|>";
+                fimEnd = "<|fim_suffix|>";
+                return true;
+            }
+
+            if (modelName.IndexOf("deepseek", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                fimBegin = "<｜fim▁begin｜>";
+                fimHole = "<｜fim▁hole｜>";
+                fimEnd = "<｜fim▁end｜>";
+                return true;
+            }
+
+            return false;
+        }
+
+        private static OllamaValidationResult ValidateFimTokens(OptionPageGrid options, string template)
+        {
+            if (TokensMatchTemplate(options, template))
+            {
+                return new OllamaValidationResult { Success = true };
+            }
+
+            if (TryGetSuggestedFimTokens(options.CompleteModel, out var suggestedBegin, out var suggestedHole, out var suggestedEnd))
+            {
+                var matchesSuggestedTokens =
+                    string.Equals(options.FimBegin, suggestedBegin, StringComparison.Ordinal) &&
+                    string.Equals(options.FimHole, suggestedHole, StringComparison.Ordinal) &&
+                    string.Equals(options.FimEnd, suggestedEnd, StringComparison.Ordinal);
+
+                if (matchesSuggestedTokens)
+                {
+                    return new OllamaValidationResult { Success = true };
+                }
+
+                return Fail(
+                    $"The configured FIM tokens do not match the selected completion model. Suggested tokens for '{options.CompleteModel}' are Begin='{suggestedBegin}', Hole='{suggestedHole}', End='{suggestedEnd}'.");
+            }
+
+            return Fail("The configured FIM tokens do not match the selected completion model template.");
         }
 
         private static OllamaValidationResult Fail(string message)

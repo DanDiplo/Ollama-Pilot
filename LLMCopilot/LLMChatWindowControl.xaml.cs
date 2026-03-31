@@ -771,7 +771,7 @@ namespace OllamaPilot
             {
                 if (resetConversation)
                 {
-                    ResetChatSession();
+                    ResetChatSession(GetThinkingDepthForRequest(responseGuard, assistantActions));
                 }
 
                 _activeResponseGuard = responseGuard;
@@ -905,7 +905,8 @@ namespace OllamaPilot
                 LLMCopilotProvider.Package,
                 OllamaHelper.Instance.GetReviewFileTemplate,
                 fileName => $"Review the current file: {fileName}",
-                "Open a code file first.");
+                "Open a code file first.",
+                DocumentPromptProfile.Review);
 
             if (request == null)
             {
@@ -1276,9 +1277,25 @@ namespace OllamaPilot
             ThinkingBadge = $"Thinking: {options.ChatThinkingDepth}";
         }
 
-        private void ResetChatSession()
+        private static ThinkingDepth? GetThinkingDepthForRequest(GeneratedResponseGuard responseGuard, AssistantActionCapabilities assistantActions)
         {
-            Chat = OllamaClientFactory.CreateChat(OnChatResponseReceived);
+            if (responseGuard == GeneratedResponseGuard.CommentOnly)
+            {
+                return ThinkingDepth.Off;
+            }
+
+            if (assistantActions != AssistantActionCapabilities.None
+                && assistantActions != AssistantActionCapabilities.Discussion)
+            {
+                return ThinkingDepth.Off;
+            }
+
+            return null;
+        }
+
+        private void ResetChatSession(ThinkingDepth? thinkingDepthOverride = null)
+        {
+            Chat = OllamaClientFactory.CreateChat(OnChatResponseReceived, thinkingDepthOverride);
             Chat.SelectedModel = OllamaHelper.Instance.Options.ChatModel;
             Chat.Options = OllamaHelper.Instance.ChatRequestOptions;
             Chat.AccessToken = OllamaHelper.Instance.Options.AccessToken;

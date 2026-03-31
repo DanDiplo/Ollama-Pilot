@@ -48,7 +48,11 @@
                                 Click="QualityPreset_Click" />
                         <Button Content="Recommended Models"
                                 Padding="12,6"
+                                Margin="0,0,8,0"
                                 Click="RecommendedModels_Click" />
+                        <Button Content="Recommended Contexts"
+                                Padding="12,6"
+                                Click="RecommendedContexts_Click" />
                     </WrapPanel>
                 </StackPanel>
                 <Button Grid.Column="1"

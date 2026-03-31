@@ -18,11 +18,10 @@ namespace OllamaPilot
 
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-            var shell = await ServiceProvider.GetGlobalServiceAsync(typeof(SVsShell)) as IVsShell;
-            if (shell != null)
+            if (await ServiceProvider.GetGlobalServiceAsync(typeof(SVsShell)) is IVsShell shell)
             {
                 var packageGuid = new Guid(LLMCopilotPackage.PackageGuidString);
-                shell.LoadPackage(ref packageGuid, out IVsPackage package);
+                shell.LoadPackage(ref packageGuid, out IVsPackage _);
             }
         }
 

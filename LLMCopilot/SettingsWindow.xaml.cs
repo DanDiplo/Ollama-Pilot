@@ -1,12 +1,11 @@
-using Microsoft.VisualStudio.Shell;
-using OllamaSharp;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
-using System.Diagnostics.CodeAnalysis;
 
 namespace OllamaPilot
 {
@@ -24,6 +23,9 @@ namespace OllamaPilot
             LoadFromOptions();
         }
 
+        /// <summary>
+        /// Populates combo boxes with available enum values for static configuration options.
+        /// </summary>
         private void LoadStaticChoices()
         {
             LanguageComboBox.ItemsSource = Enum.GetValues(typeof(ResponseLanguage));
@@ -31,6 +33,9 @@ namespace OllamaPilot
             ThinkingDepthComboBox.ItemsSource = Enum.GetValues(typeof(ThinkingDepth));
         }
 
+        /// <summary>
+        /// Loads application configuration options into the UI controls.
+        /// </summary>
         private void LoadFromOptions()
         {
             BaseUrlTextBox.Text = _options.BaseUrl;
@@ -116,6 +121,12 @@ namespace OllamaPilot
             ApplyRecommendedModels();
         }
 
+        [SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "WPF event handlers require async void.")]
+        private async void RecommendedContexts_Click(object sender, RoutedEventArgs e)
+        {
+            await ApplyRecommendedContextsAsync();
+        }
+
         private async Task RefreshModelsAsync()
         {
             try
@@ -157,6 +168,11 @@ namespace OllamaPilot
         {
             try
             {
+                if (EnableAutoCompleteCheckBox.IsChecked == true)
+                {
+                    ApplySuggestedFimTokens(CompleteModelComboBox.Text?.Trim(), force: false);
+                }
+
                 ApplyInputToOptions();
             }
             catch (Exception ex)
@@ -266,12 +282,68 @@ namespace OllamaPilot
             if (!string.IsNullOrWhiteSpace(preferredCompletionModel))
             {
                 CompleteModelComboBox.Text = preferredCompletionModel;
+                ApplySuggestedFimTokens(preferredCompletionModel, force: true);
             }
 
             UpdateRecommendationText();
             SetStatus(
                 $"Recommended models applied: chat = {ChatModelComboBox.Text}, completion = {CompleteModelComboBox.Text}.",
                 Brushes.SeaGreen);
+        }
+
+        private async Task ApplyRecommendedContextsAsync()
+        {
+            var baseUrl = BaseUrlTextBox.Text.Trim();
+            var accessToken = AccessTokenTextBox.Text?.Trim();
+            var chatModel = ChatModelComboBox.Text?.Trim();
+            var completionModel = CompleteModelComboBox.Text?.Trim();
+
+            if (string.IsNullOrWhiteSpace(chatModel) && string.IsNullOrWhiteSpace(completionModel))
+            {
+                SetStatus("Choose a chat and/or completion model first so Ollama Pilot can suggest working context sizes.", Brushes.DarkGoldenrod);
+                return;
+            }
+
+            try
+            {
+                SetStatus("Inspecting selected model context limits...", Brushes.DodgerBlue);
+
+                var chatSuggestion = await TryGetRecommendedContextAsync(baseUrl, accessToken, chatModel, isChat: true);
+                var completionSuggestion = await TryGetRecommendedContextAsync(baseUrl, accessToken, completionModel, isChat: false);
+
+                if (chatSuggestion.HasValue)
+                {
+                    ChatCtxTextBox.Text = chatSuggestion.Value.ToString();
+                }
+
+                if (completionSuggestion.HasValue)
+                {
+                    CompleteCtxTextBox.Text = completionSuggestion.Value.ToString();
+                }
+
+                if (!chatSuggestion.HasValue && !completionSuggestion.HasValue)
+                {
+                    SetStatus("Ollama Pilot could not read model context limits. Keeping your existing values.", Brushes.DarkGoldenrod);
+                    return;
+                }
+
+                var statusParts = new List<string>();
+                if (chatSuggestion.HasValue)
+                {
+                    statusParts.Add($"chat = {chatSuggestion.Value}");
+                }
+
+                if (completionSuggestion.HasValue)
+                {
+                    statusParts.Add($"completion = {completionSuggestion.Value}");
+                }
+
+                SetStatus($"Recommended contexts applied: {string.Join(", ", statusParts)}.", Brushes.SeaGreen);
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Unable to recommend context sizes. {ex.Message}", Brushes.OrangeRed);
+            }
         }
 
         private void UpdateRecommendationText()
@@ -349,6 +421,194 @@ namespace OllamaPilot
             }
 
             return 0;
+        }
+
+        private static int? TryExtractModelContextLimit(string parameters)
+        {
+            if (string.IsNullOrWhiteSpace(parameters))
+            {
+                return null;
+            }
+
+            var match = Regex.Match(parameters, @"PARAMETER\s+num_ctx\s+(\d+)", RegexOptions.IgnoreCase);
+            if (!match.Success || match.Groups.Count < 2)
+            {
+                return null;
+            }
+
+            if (!int.TryParse(match.Groups[1].Value, out var numCtx) || numCtx <= 0)
+            {
+                return null;
+            }
+
+            return numCtx;
+        }
+
+        private async Task<int?> TryGetRecommendedContextAsync(string baseUrl, string accessToken, string modelName, bool isChat)
+        {
+            if (string.IsNullOrWhiteSpace(modelName))
+            {
+                return null;
+            }
+
+            var modelInfo = await ollamaService.ShowModelInformationAsync(
+                baseUrl,
+                accessToken,
+                modelName,
+                default(System.Threading.CancellationToken));
+
+            var modelLimit = TryExtractModelContextLimit(modelInfo?.Parameters);
+            if (!modelLimit.HasValue)
+            {
+                return RecommendContextFromModelSize(modelName, isChat);
+            }
+
+            return RecommendContextWindow(modelName, modelLimit.Value, isChat);
+        }
+
+        private static int RecommendContextFromModelSize(string modelName, bool isChat)
+        {
+            var modelSize = ExtractApproximateModelSize(modelName);
+            if (isChat)
+            {
+                if (modelSize >= 14)
+                {
+                    return 8192;
+                }
+
+                if (modelSize >= 7)
+                {
+                    return 4096;
+                }
+
+                return 2048;
+            }
+
+            if (modelSize >= 14)
+            {
+                return 4096;
+            }
+
+            if (modelSize >= 7)
+            {
+                return 2048;
+            }
+
+            return 1536;
+        }
+
+        private static int RecommendContextWindow(string modelName, int modelLimit, bool isChat)
+        {
+            var modelSize = ExtractApproximateModelSize(modelName);
+            var suggested = isChat
+                ? RecommendChatContext(modelLimit, modelSize)
+                : RecommendCompletionContext(modelLimit, modelSize);
+
+            return Math.Max(1024, Math.Min(modelLimit, suggested));
+        }
+
+        private static int RecommendChatContext(int modelLimit, double modelSize)
+        {
+            var candidate = modelLimit >= 16384
+                ? modelLimit / 2
+                : (int)Math.Round(modelLimit * 0.75);
+
+            var sizeCap = modelSize >= 20 ? 8192
+                : modelSize >= 14 ? 12288
+                : 16384;
+
+            return RoundDownToStep(Clamp(candidate, 4096, Math.Min(modelLimit, sizeCap)), 1024);
+        }
+
+        private static int RecommendCompletionContext(int modelLimit, double modelSize)
+        {
+            var candidate = (int)Math.Round(modelLimit * 0.35);
+            var sizeCap = modelSize >= 14 ? 4096 : 3072;
+            return RoundDownToStep(Clamp(candidate, 1024, Math.Min(modelLimit, sizeCap)), 512);
+        }
+
+        private static int Clamp(int value, int min, int max)
+        {
+            if (max < min)
+            {
+                return min;
+            }
+
+            if (value < min)
+            {
+                return min;
+            }
+
+            if (value > max)
+            {
+                return max;
+            }
+
+            return value;
+        }
+
+        private static int RoundDownToStep(int value, int step)
+        {
+            if (step <= 1)
+            {
+                return value;
+            }
+
+            return Math.Max(step, (value / step) * step);
+        }
+
+        private void ApplySuggestedFimTokens(string modelName, bool force)
+        {
+            if (!OllamaSettingsValidator.TryGetSuggestedFimTokens(modelName, out var suggestedBegin, out var suggestedHole, out var suggestedEnd))
+            {
+                return;
+            }
+
+            if (!force && !ShouldReplaceFimTokens(suggestedBegin, suggestedHole, suggestedEnd))
+            {
+                return;
+            }
+
+            FimBeginTextBox.Text = suggestedBegin;
+            FimHoleTextBox.Text = suggestedHole;
+            FimEndTextBox.Text = suggestedEnd;
+        }
+
+        private bool ShouldReplaceFimTokens(string suggestedBegin, string suggestedHole, string suggestedEnd)
+        {
+            var currentBegin = FimBeginTextBox.Text?.Trim();
+            var currentHole = FimHoleTextBox.Text?.Trim();
+            var currentEnd = FimEndTextBox.Text?.Trim();
+
+            if (string.IsNullOrWhiteSpace(currentBegin) || string.IsNullOrWhiteSpace(currentHole) || string.IsNullOrWhiteSpace(currentEnd))
+            {
+                return true;
+            }
+
+            if (string.Equals(currentBegin, suggestedBegin, StringComparison.Ordinal)
+                && string.Equals(currentHole, suggestedHole, StringComparison.Ordinal)
+                && string.Equals(currentEnd, suggestedEnd, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            if (OllamaSettingsValidator.TryGetSuggestedFimTokens("deepseek", out var deepseekBegin, out var deepseekHole, out var deepseekEnd)
+                && string.Equals(currentBegin, deepseekBegin, StringComparison.Ordinal)
+                && string.Equals(currentHole, deepseekHole, StringComparison.Ordinal)
+                && string.Equals(currentEnd, deepseekEnd, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (OllamaSettingsValidator.TryGetSuggestedFimTokens("qwen", out var qwenBegin, out var qwenHole, out var qwenEnd)
+                && string.Equals(currentBegin, qwenBegin, StringComparison.Ordinal)
+                && string.Equals(currentHole, qwenHole, StringComparison.Ordinal)
+                && string.Equals(currentEnd, qwenEnd, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }

@@ -39,6 +39,7 @@ namespace OllamaPilot
                 OllamaHelper.Instance.GetReviewFileTemplate,
                 fileName => $"Review the current file: {fileName}",
                 "Open a code file first.",
+                DocumentPromptProfile.Review,
                 AssistantActionCapabilities.Discussion));
         }
     }
