@@ -209,15 +209,12 @@ namespace OllamaPilot.Services.Ollama
                     while (await enumerator.MoveNextAsync())
                     {
                         var token = enumerator.Current;
-                        if (_streamer != null)
+                        _streamer?.Invoke(new ChatResponseStream
                         {
-                            _streamer(new ChatResponseStream
-                            {
-                                Model = SelectedModel,
-                                Message = new Message(ChatRole.Assistant, token),
-                                Done = false
-                            });
-                        }
+                            Model = SelectedModel,
+                            Message = new Message(ChatRole.Assistant, token),
+                            Done = false
+                        });
                     }
                 }
                 finally
@@ -225,15 +222,12 @@ namespace OllamaPilot.Services.Ollama
                     await enumerator.DisposeAsync();
                 }
 
-                if (_streamer != null)
+                _streamer?.Invoke(new ChatResponseStream
                 {
-                    _streamer(new ChatResponseStream
-                    {
-                        Model = SelectedModel,
-                        Message = new Message(ChatRole.Assistant, string.Empty),
-                        Done = true
-                    });
-                }
+                    Model = SelectedModel,
+                    Message = new Message(ChatRole.Assistant, string.Empty),
+                    Done = true
+                });
             }
 
             private void Chat_OnThink(object sender, string thinkingToken)

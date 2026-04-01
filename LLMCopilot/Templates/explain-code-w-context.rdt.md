@@ -2,57 +2,7 @@
 
 Explain the selected code.
 
-## Template
-
-### Configuration
-
-```json conversation-template
-{
-  "id": "explain-code-with-context",
-  "engineVersion": 0,
-  "label": "Explain Code with Context",
-  "description": "Explain the selected code in context of all the open files.",
-  "tags": ["debug", "understand"],
-  "header": {
-    "title": "Explain Code ({{location}}) in context",
-    "icon": {
-      "type": "codicon",
-      "value": "book"
-    }
-  },
-  "variables": [
-    {
-      "name": "openFiles",
-      "time": "conversation-start",
-      "type": "context"
-    },
-    {
-      "name": "selectedText",
-      "time": "conversation-start",
-      "type": "selected-text",
-      "constraints": [{ "type": "text-length", "min": 1 }]
-    },
-    {
-      "name": "location",
-      "time": "conversation-start",
-      "type": "selected-location-text"
-    },
-    {
-      "name": "lastMessage",
-      "time": "message",
-      "type": "message",
-      "property": "content",
-      "index": -1
-    }
-  ],
-  "response": {
-    "maxTokens": 2048,
-    "stop": ["Bot:", "Developer:"]
-  }
-}
-```
-
-### Response Prompt
+## Response Prompt
 
 ```template-response
 ## Instructions

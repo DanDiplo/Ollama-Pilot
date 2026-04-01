@@ -2,69 +2,7 @@
 
 Template to find bugs in the selected code.
 
-## Template
-
-### Configuration
-
-```json conversation-template
-{
-  "id": "find-bugs",
-  "engineVersion": 0,
-  "label": "Find bugs",
-  "tags": ["debug", "code quality"],
-  "description": "Find potential bugs in the selected code.",
-  "header": {
-    "title": "Find bugs ({{location}})",
-    "icon": {
-      "type": "codicon",
-      "value": "bug"
-    }
-  },
-  "variables": [
-    {
-      "name": "selectedText",
-      "time": "conversation-start",
-      "type": "selected-text",
-      "constraints": [{ "type": "text-length", "min": 1 }]
-    },
-    {
-      "name": "language",
-      "time": "conversation-start",
-      "type": "language",
-      "constraints": [{ "type": "text-length", "min": 1 }]
-    },
-    {
-      "name": "location",
-      "time": "conversation-start",
-      "type": "selected-location-text"
-    },
-    {
-      "name": "firstMessage",
-      "time": "message",
-      "type": "message",
-      "property": "content",
-      "index": 0
-    },
-    {
-      "name": "lastMessage",
-      "time": "message",
-      "type": "message",
-      "property": "content",
-      "index": -1
-    }
-  ],
-  "initialMessage": {
-    "placeholder": "Searching for bugs",
-    "maxTokens": 1024
-  },
-  "response": {
-    "maxTokens": 1024,
-    "stop": ["Bot:", "Developer:"]
-  }
-}
-```
-
-### Initial Message Prompt
+## Initial Message Prompt
 
 ```template-initial-message
 ## Instructions

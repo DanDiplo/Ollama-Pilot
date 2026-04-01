@@ -2,64 +2,7 @@
 
 Diagnoses any errors or warnings the selected code.
 
-## Template
-
-### Configuration
-
-```json conversation-template
-{
-  "id": "diagnose-errors",
-  "engineVersion": 0,
-  "label": "Diagnose Errors",
-  "tags": ["debug"],
-  "description": "Diagnose errors and warnings in the selected code.",
-  "header": {
-    "title": "Diagnose Errors ({{location}})",
-    "icon": {
-      "type": "codicon",
-      "value": "search-fuzzy"
-    }
-  },
-  "variables": [
-    {
-      "name": "selectedTextWithDiagnostics",
-      "time": "conversation-start",
-      "type": "selected-text-with-diagnostics",
-      "severities": ["error", "warning"],
-      "constraints": [{ "type": "text-length", "min": 1 }]
-    },
-    {
-      "name": "location",
-      "time": "conversation-start",
-      "type": "selected-location-text"
-    },
-    {
-      "name": "firstMessage",
-      "time": "message",
-      "type": "message",
-      "property": "content",
-      "index": 0
-    },
-    {
-      "name": "lastMessage",
-      "time": "message",
-      "type": "message",
-      "property": "content",
-      "index": -1
-    }
-  ],
-  "initialMessage": {
-    "placeholder": "Diagnosing errors",
-    "maxTokens": 512
-  },
-  "response": {
-    "maxTokens": 1024,
-    "stop": ["Bot:", "Developer:"]
-  }
-}
-```
-
-### Initial Message Prompt
+## Initial Message Prompt
 
 ```template-initial-message
 ## Instructions

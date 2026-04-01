@@ -2,63 +2,7 @@
 
 Explain the selected code.
 
-## Template
-
-### Configuration
-
-```json conversation-template
-{
-  "id": "explain-code",
-  "engineVersion": 0,
-  "label": "Explain Code",
-  "description": "Explain the selected code.",
-  "tags": ["debug", "understand"],
-  "header": {
-    "title": "Explain Code ({{location}})",
-    "icon": {
-      "type": "codicon",
-      "value": "book"
-    }
-  },
-  "variables": [
-    {
-      "name": "selectedText",
-      "time": "conversation-start",
-      "type": "selected-text",
-      "constraints": [{ "type": "text-length", "min": 1 }]
-    },
-    {
-      "name": "location",
-      "time": "conversation-start",
-      "type": "selected-location-text"
-    },
-    {
-      "name": "firstMessage",
-      "time": "message",
-      "type": "message",
-      "property": "content",
-      "index": 0
-    },
-    {
-      "name": "lastMessage",
-      "time": "message",
-      "type": "message",
-      "property": "content",
-      "index": -1
-    }
-  ],
-  "initialMessage": {
-    "placeholder": "Generating explanation",
-    "maxTokens": 512
-  },
-  "response": {
-    "maxTokens": 1024,
-    "stop": ["Bot:", "Developer:"]
-  }
-}
-```
-
-### Initial Message Prompt
+## Initial Message Prompt
 
 ```template-initial-message
 ## Instructions
