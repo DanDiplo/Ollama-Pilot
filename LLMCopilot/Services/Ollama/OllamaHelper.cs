@@ -326,8 +326,8 @@ namespace OllamaPilot.Services.Ollama
             try
             {
                 // Retrieve model information for the chat and completion models
-                var chatModelInfo = await ollamaService.ShowModelInformationAsync(Options.BaseUrl, Options.AccessToken, Options.ChatModel, default(System.Threading.CancellationToken));
-                var compModelInfo = await ollamaService.ShowModelInformationAsync(Options.BaseUrl, Options.AccessToken, Options.CompleteModel, default(System.Threading.CancellationToken));
+                var chatModelInfo = await ollamaService.ShowModelInformationAsync(Options.BaseUrl, Options.AccessToken, Options.ChatModel, default);
+                var compModelInfo = await ollamaService.ShowModelInformationAsync(Options.BaseUrl, Options.AccessToken, Options.CompleteModel, default);
 
                 // Helper to extract the 'num_ctx' parameter from a model's parameter string
                 Func<string, string, int> GetCtx = (string parameters, string model) =>
@@ -484,8 +484,7 @@ namespace OllamaPilot.Services.Ollama
 
         public override DataTemplate SelectTemplate(object item, DependencyObject container)
         {
-            var message = item as MyMessage;
-            if (message != null)
+            if (item is MyMessage message)
             {
                 return message.Role == ChatRole.User ? UserTemplate : AssistantTemplate;
             }
