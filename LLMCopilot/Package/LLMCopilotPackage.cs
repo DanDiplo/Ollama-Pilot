@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using OllamaPilot.Commands;
@@ -81,7 +82,7 @@ namespace OllamaPilot.Package
             await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
             LLMCopilotProvider.Package = this;
             LLMErrorHandler.Initialize(this);
-            await OllamaHelper.Instance.InitModelCtxAsync();
+            StartOllamaModelWarmup();
             await ExplainCommand.InitializeAsync(this);
             await ExplainErrorCommand.InitializeAsync(this);
             await ReviewFileCommand.InitializeAsync(this);
@@ -96,6 +97,15 @@ namespace OllamaPilot.Package
             await SettingsCommand.InitializeAsync(this);
             await TestConnectionCommand.InitializeAsync(this);
             await SummarizeChangesCommand.InitializeAsync(this);
+        }
+
+        [SuppressMessage("Usage", "VSSDK007:Await/join tasks created from ThreadHelper.JoinableTaskFactory.RunAsync", Justification = "Ollama model metadata warmup should not delay VSIX startup.")]
+        private void StartOllamaModelWarmup()
+        {
+            _ = this.JoinableTaskFactory.RunAsync(async delegate
+            {
+                await Task.Run(() => OllamaHelper.Instance.InitModelCtxAsync());
+            });
         }
 
         #endregion

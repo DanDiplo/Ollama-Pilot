@@ -197,7 +197,7 @@ namespace OllamaPilot.UI.Settings
             }
 
             _options.PersistSettings();
-            SetStatus("Settings saved.", Brushes.SeaGreen);
+            SetStatus("Settings saved. Use Test Connection to verify Ollama connectivity and installed models.", Brushes.SeaGreen);
             DialogResult = true;
             Close();
         }

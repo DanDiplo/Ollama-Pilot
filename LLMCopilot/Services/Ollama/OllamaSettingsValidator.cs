@@ -15,14 +15,12 @@ namespace OllamaPilot.Services.Ollama
 
     internal static class OllamaSettingsValidator
     {
-        private static readonly IOllamaService ollamaService = new OllamaSharpService();
-
         public static OllamaValidationResult Validate(OptionPageGrid options)
         {
             return ThreadHelper.JoinableTaskFactory.Run(() => ValidateAsync(options));
         }
 
-        public static async Task<OllamaValidationResult> ValidateAsync(OptionPageGrid options, CancellationToken cancellationToken = default)
+        public static OllamaValidationResult ValidateLocal(OptionPageGrid options)
         {
             if (options == null)
             {
@@ -55,9 +53,44 @@ namespace OllamaPilot.Services.Ollama
                 return Fail("Auto Complete Min Prefix must be zero or greater.");
             }
 
+            if (string.IsNullOrWhiteSpace(options.ChatModel))
+            {
+                return Fail("Chat model must not be empty.");
+            }
+
+            if (string.IsNullOrWhiteSpace(options.CompleteModel))
+            {
+                return Fail("Code Complete Model must not be empty.");
+            }
+
+            if (options.EnableAutoComplete)
+            {
+                if (string.IsNullOrWhiteSpace(options.FimBegin)
+                    || string.IsNullOrWhiteSpace(options.FimHole)
+                    || string.IsNullOrWhiteSpace(options.FimEnd))
+                {
+                    return Fail("FIM begin, hole, and end tokens must be configured when autocomplete is enabled.");
+                }
+            }
+
+            return new OllamaValidationResult
+            {
+                Success = true,
+                Message = "Settings look valid locally. Use Test Connection to verify Ollama connectivity and installed models."
+            };
+        }
+
+        public static async Task<OllamaValidationResult> ValidateAsync(OptionPageGrid options, CancellationToken cancellationToken = default)
+        {
+            var localValidation = ValidateLocal(options);
+            if (!localValidation.Success)
+            {
+                return localValidation;
+            }
+
             try
             {
-                var models = (await ollamaService.ListLocalModelsAsync(options.BaseUrl, options.AccessToken, cancellationToken)).ToList();
+                var models = (await OllamaHelper.OllamaService.ListLocalModelsAsync(options.BaseUrl, options.AccessToken, cancellationToken)).ToList();
                 if (models.Count == 0)
                 {
                     return Fail("Connected to Ollama, but no local models were found.");
@@ -77,7 +110,7 @@ namespace OllamaPilot.Services.Ollama
 
                 if (options.EnableAutoComplete)
                 {
-                    var completeModelInfo = await ollamaService.ShowModelInformationAsync(options.BaseUrl, options.AccessToken, options.CompleteModel, cancellationToken);
+                    var completeModelInfo = await OllamaHelper.OllamaService.ShowModelInformationAsync(options.BaseUrl, options.AccessToken, options.CompleteModel, cancellationToken);
                     if (!SupportsInsert(completeModelInfo?.Template))
                     {
                         return Fail($"Code Complete Model '{options.CompleteModel}' does not appear to support fill-in-the-middle insert mode.");

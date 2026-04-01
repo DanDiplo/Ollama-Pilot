@@ -80,7 +80,7 @@ namespace OllamaPilot.UI.Settings
 
         public OllamaValidationResult ValidateSettings()
         {
-            return OllamaSettingsValidator.Validate(this);
+            return OllamaSettingsValidator.ValidateLocal(this);
         }
 
         public void PersistSettings()
@@ -106,7 +106,7 @@ namespace OllamaPilot.UI.Settings
 
             if (e.ApplyBehavior != ApplyKind.Cancel)
             {
-                var validation = OllamaSettingsValidator.Validate(this);
+                var validation = OllamaSettingsValidator.ValidateLocal(this);
                 if (!validation.Success)
                 {
                     VsShellUtilities.ShowMessageBox(
