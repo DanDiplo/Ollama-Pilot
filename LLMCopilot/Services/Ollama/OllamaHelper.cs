@@ -330,7 +330,7 @@ namespace OllamaPilot.Services.Ollama
                 var compModelInfo = await ollamaService.ShowModelInformationAsync(Options.BaseUrl, Options.AccessToken, Options.CompleteModel, default);
 
                 // Helper to extract the 'num_ctx' parameter from a model's parameter string
-                Func<string, string, int> GetCtx = (string parameters, string model) =>
+                int GetCtx(string parameters, string model)
                 {
                     int num_ctx = defaultContext;
                     if (!string.IsNullOrEmpty(parameters))
@@ -343,7 +343,7 @@ namespace OllamaPilot.Services.Ollama
                         }
                     }
                     return num_ctx;
-                };
+                }
 
                 // Set the context for the chat request options
                 int chatCtx = GetCtx(chatModelInfo.Parameters, Options.ChatModel);
