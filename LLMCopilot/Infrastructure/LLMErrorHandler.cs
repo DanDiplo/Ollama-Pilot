@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -47,6 +48,7 @@ namespace OllamaPilot.Infrastructure
             serviceProvider = provider;
         }
 
+        [SuppressMessage("Usage", "VSSDK007:Await/join tasks created from ThreadHelper.JoinableTaskFactory.RunAsync", Justification = "Error reporting intentionally shows the UI warning asynchronously to avoid blocking the failing thread.")]
         public static void HandleException(Exception exception, string userMessage = null)
         {
             var message = $"An error occurred: {FormatException(exception)}\n";

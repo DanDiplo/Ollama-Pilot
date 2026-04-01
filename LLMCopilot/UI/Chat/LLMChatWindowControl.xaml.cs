@@ -46,7 +46,7 @@ namespace OllamaPilot.UI.Chat
                 if (_message.Content != value)
                 {
                     _message.Content = value;
-                    Segments = ParseSegments(value);
+                    Segments = ParseSegments(value, AssistantActions);
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(Segments));
                     OnPropertyChanged(nameof(HasVisibleActions));
@@ -93,7 +93,7 @@ namespace OllamaPilot.UI.Chat
         {
             _message = message;
             AssistantActions = assistantActions;
-            Segments = ParseSegments(_message.Content);
+            Segments = ParseSegments(_message.Content, assistantActions);
         }
 
         public MyMessage(ChatRole? role, string content, AssistantActionCapabilities assistantActions = AssistantActionCapabilities.None)
@@ -104,7 +104,7 @@ namespace OllamaPilot.UI.Chat
                 Content = content
             };
             AssistantActions = assistantActions;
-            Segments = ParseSegments(content);
+            Segments = ParseSegments(content, assistantActions);
         }
 
         private bool HasAction(AssistantActionCapabilities action)
@@ -112,7 +112,7 @@ namespace OllamaPilot.UI.Chat
             return Role == ChatRole.Assistant && (AssistantActions & action) == action;
         }
 
-        private static ObservableCollection<MessageSegment> ParseSegments(string content)
+        private static ObservableCollection<MessageSegment> ParseSegments(string content, AssistantActionCapabilities assistantActions)
         {
             var segments = new ObservableCollection<MessageSegment>();
             if (string.IsNullOrWhiteSpace(content))
@@ -147,10 +147,34 @@ namespace OllamaPilot.UI.Chat
 
             if (segments.Count == 0)
             {
-                AddMarkdownSegment(segments, content);
+                AddFallbackSegment(segments, content, assistantActions);
             }
 
             return segments;
+        }
+
+        private static void AddFallbackSegment(ObservableCollection<MessageSegment> segments, string content, AssistantActionCapabilities assistantActions)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return;
+            }
+
+            if (TryExtractOpenEndedCodeFence(content, out var fenceLanguage, out var fenceCode))
+            {
+                segments.Add(new MessageSegment(MessageSegmentType.Code, fenceCode, fenceLanguage));
+                return;
+            }
+
+            if (assistantActions != AssistantActionCapabilities.None
+                && assistantActions != AssistantActionCapabilities.Discussion
+                && LooksLikeCode(content))
+            {
+                segments.Add(new MessageSegment(MessageSegmentType.Code, content.Trim(), InferCodeLanguage(content)));
+                return;
+            }
+
+            AddMarkdownSegment(segments, content);
         }
 
         private static void AddMarkdownSegment(ObservableCollection<MessageSegment> segments, string markdown)
@@ -161,6 +185,96 @@ namespace OllamaPilot.UI.Chat
             }
 
             segments.Add(new MessageSegment(MessageSegmentType.Markdown, markdown.Trim(), null));
+        }
+
+        private static bool TryExtractOpenEndedCodeFence(string content, out string language, out string code)
+        {
+            language = null;
+            code = null;
+
+            var trimmed = (content ?? string.Empty).Trim();
+            if (!trimmed.StartsWith("```", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            var firstNewline = trimmed.IndexOf('\n');
+            if (firstNewline < 0)
+            {
+                return false;
+            }
+
+            var header = trimmed.Substring(3, firstNewline - 3).Trim();
+            var body = trimmed.Substring(firstNewline + 1);
+            if (body.EndsWith("```", StringComparison.Ordinal))
+            {
+                body = body.Substring(0, body.Length - 3);
+            }
+
+            body = body.Trim('\r', '\n');
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return false;
+            }
+
+            language = header;
+            code = body;
+            return true;
+        }
+
+        private static bool LooksLikeCode(string content)
+        {
+            var text = (content ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var lines = text
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Select(line => line.Trim())
+                .Where(line => line.Length > 0)
+                .ToArray();
+            if (lines.Length == 0)
+            {
+                return false;
+            }
+
+            var codeLikeLines = lines.Count(line =>
+                line.StartsWith("///", StringComparison.Ordinal)
+                || line.StartsWith("//", StringComparison.Ordinal)
+                || line.StartsWith("public ", StringComparison.Ordinal)
+                || line.StartsWith("private ", StringComparison.Ordinal)
+                || line.StartsWith("protected ", StringComparison.Ordinal)
+                || line.StartsWith("internal ", StringComparison.Ordinal)
+                || line.StartsWith("using ", StringComparison.Ordinal)
+                || line.StartsWith("return ", StringComparison.Ordinal)
+                || line.StartsWith("var ", StringComparison.Ordinal)
+                || line == "{"
+                || line == "}"
+                || line.EndsWith(";", StringComparison.Ordinal)
+                || line.Contains("=>")
+                || line.Contains("()")
+                || line.Contains("{")
+                || line.Contains("}"));
+
+            return codeLikeLines >= Math.Max(2, lines.Length / 2);
+        }
+
+        private static string InferCodeLanguage(string content)
+        {
+            var text = content ?? string.Empty;
+            if (text.IndexOf("using ", StringComparison.Ordinal) >= 0
+                || text.IndexOf("namespace ", StringComparison.Ordinal) >= 0
+                || text.IndexOf("public ", StringComparison.Ordinal) >= 0
+                || text.IndexOf("private ", StringComparison.Ordinal) >= 0
+                || text.IndexOf("internal ", StringComparison.Ordinal) >= 0
+                || text.IndexOf("///", StringComparison.Ordinal) >= 0)
+            {
+                return "csharp";
+            }
+
+            return string.Empty;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -692,6 +806,7 @@ namespace OllamaPilot.UI.Chat
             MessageTextBox.Foreground = new SolidColorBrush(Colors.Gray);
         }
 
+        [SuppressMessage("Usage", "VSTHRD001:Avoid legacy thread switching APIs", Justification = "This WPF control uses its own Dispatcher to coalesce UI refreshes without forcing immediate VS-thread hops.")]
         private void ScheduleUiFlush(bool forceFlush)
         {
             if (!Dispatcher.CheckAccess())
@@ -717,6 +832,7 @@ namespace OllamaPilot.UI.Chat
             FlushPendingUiUpdates();
         }
 
+        [SuppressMessage("Usage", "VSTHRD001:Avoid legacy thread switching APIs", Justification = "This WPF control uses dispatcher-based batching to reduce flicker while streaming updates.")]
         private void FlushPendingUiUpdates()
         {
             if (!Dispatcher.CheckAccess())
@@ -890,7 +1006,7 @@ namespace OllamaPilot.UI.Chat
                     await Chat.SendAsync(promptOverride ?? text, _sendCancellationTokenSource.Token);
                 });
 
-                await Dispatcher.InvokeAsync(FlushPendingUiUpdates, DispatcherPriority.Background);
+                FlushPendingUiUpdates();
 
                 if (!_receivedAssistantContent && _receivedAssistantThinking && TryPromoteThinkingOnlyResponse())
                 {

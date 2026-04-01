@@ -4,6 +4,7 @@ using OllamaPilot.Services.Ollama;
 using OllamaPilot.UI.Settings;
 using System;
 using System.ComponentModel.Design;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 
 namespace OllamaPilot.Commands
@@ -33,6 +34,7 @@ namespace OllamaPilot.Commands
             Instance = new TestConnectionCommand(package, commandService);
         }
 
+        [SuppressMessage("Usage", "VSSDK007:Await/join tasks created from ThreadHelper.JoinableTaskFactory.RunAsync", Justification = "Menu command intentionally kicks off a non-blocking async validation flow.")]
         private void Execute(object sender, EventArgs e)
         {
             ThreadHelper.ThrowIfNotOnUIThread();

@@ -10,6 +10,16 @@ namespace OllamaPilot.Services.Ollama
 {
     public sealed class OllamaSharpService : IOllamaService
     {
+        /// <summary>
+        /// Creates a new chat session using the specified OllamaSharp configuration.
+        /// </summary>
+        /// <param name="baseUrl">The base URL for the Ollama server.</param>
+        /// <param name="model">The model name to use for the session.</param>
+        /// <param name="accessToken">The access token for authentication.</param>
+        /// <param name="options">Request options for the session.</param>
+        /// <param name="thinkingDepth">The depth of thinking for the model.</param>
+        /// <param name="streamer">An action to handle the streamed chat response.</param>
+        /// <returns>A new Chat instance wrapping the created OllamaSharpChatSession.</returns>
         public Chat CreateChatSession(string baseUrl, string model, string accessToken, RequestOptions options, ThinkingDepth thinkingDepth, Action<ChatResponseStream> streamer)
         {
             var session = new OllamaSharpChatSession(baseUrl, model, accessToken, options, thinkingDepth, streamer);
@@ -32,6 +42,14 @@ namespace OllamaPilot.Services.Ollama
             }
         }
 
+        /// <summary>
+        /// Retrieves detailed information about a specific model from the Ollama server.
+        /// </summary>
+        /// <param name="baseUrl">The base URL of the Ollama server.</param>
+        /// <param name="accessToken">The access token for authentication.</param>
+        /// <param name="model">The name of the model to retrieve information for.</param>
+        /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
+        /// <returns>A <see cref="ShowModelResponse"/> containing the model's parameters and template.</returns>
         public async Task<ShowModelResponse> ShowModelInformationAsync(string baseUrl, string accessToken, string model, CancellationToken cancellationToken)
         {
             using (var client = CreateClient(baseUrl, accessToken, model))
@@ -138,11 +156,6 @@ namespace OllamaPilot.Services.Ollama
                 Temperature = options.Temperature,
                 Stop = options.Stop
             };
-        }
-
-        private static ChatRole ToLocalRole(OllamaSharp.Models.Chat.ChatRole role)
-        {
-            return new ChatRole(role.ToString());
         }
 
         private sealed class OllamaSharpChatSession : IChatSession

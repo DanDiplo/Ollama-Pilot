@@ -13,6 +13,7 @@ using OllamaPilot.Package;
 using OllamaPilot.Services.Ollama;
 using System;
 using System.ComponentModel.Composition;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
@@ -117,6 +118,7 @@ namespace OllamaPilot.Services.VisualStudio
         /// </summary>
         /// <param name="prediction">The new prediction text to display.</param>
         /// <param name="statusText">Optional status text to show as a tooltip.</param>
+        [SuppressMessage("Usage", "VSSDK007:Await/join tasks created from ThreadHelper.JoinableTaskFactory.RunAsync", Justification = "Adornment updates are intentionally scheduled asynchronously to avoid blocking completion generation.")]
         public void UpdatePrediction(string prediction, string statusText = null)
         {
             _originalPredictionText = prediction;
