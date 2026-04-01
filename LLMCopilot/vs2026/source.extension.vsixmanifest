@@ -4,6 +4,8 @@
         <Identity Id="DanDiplo.OllamaPilot" Version="1.7.81" Language="en-US" Publisher="DanDiplo" />
         <DisplayName>Ollama Pilot</DisplayName>
         <Description xml:space="preserve">Ollama-powered coding assistant for Visual Studio 2026</Description>
+        <MoreInfo>https://github.com/DanDiplo/Ollama-Pilot</MoreInfo>
+        <Preview>true</Preview>
     </Metadata>
     <Installation>
         <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[18.0, 19.0)">

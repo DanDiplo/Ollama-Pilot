@@ -1031,10 +1031,7 @@ namespace OllamaPilot.Services.VisualStudio
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                 LLMAdornmentFactory.CreateAdornment(textView);
                 var adornment = LLMAdornmentFactory.GetCurrentAdornment();
-                if (adornment != null)
-                {
-                    adornment.UpdatePrediction(comp_text, statusText);
-                }
+                adornment?.UpdatePrediction(comp_text, statusText);
             }
             catch (OperationCanceledException)
             {

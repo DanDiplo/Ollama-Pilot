@@ -59,10 +59,10 @@ namespace OllamaPilot.Services.Ollama
             {
                 var generateRequest = new OllamaSharp.Models.GenerateRequest
                 {
-                    Model = request != null ? request.Model : null,
-                    Prompt = request != null ? request.Prompt : null,
-                    Suffix = request != null ? request.Suffix : null,
-                    Options = ToPackageRequestOptions(request != null ? request.Options : null),
+                    Model = request?.Model,
+                    Prompt = request?.Prompt,
+                    Suffix = request?.Suffix,
+                    Options = ToPackageRequestOptions(request?.Options),
                     Raw = request != null ? (bool?)request.Raw : null,
                     Stream = true
                 };

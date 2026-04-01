@@ -275,10 +275,7 @@ namespace OllamaPilot.Services.VisualStudio
         public void AddCommandFilter()
         {
             var viewAdapter = GetViewAdapter(_view);
-            if (viewAdapter != null)
-            {
-                viewAdapter.AddCommandFilter(this, out _nextCommandTarget);
-            }
+            viewAdapter?.AddCommandFilter(this, out _nextCommandTarget);
         }
 
         public int QueryStatus(ref Guid pguidCmdGroup, uint cCmds, OLECMD[] prgCmds, IntPtr pCmdText)

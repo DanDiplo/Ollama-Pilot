@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Diplodocus Squad")]
 [assembly: AssemblyProduct("OllamaPilot")]
-[assembly: AssemblyCopyright("")]
+[assembly: AssemblyCopyright("Dan 'Diplo' Booth")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

@@ -79,7 +79,6 @@ Include code snippets where appropriate.
 ```
 
 ### Response Prompt
-
 ```template-response
 ## Instructions
 Continue the conversation below.
@@ -112,7 +111,7 @@ Developer: {{content}}
 ## Task
 Write a response that continues the conversation.
 Stay focused on current developer request.
-Consider the possibility that there might not be a solution.
+Consider possibility that there might not be a solution.
 Ask for clarification if the message does not make sense or more input is needed.
 Omit any links.
 Include code snippets (using Markdown) and examples where appropriate.

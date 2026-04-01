@@ -1,17 +1,14 @@
-using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
-using Task = System.Threading.Tasks.Task;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 using OllamaPilot.Commands;
-using OllamaPilot.Commands.Executors;
 using OllamaPilot.Infrastructure;
-using OllamaPilot.Package;
 using OllamaPilot.Services.Ollama;
-using OllamaPilot.Services.VisualStudio;
 using OllamaPilot.UI.Chat;
 using OllamaPilot.UI.Settings;
+using Task = System.Threading.Tasks.Task;
 
 namespace OllamaPilot.Package
 {
