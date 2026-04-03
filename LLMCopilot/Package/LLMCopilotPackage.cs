@@ -15,18 +15,39 @@ namespace OllamaPilot.Package
 {
     public static class LLMCopilotProvider
     {
+        /// <summary>
+        /// Ensures that the LLMCopilotPackage is loaded into Visual Studio.
+        /// This method is idempotent, meaning it can be called multiple times without side effects
+        /// beyond the first successful load. It's crucial for scenarios where other components
+        /// might need to interact with the package before it's explicitly initialized by VS.
+        /// </summary>
         public static async Task EnsurePackageLoadedAsync()
         {
+            // If the package instance is already available, it means it's already loaded.
+            // In this case, there's nothing more to do, so we return early.
             if (Package != null)
             {
                 return;
             }
 
+            // Switch to the main UI thread. This is often required when interacting with
+            // Visual Studio services and UI components, as many operations must occur
+            // on the thread that owns the UI.
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
+            // Attempt to get the SVsShell service, which provides access to core Visual Studio shell functionality.
+            // This service allows us to programmatically load other packages.
             if (await Microsoft.VisualStudio.Shell.ServiceProvider.GetGlobalServiceAsync(typeof(SVsShell)) is IVsShell shell)
             {
+                // Create a Guid object from the package's string representation.
+                // This GUID uniquely identifies the LLMCopilotPackage within Visual Studio.
                 var packageGuid = new Guid(LLMCopilotPackage.PackageGuidString);
+
+                // Load the package using the shell service.
+                // This forces Visual Studio to instantiate and initialize the package,
+                // making its services and commands available.
+                // The 'out IVsPackage _' discards the returned package instance as it's not needed here,
+                // as the static 'Package' property will be set upon successful loading.
                 shell.LoadPackage(ref packageGuid, out IVsPackage _);
             }
         }

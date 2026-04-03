@@ -20,26 +20,42 @@ namespace OllamaPilot.Infrastructure
     {
         private static IServiceProvider serviceProvider;
 
+        /// <summary>
+        /// Formats an exception into a human-readable string, including details like type, message,
+        /// source, target site, data, stack trace, and any inner exceptions.
+        /// </summary>
+        /// <param name="ex">The exception to format.</param>
+        /// <returns>A formatted string representation of the exception.</returns>
         public static string FormatException(Exception ex)
         {
+            // Initialize a StringBuilder to efficiently construct the exception string.
             var sb = new StringBuilder();
-            sb.AppendLine($"Exception Type: {ex.GetType().FullName}");
-            sb.AppendLine($"Message: {ex.Message}");
-            sb.AppendLine($"Source: {ex.Source}");
-            sb.AppendLine($"TargetSite: {ex.TargetSite}");
+
+            // Append core exception details.
+            sb.AppendLine($"Exception Type: {ex.GetType().FullName}"); // Full name of the exception type.
+            sb.AppendLine($"Message: {ex.Message}");                   // The error message that explains the reason for the exception.
+            sb.AppendLine($"Source: {ex.Source}");                     // The name of the application or the object that causes the error.
+            sb.AppendLine($"TargetSite: {ex.TargetSite}");             // The method that throws the current exception.
+
+            // Append any additional data associated with the exception.
             sb.AppendLine("Data:");
             foreach (var key in ex.Data.Keys)
             {
                 sb.AppendLine($"{key}: {ex.Data[key]}");
             }
+
+            // Append the stack trace, which shows the sequence of method calls that led to the exception.
             sb.AppendLine($"StackTrace: {ex.StackTrace}");
 
+            // Recursively handle inner exceptions to provide a complete error chain.
             if (ex.InnerException != null)
             {
                 sb.AppendLine("---- Inner Exception ----");
-                sb.AppendLine(FormatException(ex.InnerException)); // Recursively append the inner exception
+                // Recursively call FormatException for the inner exception and append its details.
+                sb.AppendLine(FormatException(ex.InnerException));
             }
 
+            // Return the complete formatted exception string.
             return sb.ToString();
         }
 

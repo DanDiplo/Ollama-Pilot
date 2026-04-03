@@ -14,13 +14,23 @@ namespace OllamaPilot.Commands
 
         private readonly AsyncPackage package;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReviewFileCommand"/> class.
+        /// </summary>
+        /// <param name="package">The asynchronous package that owns this command.</param>
+        /// <param name="commandService">The OLE menu command service to register the command with.</param>
         private ReviewFileCommand(AsyncPackage package, OleMenuCommandService commandService)
         {
+            // Ensure the package is not null.
             this.package = package ?? throw new ArgumentNullException(nameof(package));
+            // Ensure the command service is not null.
             commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
 
+            // Define the command ID using the globally unique identifier (GUID) and the command's unique identifier.
             var menuCommandID = new CommandID(CommandSet, CommandId);
+            // Create a new menu command instance, associating it with the Execute method.
             var menuItem = new MenuCommand(this.Execute, menuCommandID);
+            // Add the newly created menu item to the command service, making it visible in the Visual Studio UI.
             commandService.AddCommand(menuItem);
         }
 

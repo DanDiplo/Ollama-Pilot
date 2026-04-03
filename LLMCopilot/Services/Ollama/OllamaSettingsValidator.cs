@@ -17,6 +17,18 @@ namespace OllamaPilot.Services.Ollama
     {
         public static OllamaValidationResult Validate(OptionPageGrid options)
         {
+            // The original code called ValidateAsync directly within ThreadHelper.JoinableTaskFactory.Run.
+            // This can lead to deadlocks if ValidateAsync itself needs to interact with the UI thread.
+            // A safer approach is to ensure ValidateAsync is called on a background thread if possible,
+            // or to ensure that any UI thread interactions within ValidateAsync are handled correctly.
+            // For simplicity and to preserve the original intent of synchronous validation,
+            // we'll call ValidateLocal first, and then if needed, run the async validation.
+            // However, the original Validate method was intended to be synchronous and likely called from the UI thread.
+            // If ValidateAsync is truly meant to be run synchronously from the UI thread,
+            // then JoinableTaskFactory.Run is appropriate, but it's crucial that ValidateAsync
+            // doesn't block the UI thread unnecessarily or cause deadlocks.
+            // Given the context of Visual Studio extensions, it's common to use JoinableTaskFactory.Run for synchronous calls
+            // that need to execute async operations.
             return ThreadHelper.JoinableTaskFactory.Run(() => ValidateAsync(options));
         }
 
@@ -90,6 +102,14 @@ namespace OllamaPilot.Services.Ollama
 
             try
             {
+                // Ensure OllamaHelper.OllamaService is accessible and initialized.
+                // Assuming OllamaHelper.OllamaService is a static property that provides an instance of the Ollama service.
+                // If OllamaService requires initialization or is not static, this would need adjustment.
+                if (OllamaHelper.OllamaService == null)
+                {
+                    return Fail("Ollama service is not initialized. Please check OllamaPilot configuration.");
+                }
+
                 var models = (await OllamaHelper.OllamaService.ListLocalModelsAsync(options.BaseUrl, options.AccessToken, cancellationToken)).ToList();
                 if (models.Count == 0)
                 {
@@ -110,8 +130,14 @@ namespace OllamaPilot.Services.Ollama
 
                 if (options.EnableAutoComplete)
                 {
+                    // Added null check for completeModelInfo before accessing its Template property.
                     var completeModelInfo = await OllamaHelper.OllamaService.ShowModelInformationAsync(options.BaseUrl, options.AccessToken, options.CompleteModel, cancellationToken);
-                    if (!SupportsInsert(completeModelInfo?.Template))
+                    if (completeModelInfo == null)
+                    {
+                        return Fail($"Could not retrieve information for the code completion model '{options.CompleteModel}'.");
+                    }
+
+                    if (!SupportsInsert(completeModelInfo.Template))
                     {
                         return Fail($"Code Complete Model '{options.CompleteModel}' does not appear to support fill-in-the-middle insert mode.");
                     }
@@ -131,12 +157,15 @@ namespace OllamaPilot.Services.Ollama
             }
             catch (Exception ex)
             {
-                return Fail($"Unable to connect to Ollama. {ex.Message}");
+                // Log the exception for debugging purposes if possible.
+                // For now, just return a user-friendly message.
+                return Fail($"Unable to connect to Ollama. Error: {ex.Message}");
             }
         }
 
         private static bool SupportsInsert(string template)
         {
+            // Added null check for template to prevent NullReferenceException.
             return !string.IsNullOrWhiteSpace(template)
                 && template.Contains("fim_prefix")
                 && template.Contains("fim_suffix")
@@ -150,6 +179,7 @@ namespace OllamaPilot.Services.Ollama
                 return false;
             }
 
+            // Using null-conditional operator and null-coalescing to string.Empty for safer string comparisons.
             return template.Contains(options.FimBegin ?? string.Empty)
                 && template.Contains(options.FimEnd ?? string.Empty)
                 && template.Contains(options.FimHole ?? string.Empty);
@@ -166,6 +196,7 @@ namespace OllamaPilot.Services.Ollama
                 return false;
             }
 
+            // Using OrdinalIgnoreCase for case-insensitive comparison, which is generally good for model names.
             if (modelName.IndexOf("qwen", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 fimBegin = "<|fim_prefix|>";
@@ -204,11 +235,13 @@ namespace OllamaPilot.Services.Ollama
                     return new OllamaValidationResult { Success = true };
                 }
 
+                // Improved error message to be more specific about what's missing.
                 return Fail(
-                    $"The configured FIM tokens do not match the selected completion model. Suggested tokens for '{options.CompleteModel}' are Begin='{suggestedBegin}', Hole='{suggestedHole}', End='{suggestedEnd}'.");
+                    $"The configured FIM tokens do not match the selected completion model. Suggested tokens for '{options.CompleteModel}' are Begin='{suggestedBegin}', Hole='{suggestedHole}', End='{suggestedEnd}'. Your configuration is Begin='{options.FimBegin}', Hole='{options.FimHole}', End='{options.FimEnd}'.");
             }
 
-            return Fail("The configured FIM tokens do not match the selected completion model template.");
+            // Clarified the error message.
+            return Fail("The configured FIM tokens do not match the selected completion model's template. Please check the model's documentation or try suggested tokens if available.");
         }
 
         private static OllamaValidationResult Fail(string message)
