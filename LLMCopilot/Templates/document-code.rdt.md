@@ -11,6 +11,8 @@ The programming language is {{language}}.
 Only add comments to the existing snippet.
 Do not refactor, simplify, optimize, rename, reorder, wrap, unwrap, or reformat the code.
 Preserve behavior, control flow, APIs, identifiers, existing statements, and existing code structure exactly as provided.
+Preserve the original line structure as closely as possible.
+Do not collapse the code onto one line.
 Do not add or remove using/import statements, namespace declarations, class declarations, helper methods, parameters, attributes, or surrounding boilerplate.
 If the input is only a method or fragment, return only that same method or fragment with comments added.
 If the selected snippet is currently undocumented, add at least one meaningful comment.
@@ -27,6 +29,8 @@ Do not describe the code as using a different API than the one shown.
 If the code is already self-explanatory but undocumented, add a brief summary comment rather than returning it unchanged.
 For csharp member declarations, prefer concise XML documentation comments over inline comments when that better matches normal C# style.
 Return exactly one fenced code block containing the commented snippet and nothing else.
+The opening fence must be followed by a newline, then the code, then a closing fence on its own line.
+Keep comments and code on separate lines so the result remains valid compilable {{language}} code.
 
 ## Code
 \`\`\`{{language}}
@@ -34,8 +38,7 @@ Return exactly one fenced code block containing the commented snippet and nothin
 \`\`\`
 
 ## Documented Code
-\`\`\`{{language}}
-
+Return the final answer now as one complete fenced code block.
 ```
 
 ### Response Prompt
@@ -47,6 +50,8 @@ The programming language is {{language}}.
 Only add comments to the existing snippet.
 Do not refactor, simplify, optimize, rename, reorder, wrap, unwrap, or reformat the code.
 Preserve behavior, control flow, APIs, identifiers, existing statements, and existing code structure exactly as provided.
+Preserve the original line structure as closely as possible.
+Do not collapse the code onto one line.
 Do not add or remove using/import statements, namespace declarations, class declarations, helper methods, parameters, attributes, or surrounding boilerplate.
 If the input is only a method or fragment, return only that same method or fragment with comments added.
 If the selected snippet is currently undocumented, add at least one meaningful comment.
@@ -63,6 +68,8 @@ Do not describe the code as using a different API than the one shown.
 If the code is already self-explanatory but undocumented, add a brief summary comment rather than returning it unchanged.
 For csharp member declarations, prefer concise XML documentation comments over inline comments when that better matches normal C# style.
 Return exactly one fenced code block containing the commented snippet and nothing else.
+The opening fence must be followed by a newline, then the code, then a closing fence on its own line.
+Keep comments and code on separate lines so the result remains valid compilable {{language}} code.
 
 Consider the following instructions:
 {{#each messages}}
@@ -77,6 +84,5 @@ Consider the following instructions:
 \`\`\`
 
 ## Documented Code
-\`\`\`{{language}}
-
+Return the final answer now as one complete fenced code block.
 ```

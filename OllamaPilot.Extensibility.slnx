@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="OllamaPilot.Core/OllamaPilot.Core.csproj" />
+  <Project Path="OllamaPilot.Extensibility/OllamaPilot.Extensibility.csproj" />
+  <Project Path="OllamaPilot.Ollama/OllamaPilot.Ollama.csproj" />
+</Solution>

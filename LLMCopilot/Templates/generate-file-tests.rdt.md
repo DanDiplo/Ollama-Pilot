@@ -23,4 +23,5 @@ Generate a useful starting test file that covers:
 Prefer directly usable code over commentary.
 
 ## Response
+Return the final answer now as one complete fenced code block.
 ```

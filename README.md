@@ -35,6 +35,14 @@ Implementation note:
 - this VSIX currently targets `.NET Framework 4.7.2`
 - it uses the classic `Microsoft.VisualStudio.SDK` extension model, not the newer out-of-process `VisualStudio.Extensibility` model
 
+Modern rewrite note:
+- a new sibling solution, [OllamaPilot.Extensibility.slnx](D:/Websites/Projects/Ollama-Pilot/OllamaPilot.Extensibility.slnx), now exists for the ongoing `VisualStudio.Extensibility` rewrite
+- the new code lives in:
+  - [OllamaPilot.Extensibility](D:/Websites/Projects/Ollama-Pilot/OllamaPilot.Extensibility)
+  - [OllamaPilot.Core](D:/Websites/Projects/Ollama-Pilot/OllamaPilot.Core)
+  - [OllamaPilot.Ollama](D:/Websites/Projects/Ollama-Pilot/OllamaPilot.Ollama)
+- the legacy `LLMCopilot` VSIX remains the shipping implementation for full feature parity, especially inline completion and deep VSSDK integrations
+
 ## Setup
 
 1. Install and start Ollama.
@@ -84,6 +92,8 @@ Default acceptance behavior:
 ## Building From Source
 
 Open [OllamaPilot.csproj](D:/Websites/Projects/Ollama-Pilot/LLMCopilot/vs2026/OllamaPilot.csproj) in Visual Studio 2026 and run with `F5` to launch the Experimental Instance.
+
+For the modern rewrite, open [OllamaPilot.Extensibility.slnx](D:/Websites/Projects/Ollama-Pilot/OllamaPilot.Extensibility.slnx) and build the `OllamaPilot.Extensibility` project.
 
 Notes:
 - the project uses the VS SDK build targets and is best built from Visual Studio

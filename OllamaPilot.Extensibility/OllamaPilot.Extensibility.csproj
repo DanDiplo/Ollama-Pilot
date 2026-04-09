@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows8.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <NoWarn>$(NoWarn);CEE0027</NoWarn>
+    <Version>0.1.0</Version>
+    <Authors>Dan Diplo</Authors>
+    <Description>Modern Ollama powered coding copilot for Visual Studio.</Description>
+    <AssemblyName>OllamaPilot.Extensibility</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OllamaPilot.Core\OllamaPilot.Core.csproj" />
+    <ProjectReference Include="..\OllamaPilot.Ollama\OllamaPilot.Ollama.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="ToolWindows\OllamaResultToolWindowContent.xaml" />
+    <None Remove="ToolWindows\OllamaSettingsToolWindowContent.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="ToolWindows\OllamaResultToolWindowContent.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ToolWindows\OllamaSettingsToolWindowContent.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Sdk" Version="17.14.40608" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="17.14.40608" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.Shell.15.0" Version="17.14.40264" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

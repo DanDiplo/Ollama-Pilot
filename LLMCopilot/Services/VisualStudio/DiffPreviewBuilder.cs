@@ -39,14 +39,25 @@ namespace OllamaPilot.Services.VisualStudio
             return builder.ToString();
         }
 
+        /// <summary>
+        /// Splits a given string into a list of lines.
+        /// Handles different line endings by normalizing them to '\n'.
+        /// </summary>
+        /// <param name="text">The input string to split into lines.</param>
+        /// <returns>A list of strings, where each string represents a line from the input text.</returns>
         private static List<string> SplitLines(string text)
         {
+            // If the input text is null or empty, return an empty list of lines.
             if (string.IsNullOrEmpty(text))
             {
                 return new List<string>();
             }
 
+            // Normalize line endings: replace Windows-style "\r\n" with Unix-style "\n".
+            // This ensures consistent splitting regardless of the original line ending format.
             var normalized = text.Replace("\r\n", "\n");
+
+            // Split the normalized string by the newline character '\n' and return the result as a list of strings.
             return new List<string>(normalized.Split('\n'));
         }
 

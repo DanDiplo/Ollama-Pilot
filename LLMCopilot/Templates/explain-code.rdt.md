@@ -6,7 +6,17 @@ Explain the selected code.
 
 ```template-initial-message
 ## Instructions
-Summarize the code below (emphasizing its key functionality).
+Explain the selected code in lightweight markdown.
+Use exactly these sections in this order:
+- `## Summary`
+- `## Key Points`
+- `## Notable Details`
+Keep each section short.
+Use flat bullet lists for `Key Points` and `Notable Details`.
+Put each heading and bullet on its own line.
+Leave a blank line between sections.
+Do not wrap the response in a code block.
+Do not bold every sentence.
 
 ## Selected Code
 \`\`\`
@@ -14,7 +24,7 @@ Summarize the code below (emphasizing its key functionality).
 \`\`\`
 
 ## Task
-Summarize the code at a high level (including goal and purpose) with an emphasis on its key functionality.
+Explain the code at a high level, including its purpose, the main flow, and any important implementation details.
 
 ## Response
 
@@ -57,7 +67,9 @@ Stay focused on current developer request.
 Consider the possibility that there might not be a solution.
 Ask for clarification if the message does not make sense or more input is needed.
 Omit any links.
-Include code snippets (using Markdown) and examples where appropriate.
+For non-code answers, use lightweight markdown with short sections and flat bullet lists.
+Put each heading and bullet on its own line and avoid dense paragraphs.
+Only include fenced code blocks when the developer explicitly asks for code.
 
 ## Response
 Bot:

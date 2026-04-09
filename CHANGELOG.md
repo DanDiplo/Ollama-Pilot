@@ -8,6 +8,9 @@ Versioning rules: v`Major.Minor.Build`
 
 ### v1.6.x
 
+- Added a new `OllamaPilot.Extensibility` sibling solution that starts the VisualStudio.Extensibility rewrite alongside the legacy VSIX.
+- Added shared `OllamaPilot.Core` and `OllamaPilot.Ollama` libraries for reusable prompt, parsing, git, settings, and Ollama transport logic.
+- Added initial modern command and tool window flows for chat, explain code, add comments, review current file, generate tests, summarize working changes, and settings.
 - Added context length setting, which can be configured in the extension settings page.
 - Now switching or closing the conversation window will retain chat history.
 - Added window menu bar with options to list models and clear conversation history.

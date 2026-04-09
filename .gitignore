@@ -1,0 +1,35 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build outputs
+bin/
+obj/
+Debug/
+Release/
+x64/
+x86/
+artifacts/
+
+# .NET / NuGet
+*.nupkg
+*.snupkg
+packages/
+TestResults/
+
+# Logs and diagnostics
+*.log
+
+# Generated VSIX outputs
+*.vsix
+
+# Local tooling caches
+.idea/
+.vscode/
+
+# OS files
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,10 @@
+{
+  "OllamaPilotMenu.DisplayName": "OllamaPilot",
+  "OpenOllamaChatCommand.DisplayName": "Open Ollama Chat",
+  "OpenOllamaSettingsCommand.DisplayName": "Ollama Settings",
+  "ExplainCodeCommand.DisplayName": "Explain Selected Code",
+  "AddCommentsCommand.DisplayName": "Add Comments",
+  "ReviewCurrentFileCommand.DisplayName": "Review Current File",
+  "GenerateFileTestsCommand.DisplayName": "Generate Tests For File",
+  "SummariseWorkingChangesCommand.DisplayName": "Summarise Working Changes"
+}
