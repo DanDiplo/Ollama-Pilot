@@ -37,6 +37,39 @@ public sealed class OllamaPromptService
         return ReplaceFirst(prompt, "```", $"```{language}");
     }
 
+    public string BuildAddCommentsChatPrompt(CodeContext context)
+    {
+        string language = context.Language ?? "text";
+        string languageName = LanguageHelper.GetLanguageName(language);
+        string fenceHeader = LanguageHelper.GetFenceHeader(language);
+
+        var builder = new StringBuilder();
+        builder.AppendLine($"Can you add comments to this {languageName} code block?");
+        builder.AppendLine();
+        builder.AppendLine(fenceHeader);
+        builder.AppendLine(context.EffectiveCode);
+        builder.AppendLine("```");
+        builder.AppendLine();
+        builder.AppendLine($"Return only the complete updated code in one fenced `{language}` code block.");
+        builder.AppendLine("Preserve the existing behavior and formatting.");
+        builder.AppendLine("Do not include explanation before or after the code block.");
+        builder.AppendLine("Do not use placeholders.");
+        return builder.ToString();
+    }
+
+    public string BuildAddCommentsSystemPrompt(string? language)
+    {
+        string normalizedLanguage = language ?? "text";
+        return string.Join(Environment.NewLine, [
+            $"You add clear, concise comments to {normalizedLanguage} code.",
+            "Preserve the existing behavior and formatting.",
+            $"Return the complete updated snippet in exactly one fenced `{normalizedLanguage}` code block.",
+            "Do not include any explanation before or after the code block.",
+            "Do not use placeholders such as `...`.",
+            "Keep the code valid and compilable."
+        ]);
+    }
+
     public string BuildSummarizeChangesPrompt(GitChangesContext changesContext)
     {
         string prompt = RenderRequiredTemplate(

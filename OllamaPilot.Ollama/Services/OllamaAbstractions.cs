@@ -25,7 +25,7 @@ public sealed class ChatResponseStream
 public interface IOllamaService
 {
     Task<IReadOnlyList<Model>> ListLocalModelsAsync(string baseUrl, string? accessToken, CancellationToken cancellationToken);
-    Chat CreateChatSession(string baseUrl, string model, string? accessToken, RequestOptions options, ThinkingDepth thinkingDepth, Action<ChatResponseStream> streamer);
+    Chat CreateChatSession(string baseUrl, string model, string? accessToken, RequestOptions options, ThinkingDepth thinkingDepth, Action<ChatResponseStream> streamer, string? systemPrompt = null);
 }
 
 public sealed class Chat
@@ -38,9 +38,11 @@ public sealed class Chat
     }
 
     public Task SendAsync(string message, CancellationToken cancellationToken) => _session.SendAsync(message, cancellationToken);
+    public Task SendAsAsync(string role, string message, CancellationToken cancellationToken) => _session.SendAsAsync(role, message, cancellationToken);
 }
 
 internal interface IChatSession
 {
     Task SendAsync(string message, CancellationToken cancellationToken);
+    Task SendAsAsync(string role, string message, CancellationToken cancellationToken);
 }

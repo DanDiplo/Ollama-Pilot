@@ -47,14 +47,22 @@ internal abstract class OllamaCommandBase : Command
     }
 
     protected abstract OllamaActionType ActionType { get; }
+    protected OllamaPromptService PromptService => _promptService;
+    protected IOllamaStreamingService StreamingService => _streamingService;
     protected virtual string ActionDisplayName => ActionType.ToString();
     protected virtual string NoCodeAvailableMessage => "No code is available. Select some code or open a file first.";
     protected virtual ResponseParsingMode ParsingMode => ResponseParsingMode.PreferCode;
+    protected virtual bool UseChatModel => false;
+    protected virtual ThinkingDepth? ThinkingDepthOverride => null;
 
     protected virtual async Task<CodeContext?> GetCodeContextAsync(IClientContext context, CancellationToken cancellationToken)
         => await _codeContextService.GetCurrentContextAsync(context, cancellationToken);
 
     protected virtual string BuildPrompt(CodeContext codeContext) => _promptService.BuildActionPrompt(ActionType, codeContext);
+    protected virtual IAsyncEnumerable<OllamaStreamingUpdate> StreamResponseAsync(CodeContext codeContext, string prompt, CancellationToken cancellationToken)
+        => _streamingService.StreamPromptAsync(prompt, UseChatModel, cancellationToken, ThinkingDepthOverride);
+    protected virtual OllamaParsedResponse PostProcessResponse(CodeContext codeContext, OllamaParsedResponse parsed) => parsed;
+    protected virtual string? GetNonApplyReadyStatusMessage(OllamaParsedResponse parsed) => null;
 
     public override async Task ExecuteCommandAsync(IClientContext context, CancellationToken cancellationToken)
     {
@@ -86,7 +94,7 @@ internal abstract class OllamaCommandBase : Command
             ["promptPreview"] = prompt
         });
 
-        await foreach (OllamaStreamingUpdate update in _streamingService.StreamPromptAsync(prompt, useChatModel: false, cancellationToken))
+        await foreach (OllamaStreamingUpdate update in StreamResponseAsync(codeContext, prompt, cancellationToken))
         {
             if (!string.IsNullOrWhiteSpace(update.ThinkingChunk))
             {
@@ -114,10 +122,11 @@ internal abstract class OllamaCommandBase : Command
         }
 
         var parsed = _responseParser.Parse(builder.ToString(), ActionDisplayName, codeContext.FilePath, codeContext.ApplyTarget, ParsingMode);
+        parsed = PostProcessResponse(codeContext, parsed);
         _diagnosticsService.LogInfo("command.response", new Dictionary<string, object?>
         {
             ["action"] = ActionDisplayName,
-            ["model"] = settings.SelectedModel,
+            ["model"] = UseChatModel ? settings.SelectedChatModel : settings.SelectedModel,
             ["responseChars"] = builder.Length,
             ["thinkingChars"] = thinkingBuilder.Length,
             ["hasCodeBlock"] = parsed.HasCodeBlock,
@@ -128,9 +137,10 @@ internal abstract class OllamaCommandBase : Command
         });
         _resultStore.SetResult(parsed);
         _windowState.CompleteStreamingRequest(parsed);
-        if (ParsingMode == ResponseParsingMode.CodeRequired && !parsed.IsApplyReady)
+        string? nonApplyReadyStatus = GetNonApplyReadyStatusMessage(parsed);
+        if (!string.IsNullOrWhiteSpace(nonApplyReadyStatus))
         {
-            _windowState.Data.Status = $"Model did not return apply-ready code. See log: {_diagnosticsService.LogFilePath}";
+            _windowState.Data.Status = nonApplyReadyStatus;
         }
     }
 

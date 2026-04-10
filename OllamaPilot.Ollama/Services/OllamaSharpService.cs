@@ -12,9 +12,9 @@ public sealed class OllamaSharpService : IOllamaService
         return models.Select(model => new Model { Name = model.Name }).ToArray();
     }
 
-    public Chat CreateChatSession(string baseUrl, string model, string? accessToken, RequestOptions options, ThinkingDepth thinkingDepth, Action<ChatResponseStream> streamer)
+    public Chat CreateChatSession(string baseUrl, string model, string? accessToken, RequestOptions options, ThinkingDepth thinkingDepth, Action<ChatResponseStream> streamer, string? systemPrompt = null)
     {
-        var session = new OllamaSharpChatSession(baseUrl, model, accessToken, options, thinkingDepth, streamer);
+        var session = new OllamaSharpChatSession(baseUrl, model, accessToken, options, thinkingDepth, streamer, systemPrompt);
         return new Chat(session);
     }
 
@@ -42,40 +42,33 @@ public sealed class OllamaSharpService : IOllamaService
         private readonly string _selectedModel;
         private readonly string? _accessToken;
         private readonly ThinkingDepth _thinkingDepth;
+        private readonly string? _systemPrompt;
 
-        public OllamaSharpChatSession(string baseUrl, string model, string? accessToken, RequestOptions options, ThinkingDepth thinkingDepth, Action<ChatResponseStream> streamer)
+        public OllamaSharpChatSession(string baseUrl, string model, string? accessToken, RequestOptions options, ThinkingDepth thinkingDepth, Action<ChatResponseStream> streamer, string? systemPrompt)
         {
             _client = CreateClient(baseUrl, accessToken, model);
-            _chat = new OllamaSharp.Chat(_client)
+            _chat = string.IsNullOrWhiteSpace(systemPrompt)
+                ? new OllamaSharp.Chat(_client)
+                : new OllamaSharp.Chat(_client, systemPrompt);
+            _chat.Options = new OllamaSharp.Models.RequestOptions
             {
-                Model = model,
-                Options = new OllamaSharp.Models.RequestOptions
-                {
-                    NumCtx = options.NumCtx,
-                    NumPredict = options.NumPredict,
-                    Temperature = options.Temperature
-                }
+                NumCtx = options.NumCtx,
+                NumPredict = options.NumPredict,
+                Temperature = options.Temperature
             };
             _streamer = streamer;
             _selectedModel = model;
             _accessToken = accessToken;
             _thinkingDepth = thinkingDepth;
+            _systemPrompt = systemPrompt;
             _chat.Think = ToThinkValue(thinkingDepth);
             _chat.OnThink += OnThink;
+            _chat.Model = model;
         }
 
         public async Task SendAsync(string message, CancellationToken cancellationToken)
         {
-            if (!string.IsNullOrWhiteSpace(_accessToken))
-            {
-                _client.DefaultRequestHeaders["Authorization"] = "Bearer " + _accessToken.Trim();
-            }
-
-            _client.SelectedModel = _selectedModel;
-            _chat.Model = _selectedModel;
-            _chat.Think = ToThinkValue(_thinkingDepth);
-
-            var enumerator = _chat.SendAsync(message, cancellationToken).GetAsyncEnumerator(cancellationToken);
+            var enumerator = SendInternalAsync(() => _chat.SendAsync(message, cancellationToken), cancellationToken);
             try
             {
                 while (await enumerator.MoveNextAsync())
@@ -98,6 +91,56 @@ public sealed class OllamaSharpService : IOllamaService
                 Model = _selectedModel,
                 Done = true
             });
+        }
+
+        public async Task SendAsAsync(string role, string message, CancellationToken cancellationToken)
+        {
+            if (!string.IsNullOrWhiteSpace(_accessToken))
+            {
+                _client.DefaultRequestHeaders["Authorization"] = "Bearer " + _accessToken.Trim();
+            }
+
+            _client.SelectedModel = _selectedModel;
+            _chat.Model = _selectedModel;
+            _chat.Think = ToThinkValue(_thinkingDepth);
+
+            var chatRole = new OllamaSharp.Models.Chat.ChatRole(role);
+            var enumerator = SendInternalAsync(() => _chat.SendAsAsync(chatRole, message, cancellationToken), cancellationToken);
+            try
+            {
+                while (await enumerator.MoveNextAsync())
+                {
+                    _streamer(new ChatResponseStream
+                    {
+                        Model = _selectedModel,
+                        Content = enumerator.Current ?? string.Empty,
+                        Done = false
+                    });
+                }
+            }
+            finally
+            {
+                await enumerator.DisposeAsync();
+            }
+
+            _streamer(new ChatResponseStream
+            {
+                Model = _selectedModel,
+                Done = true
+            });
+        }
+
+        private IAsyncEnumerator<string> SendInternalAsync(Func<IAsyncEnumerable<string>> send, CancellationToken cancellationToken)
+        {
+            if (!string.IsNullOrWhiteSpace(_accessToken))
+            {
+                _client.DefaultRequestHeaders["Authorization"] = "Bearer " + _accessToken.Trim();
+            }
+
+            _client.SelectedModel = _selectedModel;
+            _chat.Model = _selectedModel;
+            _chat.Think = ToThinkValue(_thinkingDepth);
+            return send().GetAsyncEnumerator(cancellationToken);
         }
 
         private void OnThink(object? sender, string thinkingToken)

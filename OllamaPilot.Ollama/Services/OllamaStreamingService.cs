@@ -23,11 +23,12 @@ public sealed class OllamaStreamingService : IOllamaStreamingService
     public async IAsyncEnumerable<OllamaStreamingUpdate> StreamPromptAsync(
         string prompt,
         bool useChatModel,
-        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken,
+        ThinkingDepth? thinkingDepthOverride = null)
     {
         OllamaClientSettings settings = _settingsService.Settings;
         string selectedModel = useChatModel ? settings.SelectedChatModel : settings.SelectedModel;
-        ThinkingDepth thinkingDepth = useChatModel ? settings.ChatThinkingDepth : ThinkingDepth.Off;
+        ThinkingDepth thinkingDepth = thinkingDepthOverride ?? (useChatModel ? settings.ChatThinkingDepth : ThinkingDepth.Off);
         var requestOptions = new RequestOptions
         {
             NumCtx = settings.ChatContextWindow,
@@ -130,6 +131,158 @@ public sealed class OllamaStreamingService : IOllamaStreamingService
                     ["useChatModel"] = useChatModel,
                     ["model"] = selectedModel,
                     ["promptChars"] = prompt.Length
+                });
+                channel.Writer.TryWrite(new OllamaStreamingUpdate { IsCompleted = true, ErrorMessage = ex.Message });
+                channel.Writer.TryComplete(ex);
+            }
+        }, cancellationToken);
+
+        await foreach (OllamaStreamingUpdate update in channel.Reader.ReadAllAsync(cancellationToken))
+        {
+            yield return update;
+        }
+    }
+
+    public async IAsyncEnumerable<OllamaStreamingUpdate> StreamStructuredChatAsync(
+        string systemPrompt,
+        string userPrompt,
+        bool useChatModel,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken,
+        ThinkingDepth? thinkingDepthOverride = null)
+    {
+        OllamaClientSettings settings = _settingsService.Settings;
+        string selectedModel = useChatModel ? settings.SelectedChatModel : settings.SelectedModel;
+        ThinkingDepth thinkingDepth = thinkingDepthOverride ?? (useChatModel ? settings.ChatThinkingDepth : ThinkingDepth.Off);
+        var requestOptions = new RequestOptions
+        {
+            NumCtx = settings.ChatContextWindow,
+            NumPredict = settings.MaxOutputTokens,
+            Temperature = useChatModel ? settings.ChatTemperature : settings.DefaultTemperature
+        };
+
+        _diagnosticsService.LogInfo("structured.start", new Dictionary<string, object?>
+        {
+            ["useChatModel"] = useChatModel,
+            ["model"] = selectedModel,
+            ["thinkingDepth"] = thinkingDepth,
+            ["temperature"] = requestOptions.Temperature,
+            ["numCtx"] = requestOptions.NumCtx,
+            ["numPredict"] = requestOptions.NumPredict,
+            ["systemPromptChars"] = systemPrompt.Length,
+            ["userPromptChars"] = userPrompt.Length,
+            ["systemPromptPreview"] = systemPrompt,
+            ["userPromptPreview"] = userPrompt
+        });
+
+        await foreach (OllamaStreamingUpdate update in StreamFromChatSessionAsync(
+            selectedModel,
+            settings.BaseUrl,
+            settings.AccessToken,
+            requestOptions,
+            thinkingDepth,
+            systemPrompt,
+            chat => chat.SendAsAsync("user", userPrompt, cancellationToken),
+            useChatModel,
+            cancellationToken))
+        {
+            yield return update;
+        }
+    }
+
+    private async IAsyncEnumerable<OllamaStreamingUpdate> StreamFromChatSessionAsync(
+        string selectedModel,
+        string baseUrl,
+        string? accessToken,
+        RequestOptions requestOptions,
+        ThinkingDepth thinkingDepth,
+        string? systemPrompt,
+        Func<Chat, Task> sendAsync,
+        bool useChatModel,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        Channel<OllamaStreamingUpdate> channel = Channel.CreateUnbounded<OllamaStreamingUpdate>();
+        int contentChunks = 0;
+        int thinkingChunks = 0;
+        int contentChars = 0;
+        int thinkingChars = 0;
+        Chat chat = _ollamaService.CreateChatSession(
+            baseUrl,
+            selectedModel,
+            accessToken,
+            requestOptions,
+            thinkingDepth,
+            response =>
+            {
+                if (!string.IsNullOrWhiteSpace(response.Thinking))
+                {
+                    thinkingChunks++;
+                    thinkingChars += response.Thinking.Length;
+                    if (thinkingChunks <= 3 || thinkingChunks % 25 == 0)
+                    {
+                        _diagnosticsService.LogInfo("stream.thinking", new Dictionary<string, object?>
+                        {
+                            ["model"] = selectedModel,
+                            ["chunkIndex"] = thinkingChunks,
+                            ["chunkChars"] = response.Thinking.Length,
+                            ["thinkingCharsTotal"] = thinkingChars,
+                            ["thinkingPreview"] = response.Thinking
+                        });
+                    }
+
+                    channel.Writer.TryWrite(new OllamaStreamingUpdate { ThinkingChunk = response.Thinking });
+                }
+
+                if (!string.IsNullOrWhiteSpace(response.Content))
+                {
+                    contentChunks++;
+                    contentChars += response.Content.Length;
+                    if (contentChunks <= 3 || contentChunks % 25 == 0)
+                    {
+                        _diagnosticsService.LogInfo("stream.content", new Dictionary<string, object?>
+                        {
+                            ["model"] = selectedModel,
+                            ["chunkIndex"] = contentChunks,
+                            ["chunkChars"] = response.Content.Length,
+                            ["contentCharsTotal"] = contentChars,
+                            ["contentPreview"] = response.Content
+                        });
+                    }
+
+                    channel.Writer.TryWrite(new OllamaStreamingUpdate { TextChunk = response.Content });
+                }
+
+                if (response.Done)
+                {
+                    _diagnosticsService.LogInfo("stream.completed", new Dictionary<string, object?>
+                    {
+                        ["model"] = selectedModel,
+                        ["thinkingChunks"] = thinkingChunks,
+                        ["contentChunks"] = contentChunks,
+                        ["thinkingCharsTotal"] = thinkingChars,
+                        ["contentCharsTotal"] = contentChars
+                    });
+                    channel.Writer.TryWrite(new OllamaStreamingUpdate { IsCompleted = true });
+                    channel.Writer.TryComplete();
+                }
+            },
+            systemPrompt);
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await sendAsync(chat);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                channel.Writer.TryComplete();
+            }
+            catch (Exception ex)
+            {
+                _diagnosticsService.LogError("stream.failed", ex, new Dictionary<string, object?>
+                {
+                    ["useChatModel"] = useChatModel,
+                    ["model"] = selectedModel
                 });
                 channel.Writer.TryWrite(new OllamaStreamingUpdate { IsCompleted = true, ErrorMessage = ex.Message });
                 channel.Writer.TryComplete(ex);
